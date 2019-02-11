@@ -2,9 +2,10 @@
 #define BLOCKS_LOGGER_H
 
 #include <string.h>
-#include "defines.h"
+#include "defines.hpp"
 
-enum LogLevel {
+enum LogLevel
+{
     LogLevel_Debug = 0,
     LogLevel_Info,
     LogLevel_Warn,

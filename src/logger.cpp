@@ -1,21 +1,21 @@
-#include "logger.h"
+#include "logger.hpp"
 #include <time.h>
 
 static LogLevel g_log_level = LogLevel_Debug;
 
-LogLevel 
+LogLevel
 GetLogLevel()
 {
     return g_log_level;
 }
 
-void 
+void
 SetLogLevel(LogLevel level)
 {
     g_log_level = level;
 }
 
-const char* 
+const char*
 GetLogTag(LogLevel level)
 {
     static const char* tags[] = {
@@ -29,16 +29,16 @@ GetLogTag(LogLevel level)
 }
 
 const char *
-PrettyTime() 
+PrettyTime()
 {
     static char buffer[64];
     time_t rawtime;
     struct tm *timeinfo;
-    
+
     time(&rawtime);
     timeinfo = localtime(&rawtime);
-    
+
     strftime(buffer, 64, "%Y-%m-%d %H:%M:%S", timeinfo);
-    
+
     return buffer;
 }
