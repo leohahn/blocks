@@ -9,6 +9,7 @@
 #include "logger.hpp"
 #include "input_system.hpp"
 #include "allocator.hpp"
+#include "math/vec3.hpp"
 
 static GLuint
 LoadShaderFromFile(const char* path, LinearAllocator allocator)
@@ -169,6 +170,36 @@ OnAButtonRelease(SDL_Event ev, void* user_data)
     LOG_INFO("A button was released");
 }
 
+static void
+OnApplicationQuit(SDL_Event ev, void* user_data)
+{
+    bool* running = (bool*)user_data;
+    *running = false;
+}
+
+struct Camera
+{
+    Vec3 position;
+
+    static Camera New()
+    {
+        Camera c = {};
+        return c;
+    }
+};
+
+//
+// What needs to be done
+//  [DONE] - Draw a triangle
+//  [DONE] - Prototype the input system
+//  [DONE] - Basic math vectors
+//  [TODO] - Mat4 implementation
+//  [TODO] - Draw the same triangle but with correct world space
+//  [TODO] - Make a camera that moves sideways compared to the triangle
+//  [TODO] - Make an FPS camera
+//  [TODO] - Draw a cube
+//
+
 int
 main()
 {
@@ -224,6 +255,8 @@ main()
 
     glClearColor(0, 0, 0, 1);
 
+    bool running = true;
+
     //
     // Create the input system
     //
@@ -231,10 +264,11 @@ main()
     input_system->AddKeyboardEventListener(kKeyboardEventButtonHold, SDLK_a, OnAButtonHold, nullptr, main_allocator);
     input_system->AddKeyboardEventListener(kKeyboardEventButtonDown, SDLK_a, OnAButtonPress, nullptr, main_allocator);
     input_system->AddKeyboardEventListener(kKeyboardEventButtonUp, SDLK_a, OnAButtonRelease, nullptr, main_allocator);
+    input_system->AddKeyboardEventListener(kKeyboardEventButtonDown, SDLK_q, OnApplicationQuit, nullptr, main_allocator);
 
     GLuint triangle_vao = SetupTriangle();
 
-    for (;;) {
+    while (running) {
         input_system->Update();
 
         if (input_system->ReceivedQuitEvent()) {

@@ -28,10 +28,15 @@ add_executable(blocks
     src/logger.hpp
     src/utils.hpp
     src/utils.cpp
+    src/math/vec3.hpp
+    src/math/mat4.hpp
     src/main.cpp)
 
 target_compile_options(blocks PRIVATE -fno-rtti -fno-exceptions -std=c++14)
 
-target_include_directories(blocks PUBLIC deps/glad/include)
+target_include_directories(blocks
+  PUBLIC
+    deps/glad/include
+    src)
 
 target_link_libraries(blocks PUBLIC CONAN_PKG::sdl2)
