@@ -18,18 +18,26 @@ endif()
 add_executable(blocks
     deps/glad/src/glad.cpp
     src/linear_allocator.hpp
-    src/memory.hpp
-    src/allocator.hpp
     src/double_linked_list.hpp
     src/input_system.hpp
     src/input_system.cpp
+    # Memory
+    src/memory.hpp
+    src/allocator.hpp
+    # Utils
     src/defines.hpp
     src/logger.cpp
     src/logger.hpp
     src/utils.hpp
     src/utils.cpp
+    # Math
     src/math/vec3.hpp
     src/math/mat4.hpp
+    src/math/mat4.cpp
+    # Shaders
+    src/shader.hpp
+    src/shader.cpp
+
     src/main.cpp)
 
 target_compile_options(blocks PRIVATE -fno-rtti -fno-exceptions -std=c++14)
@@ -39,4 +47,4 @@ target_include_directories(blocks
     deps/glad/include
     src)
 
-target_link_libraries(blocks PUBLIC CONAN_PKG::sdl2)
+target_link_libraries(blocks PUBLIC CONAN_PKG::sdl2 -lm)
