@@ -16,7 +16,7 @@ public:
     {
         Array arr = {};
         arr._cap = ARRAY_INITIAL_SIZE;
-        arr._data = (T*)allocator->Allocate(sizeof(T));
+        arr._data = (T*)allocator->Allocate(sizeof(T) * ARRAY_INITIAL_SIZE);
         assert(arr._data);
         return arr;
     }

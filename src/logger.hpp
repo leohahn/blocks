@@ -2,6 +2,7 @@
 #define BLOCKS_LOGGER_H
 
 #include <string.h>
+#include <stdio.h>
 #include "defines.hpp"
 
 enum LogLevel
