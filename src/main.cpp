@@ -13,17 +13,31 @@
 #include "shader.hpp"
 
 static GLuint
-SetupTriangle()
+SetupCube(size_t* cube_num_indices)
 {
+    assert(cube_num_indices);
+
     static float vertices[] = {
-        -0.5, -0.5, 0,
-        0.5, -0.5, 0,
-        0, 0.5, 0,
+        // vertices on the back of the cube
+        -1, -1, -1,  // 0
+         1, -1, -1,  // 1
+         1,  1, -1,  // 2
+        -1,  1, -1,  // 3
+        // vertices on the front of the cube
+        -1, -1,  1,  // 4
+         1, -1,  1,  // 5
+         1,  1,  1,  // 6
+        -1,  1,  1   // 7
     };
 
     static unsigned indices[] = {
-        0, 1, 2,
+        // front face
+        4, 5, 6,
+        6, 7, 4
+        // TODO: finish the other faces
     };
+
+    *cube_num_indices = ARRAY_SIZE(indices);
 
     // create the vao
     GLuint vao;
@@ -37,7 +51,7 @@ SetupTriangle()
 
     // bind vbo
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*ARRAY_SIZE(vertices), vertices, GL_STATIC_DRAW);
 
     // specify how buffer data is layed out in memory
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
@@ -45,16 +59,16 @@ SetupTriangle()
 
     // bind ebo
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned)*sizeof(indices), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, ARRAY_SIZE(indices)*sizeof(unsigned), indices, GL_STATIC_DRAW);
     return vao;
 }
 
 static void
-DrawTriangle(GLuint shader_program, GLuint vao)
+DrawCube(GLuint shader_program, GLuint vao, size_t num_indices)
 {
     glUseProgram(shader_program);
     glBindVertexArray(vao);
-    glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, 0);
 }
 
 static void
@@ -96,18 +110,15 @@ struct Camera
 
 //
 // What needs to be done
-//  [DONE] - Draw a triangle
-//  [DONE] - Prototype the input system
-//  [DONE] - Basic math vectors
-//  [DONE] - Mat4 implementation
+//  [*DONE*] - Mat4 implementation
 //           - LookAt
 //           - Perspective
 //           - Orthogonal
-//  [DONE] - Draw the same triangle but with correct world space
-//  [DONE] - Make a camera that moves sideways compared to the triangle
+//  [*DONE*] - Draw the same triangle but with correct world space
+//  [*DONE*] - Make a camera that moves sideways compared to the triangle
+//  [TODO] - Draw a cube
 //  [TODO] - Quaternions?  
 //  [TODO] - Make an FPS camera
-//  [TODO] - Draw a cube
 //
 
 class PlayerInput
@@ -235,7 +246,8 @@ main()
     auto player_input = PlayerInput::New();
     player_input.RegisterInputs(input_system, main_allocator);
 
-    GLuint triangle_vao = SetupTriangle();
+    size_t cube_num_indices;
+    GLuint cube_vao = SetupCube(&cube_num_indices);
 
     auto camera = Camera::New(Vec3::New(0, 0, 5), Vec3::New(0, 0, -1));
 
@@ -275,7 +287,7 @@ main()
         glUniformMatrix4fv(view_location, 1, false, &view_matrix.data[0]);
 
         // Here is the rendering code
-        DrawTriangle(basic_program, triangle_vao);
+        DrawCube(basic_program, cube_vao, cube_num_indices);
 
         SDL_GL_SwapWindow(window);
     }
