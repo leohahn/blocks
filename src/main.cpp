@@ -73,7 +73,7 @@ struct Camera
     {
         Camera c = {};
         c.position = position;
-        c.front = Math::Normalize(front - position);
+        c.front = Math::Normalize(front);
         return c;
     }
 
