@@ -110,13 +110,13 @@ struct Camera
 //  [TODO] - Draw a cube
 //
 
-class PlayerSystem
+class PlayerInput
 {
 public:
-    static PlayerSystem New()
+    static PlayerInput New()
     {
-        PlayerSystem ps = {};
-        return ps;
+        PlayerInput pi = {};
+        return pi;
     }
 
     void RegisterInputs(InputSystem* input_system, LinearAllocator& allocator)
@@ -137,25 +137,25 @@ public:
 private:
     static void LeftInput(SDL_Event ev, void* user_data)
     {
-        auto ps = (PlayerSystem*)user_data;
+        auto ps = (PlayerInput*)user_data;
         ps->_moving_left = true;
     }
 
     static void LeftRelease(SDL_Event ev, void* user_data)
     {
-        auto ps = (PlayerSystem*)user_data;
+        auto ps = (PlayerInput*)user_data;
         ps->_moving_left = false;
     }
 
     static void RightInput(SDL_Event ev, void* user_data)
     {
-        auto ps = (PlayerSystem*)user_data;
+        auto ps = (PlayerInput*)user_data;
         ps->_moving_right = true;
     }
 
     static void RightRelease(SDL_Event ev, void* user_data)
     {
-        auto ps = (PlayerSystem*)user_data;
+        auto ps = (PlayerInput*)user_data;
         ps->_moving_right = false;
     }
 
@@ -232,8 +232,8 @@ main()
     auto input_system = InputSystem::Make(main_allocator);
     input_system->AddKeyboardEventListener(kKeyboardEventButtonDown, SDLK_q, OnApplicationQuit, &running, main_allocator);
 
-    auto player_system = PlayerSystem::New();
-    player_system.RegisterInputs(input_system, main_allocator);
+    auto player_input = PlayerInput::New();
+    player_input.RegisterInputs(input_system, main_allocator);
 
     GLuint triangle_vao = SetupTriangle();
 
@@ -255,17 +255,19 @@ main()
             break;
         }
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        if (player_system.IsMovingLeft()) {
-            LOG_INFO("Is moving left");
+        if (player_input.IsMovingLeft()) {
             camera.MoveLeft(0.01f);
         }
 
-        if (player_system.IsMovingRight()) {
-            LOG_INFO("Is moving right");
+        if (player_input.IsMovingRight()) {
             camera.MoveRight(0.01f);
         }
+
+        //
+        // Start rendering part of the main loop
+        //
+
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(basic_program);
 
