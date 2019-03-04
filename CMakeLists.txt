@@ -34,6 +34,9 @@ add_executable(blocks
     src/math/vec3.hpp
     src/math/mat4.hpp
     src/math/mat4.cpp
+    src/math/float.hpp
+    src/math/quaternion.hpp
+    src/math/quaternion.cpp
     # Shaders
     src/shader.hpp
     src/shader.cpp

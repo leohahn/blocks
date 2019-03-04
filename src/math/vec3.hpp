@@ -5,9 +5,21 @@
 
 struct Vec3
 {
-    float x;
-    float y;
-    float z;
+    union 
+    {
+        struct
+        {
+            float x;
+            float y;
+            float z;
+        };
+        struct
+        {
+            float i;
+            float j;
+            float k;
+        };
+    };
 
     static Vec3 New(float x, float y, float z)
     {
@@ -41,16 +53,41 @@ struct Vec3
     {
         x += vec.x; y += vec.y; z += vec.z;
     }
+
+    Vec3 operator-() const
+    {
+        return Vec3::New(-x, -y, -z);
+    }
 };
 
 inline Vec3
-operator+(Vec3 lhs, Vec3 rhs)
+operator+(const Vec3& lhs, const Vec3& rhs)
 {
-    Vec3 res;
-    res.x = lhs.x + rhs.x;
-    res.y = lhs.y + rhs.y;
-    res.z = lhs.z + rhs.z;
-    return res;
+    return Vec3::New(
+        lhs.x + rhs.x,
+        lhs.y + rhs.y,
+        lhs.z + rhs.z
+    );
+}
+
+inline Vec3
+operator*(const Vec3& v, float k)
+{
+    return Vec3::New(
+        v.x * k,
+        v.y * k,
+        v.z * k
+    );
+}
+
+inline Vec3
+operator*(float k, const Vec3& v)
+{
+    return Vec3::New(
+        v.x * k,
+        v.y * k,
+        v.z * k
+    );
 }
 
 inline Vec3
