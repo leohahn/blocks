@@ -9,103 +9,8 @@
 #include "logger.hpp"
 #include "input_system.hpp"
 #include "allocator.hpp"
-#include "math/vec3.hpp"
-
-static GLuint
-LoadShaderFromFile(const char* path, LinearAllocator allocator)
-{
-    assert(path);
-
-    LOG_DEBUG("Making shader program for %s\n", path);
-
-    GLuint vertex_shader, fragment_shader, program = 0;
-    GLchar info[512] = {};
-    GLint success;
-
-    char* shader_string = nullptr;
-    {
-        FILE* fp = fopen(path, "rb");
-        assert(fp && "shader file should exist");
-
-        // take the size of the file
-        fseek(fp, 0, SEEK_END);
-        size_t file_size = ftell(fp);
-        fseek(fp, 0, SEEK_SET);
-
-        // allocate enough memory
-        shader_string = (char*)allocator.Allocate(file_size);
-        assert(shader_string && "there should be enough memory here");
-
-        // read the file into the buffer
-        size_t nread = fread(shader_string, 1, file_size, fp);
-        assert(nread == file_size && "the correct amount of bytes should be read");
-
-        fclose(fp);
-    }
-
-    vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-
-    if (vertex_shader == 0 || fragment_shader == 0) {
-        LOG_ERROR("failed to create shaders (glCreateShader)\n");
-        goto cleanup_shaders;
-    }
-
-    {
-        const char *vertex_string[3] = {
-            "#version 330 core\n",
-            "#define VERTEX_SHADER\n",
-            shader_string,
-        };
-        glShaderSource(vertex_shader, 3, &vertex_string[0], NULL);
-
-        const char *fragment_string[3] = {
-            "#version 330 core\n",
-            "#define FRAGMENT_SHADER\n",
-            shader_string,
-        };
-        glShaderSource(fragment_shader, 3, &fragment_string[0], NULL);
-    }
-
-    glCompileShader(vertex_shader);
-    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
-
-    if (!success) {
-        glGetShaderInfoLog(vertex_shader, 512, NULL, info);
-        LOG_ERROR("Vertex shader compilation failed: %s\n", info);
-        program = 0;
-        goto cleanup_shaders;
-    }
-
-    glCompileShader(fragment_shader);
-    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
-
-    if (!success) {
-        glGetShaderInfoLog(fragment_shader, 512, NULL, info);
-        LOG_ERROR("Fragment shader compilation failed: %s\n", info);
-        program = 0;
-        goto cleanup_shaders;
-    }
-
-    program = glCreateProgram();
-    glAttachShader(program, vertex_shader);
-    glAttachShader(program, fragment_shader);
-    glLinkProgram(program);
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-
-    if (!success) {
-        glGetShaderInfoLog(fragment_shader, 512, nullptr, info);
-        LOG_ERROR("Shader linking failed: %s\n", info);
-        program = 0;
-        goto cleanup_shaders;
-    }
-
-cleanup_shaders:
-    glDeleteShader(vertex_shader);
-    glDeleteShader(fragment_shader);
-
-    return program;
-}
+#include "math.hpp"
+#include "shader.hpp"
 
 static GLuint
 SetupTriangle()
@@ -153,24 +58,6 @@ DrawTriangle(GLuint shader_program, GLuint vao)
 }
 
 static void
-OnAButtonHold(SDL_Event ev, void* user_data)
-{
-    LOG_INFO("A button is being hold");
-}
-
-static void
-OnAButtonPress(SDL_Event ev, void* user_data)
-{
-    LOG_INFO("A button was pressed");
-}
-
-static void
-OnAButtonRelease(SDL_Event ev, void* user_data)
-{
-    LOG_INFO("A button was released");
-}
-
-static void
 OnApplicationQuit(SDL_Event ev, void* user_data)
 {
     bool* running = (bool*)user_data;
@@ -180,11 +67,30 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 struct Camera
 {
     Vec3 position;
+    Vec3 front;
 
-    static Camera New()
+    static Camera New(Vec3 position, Vec3 front)
     {
         Camera c = {};
+        c.position = position;
+        c.front = Math::Normalize(front - position);
         return c;
+    }
+
+    Mat4 GetViewMatrix() const
+    {
+        auto view_matrix = Mat4::LookAt(position, position + front, Vec3::New(0, 1, 0));
+        return view_matrix;
+    }
+
+    void MoveLeft(float offset)
+    {
+        position.x -= offset;
+    }
+
+    void MoveRight(float offset)
+    {
+        position.x += offset;
     }
 };
 
@@ -193,12 +99,72 @@ struct Camera
 //  [DONE] - Draw a triangle
 //  [DONE] - Prototype the input system
 //  [DONE] - Basic math vectors
-//  [TODO] - Mat4 implementation
-//  [TODO] - Draw the same triangle but with correct world space
-//  [TODO] - Make a camera that moves sideways compared to the triangle
+//  [DONE] - Mat4 implementation
+//           - LookAt
+//           - Perspective
+//           - Orthogonal
+//  [DONE] - Draw the same triangle but with correct world space
+//  [DONE] - Make a camera that moves sideways compared to the triangle
+//  [TODO] - Quaternions?  
 //  [TODO] - Make an FPS camera
 //  [TODO] - Draw a cube
 //
+
+class PlayerSystem
+{
+public:
+    static PlayerSystem New()
+    {
+        PlayerSystem ps = {};
+        return ps;
+    }
+
+    void RegisterInputs(InputSystem* input_system, LinearAllocator& allocator)
+    {
+        input_system->AddKeyboardEventListener(
+            kKeyboardEventButtonHold, SDLK_a, LeftInput, this, allocator);
+        input_system->AddKeyboardEventListener(
+            kKeyboardEventButtonUp, SDLK_a, LeftRelease, this, allocator);
+        input_system->AddKeyboardEventListener(
+            kKeyboardEventButtonHold, SDLK_d, RightInput, this, allocator);
+        input_system->AddKeyboardEventListener(
+            kKeyboardEventButtonUp, SDLK_d, RightRelease, this, allocator);
+    }
+
+    bool IsMovingLeft() const { return _moving_left; }
+    bool IsMovingRight() const { return _moving_right; }
+
+private:
+    static void LeftInput(SDL_Event ev, void* user_data)
+    {
+        auto ps = (PlayerSystem*)user_data;
+        ps->_moving_left = true;
+    }
+
+    static void LeftRelease(SDL_Event ev, void* user_data)
+    {
+        auto ps = (PlayerSystem*)user_data;
+        ps->_moving_left = false;
+    }
+
+    static void RightInput(SDL_Event ev, void* user_data)
+    {
+        auto ps = (PlayerSystem*)user_data;
+        ps->_moving_right = true;
+    }
+
+    static void RightRelease(SDL_Event ev, void* user_data)
+    {
+        auto ps = (PlayerSystem*)user_data;
+        ps->_moving_right = false;
+    }
+
+    bool _moving_left;
+    bool _moving_right;
+};
+
+#define SCREEN_WIDTH 800
+#define SCREEN_HEIGHT 600
 
 int
 main()
@@ -210,7 +176,7 @@ main()
         return 1;
     }
 
-    SDL_Window* window = SDL_CreateWindow("my window", 0, 0, 800, 600, SDL_WINDOW_OPENGL);
+    SDL_Window* window = SDL_CreateWindow("my window", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -226,7 +192,7 @@ main()
         return 1;
     }
 
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     //
     // Create total scratch memory
@@ -243,13 +209,16 @@ main()
         main_allocator.Allocate(KILOBYTES(10)), KILOBYTES(10)
     );
 
-    GLuint program = LoadShaderFromFile(
+    GLuint basic_program = Shader::LoadFromFile(
         "/Users/lhahn/dev/prototypes/blocks/resources/shaders/basic.glsl", shaders_allocator
     );
+    auto view_location = glGetUniformLocation(basic_program, "view");
+    auto model_location = glGetUniformLocation(basic_program, "model");
+    auto projection_location = glGetUniformLocation(basic_program, "projection");
 
     shaders_allocator.Clear();
 
-    assert(program > 0 && "program should be valid");
+    assert(basic_program > 0 && "program should be valid");
 
     LOG_DEBUG("Starting main loop");
 
@@ -261,12 +230,22 @@ main()
     // Create the input system
     //
     auto input_system = InputSystem::Make(main_allocator);
-    input_system->AddKeyboardEventListener(kKeyboardEventButtonHold, SDLK_a, OnAButtonHold, nullptr, main_allocator);
-    input_system->AddKeyboardEventListener(kKeyboardEventButtonDown, SDLK_a, OnAButtonPress, nullptr, main_allocator);
-    input_system->AddKeyboardEventListener(kKeyboardEventButtonUp, SDLK_a, OnAButtonRelease, nullptr, main_allocator);
-    input_system->AddKeyboardEventListener(kKeyboardEventButtonDown, SDLK_q, OnApplicationQuit, nullptr, main_allocator);
+    input_system->AddKeyboardEventListener(kKeyboardEventButtonDown, SDLK_q, OnApplicationQuit, &running, main_allocator);
+
+    auto player_system = PlayerSystem::New();
+    player_system.RegisterInputs(input_system, main_allocator);
 
     GLuint triangle_vao = SetupTriangle();
+
+    auto camera = Camera::New(Vec3::New(0, 0, 5), Vec3::New(0, 0, -1));
+
+    glUseProgram(basic_program);
+
+    auto view_matrix = camera.GetViewMatrix();
+    glUniformMatrix4fv(view_location, 1, false, &view_matrix.data[0]);
+
+    auto projection_matrix = Mat4::Perspective(80.0f, (float)SCREEN_WIDTH/SCREEN_HEIGHT, 0.1f, 100.0f);
+    glUniformMatrix4fv(projection_location, 1, false, &projection_matrix.data[0]);
 
     while (running) {
         input_system->Update();
@@ -278,11 +257,28 @@ main()
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        if (player_system.IsMovingLeft()) {
+            LOG_INFO("Is moving left");
+            camera.MoveLeft(0.01f);
+        }
+
+        if (player_system.IsMovingRight()) {
+            LOG_INFO("Is moving right");
+            camera.MoveRight(0.01f);
+        }
+
+        glUseProgram(basic_program);
+
+        auto view_matrix = camera.GetViewMatrix();
+        glUniformMatrix4fv(view_location, 1, false, &view_matrix.data[0]);
+
         // Here is the rendering code
-        DrawTriangle(program, triangle_vao);
+        DrawTriangle(basic_program, triangle_vao);
 
         SDL_GL_SwapWindow(window);
     }
+
+    LOG_INFO("Deallocating main resources");
 
     Memory::Delete(main_memory);
     SDL_GL_DeleteContext(context);

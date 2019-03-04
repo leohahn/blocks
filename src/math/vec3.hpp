@@ -31,6 +31,16 @@ struct Vec3
     {
         return Vec3::New(0.0f);
     }
+
+    void operator-=(const Vec3& vec)
+    {
+        x -= vec.x; y -= vec.y; z -= vec.z;
+    }
+
+    void operator+=(const Vec3& vec)
+    {
+        x += vec.x; y += vec.y; z += vec.z;
+    }
 };
 
 inline Vec3
