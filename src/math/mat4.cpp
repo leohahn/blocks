@@ -23,8 +23,8 @@ Mat4::LookAt(const Vec3& eye, const Vec3& center, const Vec3& up)
 
     return Mat4::New(
         x_axis.x, x_axis.y, x_axis.z, -Dot(x_axis, eye),
-        x_axis.y, y_axis.y, z_axis.y, -Dot(y_axis, eye),
-        x_axis.z, y_axis.z, z_axis.z, -Dot(z_axis, eye),
+        y_axis.x, y_axis.y, y_axis.z, -Dot(y_axis, eye),
+        z_axis.x, z_axis.y, z_axis.z, -Dot(z_axis, eye),
                0,        0,        0,                 1
     );
 }
