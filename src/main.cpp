@@ -33,7 +33,10 @@ SetupCube(size_t* cube_num_indices)
     static unsigned indices[] = {
         // front face
         4, 5, 6,
-        6, 7, 4
+        6, 7, 4,
+        // left face
+        0, 4, 7,
+        7, 3, 0
         // TODO: finish the other faces
     };
 
@@ -80,32 +83,58 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 
 struct Camera
 {
-    Vec3 position;
-    Vec3 front;
-
     static Camera New(Vec3 position, Vec3 front)
     {
         Camera c = {};
-        c.position = position;
-        c.front = Math::Normalize(front);
+        c._position = position;
+        c._front.v = Math::Normalize(front);
+        c.UpdateUpAndRightVectors();
         return c;
     }
 
     Mat4 GetViewMatrix() const
     {
-        auto view_matrix = Mat4::LookAt(position, position + front, Vec3::New(0, 1, 0));
+        auto view_matrix = Mat4::LookAt(_position, _position + _front.v, _up);
         return view_matrix;
     }
 
     void MoveLeft(float offset)
     {
-        position.x -= offset;
+        _position -= _right * 0.01f;
     }
 
     void MoveRight(float offset)
     {
-        position.x += offset;
+        _position += _right * 0.01f;
     }
+
+    void Rotate(const Vec3& axis)
+    {
+        float rotation_speed = 0.001f;
+        auto rotated_front = Quaternion::Rotate(
+            _front, rotation_speed, Quaternion::New(0, axis)
+        );
+        _front = rotated_front;
+        UpdateUpAndRightVectors();
+    }
+
+    Vec3 Position() const { return _position; }
+    Vec3 Up() const { return _up; }
+    Vec3 Front() const { return _front.v; }
+
+private:
+    void UpdateUpAndRightVectors()
+    {
+        auto up_world = Vec3::New(0, 1, 0);
+        _right = Math::Normalize(Math::Cross(_front.v, up_world));
+        _up = Math::Normalize(Math::Cross(_right, _front.v));
+    }
+
+private:
+    Vec3 _position;
+    Quaternion _front;
+    Vec3 _up;
+    Vec3 _right;
 };
 
 //
@@ -116,6 +145,9 @@ struct Camera
 //           - Orthogonal
 //  [*DONE*] - Draw the same triangle but with correct world space
 //  [*DONE*] - Make a camera that moves sideways compared to the triangle
+//  [TODO] - Turn camera around
+//            - Quaternions?
+//            - Euler angles?
 //  [TODO] - Draw a cube
 //  [TODO] - Quaternions?  
 //  [TODO] - Make an FPS camera
@@ -136,14 +168,27 @@ public:
             kKeyboardEventButtonHold, SDLK_a, LeftInput, this, allocator);
         input_system->AddKeyboardEventListener(
             kKeyboardEventButtonUp, SDLK_a, LeftRelease, this, allocator);
+
         input_system->AddKeyboardEventListener(
             kKeyboardEventButtonHold, SDLK_d, RightInput, this, allocator);
         input_system->AddKeyboardEventListener(
             kKeyboardEventButtonUp, SDLK_d, RightRelease, this, allocator);
+
+        input_system->AddKeyboardEventListener(
+            kKeyboardEventButtonHold, SDLK_RIGHT, TurnRightInput, this, allocator);
+        input_system->AddKeyboardEventListener(
+            kKeyboardEventButtonUp, SDLK_RIGHT, TurnRightRelease, this, allocator);
+
+        input_system->AddKeyboardEventListener(
+            kKeyboardEventButtonHold, SDLK_LEFT, TurnLeftInput, this, allocator);
+        input_system->AddKeyboardEventListener(
+            kKeyboardEventButtonUp, SDLK_LEFT, TurnLeftRelease, this, allocator);
     }
 
     bool IsMovingLeft() const { return _moving_left; }
     bool IsMovingRight() const { return _moving_right; }
+    bool IsTurningLeft() const { return _turning_left; }
+    bool IsTurningRight() const { return _turning_right; }
 
 private:
     static void LeftInput(SDL_Event ev, void* user_data)
@@ -170,8 +215,34 @@ private:
         ps->_moving_right = false;
     }
 
+    static void TurnRightInput(SDL_Event ev, void* user_data)
+    {
+        auto ps = (PlayerInput*)user_data;
+        ps->_turning_right = true;
+    }
+
+    static void TurnRightRelease(SDL_Event ev, void* user_data)
+    {
+        auto ps = (PlayerInput*)user_data;
+        ps->_turning_right = false;
+    }
+
+    static void TurnLeftInput(SDL_Event ev, void* user_data)
+    {
+        auto ps = (PlayerInput*)user_data;
+        ps->_turning_left = true;
+    }
+
+    static void TurnLeftRelease(SDL_Event ev, void* user_data)
+    {
+        auto ps = (PlayerInput*)user_data;
+        ps->_turning_left = false;
+    }
+
     bool _moving_left;
     bool _moving_right;
+    bool _turning_right;
+    bool _turning_left;
 };
 
 #define SCREEN_WIDTH 800
@@ -187,13 +258,12 @@ main()
         return 1;
     }
 
-    SDL_Window* window = SDL_CreateWindow("my window", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
-
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, true);
 
+    SDL_Window* window = SDL_CreateWindow("Blocks", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
     SDL_GLContext context = SDL_GL_CreateContext(window);
 
     // Now that sdl is initialized, we initialize glad to handle opengl calls.
@@ -220,6 +290,7 @@ main()
         main_allocator.Allocate(KILOBYTES(10)), KILOBYTES(10)
     );
 
+    // TODO: figure out a way of abstracting the shader away
     GLuint basic_program = Shader::LoadFromFile(
         "/Users/lhahn/dev/prototypes/blocks/resources/shaders/basic.glsl", shaders_allocator
     );
@@ -231,12 +302,7 @@ main()
 
     assert(basic_program > 0 && "program should be valid");
 
-    LOG_DEBUG("Starting main loop");
-
-    glClearColor(0, 0, 0, 1);
-
     bool running = true;
-
     //
     // Create the input system
     //
@@ -256,35 +322,52 @@ main()
     auto view_matrix = camera.GetViewMatrix();
     glUniformMatrix4fv(view_location, 1, false, &view_matrix.data[0]);
 
-    auto projection_matrix = Mat4::Perspective(80.0f, (float)SCREEN_WIDTH/SCREEN_HEIGHT, 0.1f, 100.0f);
+    auto projection_matrix = Mat4::Perspective(60.0f, (float)SCREEN_WIDTH/SCREEN_HEIGHT, 0.1f, 100.0f);
     glUniformMatrix4fv(projection_location, 1, false, &projection_matrix.data[0]);
 
+    LOG_DEBUG("Starting main loop");
+    glClearColor(0, 0, 0, 1);
     while (running) {
         input_system->Update();
 
         if (input_system->ReceivedQuitEvent()) {
-            LOG_INFO("Received quit signal, exiting application");
+            LOG_INFO("Received quit event, exiting application");
             break;
         }
 
         if (player_input.IsMovingLeft()) {
             camera.MoveLeft(0.01f);
+            LOG_INFO("Position: x=%.2f, y=%.2f, z=%.2f", camera.Position().x, camera.Position().y, camera.Position().z);
+            LOG_INFO("Front: x=%.2f, y=%.2f, z=%.2f", camera.Front().x, camera.Front().y, camera.Front().z);
         }
 
         if (player_input.IsMovingRight()) {
             camera.MoveRight(0.01f);
+            LOG_INFO("Position: x=%.2f, y=%.2f, z=%.2f", camera.Position().x, camera.Position().y, camera.Position().z);
+            LOG_INFO("Front: x=%.2f, y=%.2f, z=%.2f", camera.Front().x, camera.Front().y, camera.Front().z);
+        }
+
+        if (player_input.IsTurningLeft()) {
+            camera.Rotate(camera.Up());
+            LOG_INFO("Position: x=%.2f, y=%.2f, z=%.2f", camera.Position().x, camera.Position().y, camera.Position().z);
+            LOG_INFO("Front: x=%.2f, y=%.2f, z=%.2f", camera.Front().x, camera.Front().y, camera.Front().z);
+        }
+
+        if (player_input.IsTurningRight()) {
+            camera.Rotate(-camera.Up());
+            LOG_INFO("Position: x=%.2f, y=%.2f, z=%.2f", camera.Position().x, camera.Position().y, camera.Position().z);
+            LOG_INFO("Front: x=%.2f, y=%.2f, z=%.2f", camera.Front().x, camera.Front().y, camera.Front().z);
         }
 
         //
         // Start rendering part of the main loop
         //
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(basic_program);
 
         auto view_matrix = camera.GetViewMatrix();
-        glUniformMatrix4fv(view_location, 1, false, &view_matrix.data[0]);
+        glUniformMatrix4fv(view_location, 1, GL_FALSE, &view_matrix.data[0]);
 
         // Here is the rendering code
         DrawCube(basic_program, cube_vao, cube_num_indices);

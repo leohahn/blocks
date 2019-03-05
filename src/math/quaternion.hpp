@@ -53,6 +53,12 @@ struct Quaternion
         return Quaternion::New(q.s, -q.v);
     }
 
+    static Quaternion Rotate(const Quaternion& q, float angle, const Quaternion& axis)
+    {
+        const auto rotor = Quaternion::Rotation(angle, axis.v);
+        return rotor * q * Quaternion::Inverse(rotor);
+    }
+
     static Quaternion Inverse(const Quaternion& q);
 
     static Quaternion Rotation(float angle, const Vec3& axis);
@@ -63,8 +69,7 @@ struct Quaternion
 
     static Quaternion Slerp(const Quaternion& start_q, const Quaternion& end_q, float t);
 
-    Mat4
-    ToMat4() const
+    Mat4 ToMat4() const
     {
         return Mat4::New(s,   -v.i, -v.j, -v.k,
                          v.i,    s, -v.k,  v.j,
@@ -72,14 +77,18 @@ struct Quaternion
                          v.k, -v.j,  v.i,    s);
     }
 
-    Quaternion
-    operator+(const Quaternion& rhs) const
+    Quaternion operator+(const Quaternion& rhs) const
     {
         return Quaternion::New(s+rhs.s, v.i+rhs.v.i, v.j+rhs.v.j, v.k+rhs.v.k);
     }
 
-    Quaternion
-    operator/(float k) const
+    Quaternion operator*(const Quaternion& rhs) const
+    {
+        return Quaternion::New((s*rhs.s) - Math::Dot(v, rhs.v),
+                    rhs.s*v + s*rhs.v + Math::Cross(v, rhs.v));
+    }
+
+    Quaternion operator/(float k) const
     {
         return Quaternion::New(val[0]/k, val[1]/k, val[2]/k, val[3]/k);
     }
@@ -95,13 +104,6 @@ inline Quaternion
 operator*(float k, const Quaternion& q)
 {
     return Quaternion::New(q.s*k, q.v*k);
-}
-
-inline Quaternion
-operator*(const Quaternion& lhs, const Quaternion& rhs)
-{
-    return Quaternion::New((lhs.s*rhs.s) - Math::Dot(lhs.v, rhs.v),
-                   rhs.s*lhs.v + lhs.s*rhs.v + Math::Cross(lhs.v, rhs.v));
 }
 
 inline bool
@@ -125,13 +127,6 @@ Normalize(const Quaternion& q)
         q.v.j/Quaternion::Norm(q),
         q.v.k/Quaternion::Norm(q)
     );
-}
-
-inline Quaternion
-rotate(const Quaternion& q, float angle, const Quaternion& axis)
-{
-    const Quaternion rotor = Quaternion::Rotation(angle, axis.v);
-    return rotor * q * Quaternion::Inverse(rotor);
 }
 
 inline float
