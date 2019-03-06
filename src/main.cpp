@@ -108,6 +108,16 @@ struct Camera
         _position += _right * 0.01f;
     }
 
+    void MoveForwards(float offset)
+    {
+        _position += _front.v * 0.01f;
+    }
+
+    void MoveBackwards(float offset)
+    {
+        _position -= _front.v * 0.01f;
+    }
+
     void Rotate(const Vec3& axis)
     {
         float rotation_speed = 0.001f;
@@ -183,10 +193,22 @@ public:
             kKeyboardEventButtonHold, SDLK_LEFT, TurnLeftInput, this, allocator);
         input_system->AddKeyboardEventListener(
             kKeyboardEventButtonUp, SDLK_LEFT, TurnLeftRelease, this, allocator);
+
+        input_system->AddKeyboardEventListener(
+            kKeyboardEventButtonHold, SDLK_s, BackInput, this, allocator);
+        input_system->AddKeyboardEventListener(
+            kKeyboardEventButtonUp, SDLK_s, BackRelease, this, allocator);
+
+        input_system->AddKeyboardEventListener(
+            kKeyboardEventButtonHold, SDLK_w, ForwardInput, this, allocator);
+        input_system->AddKeyboardEventListener(
+            kKeyboardEventButtonUp, SDLK_w, ForwardRelease, this, allocator);
     }
 
     bool IsMovingLeft() const { return _moving_left; }
     bool IsMovingRight() const { return _moving_right; }
+    bool IsMovingForwards() const { return _moving_forwards; }
+    bool IsMovingBackwards() const { return _moving_backwards; }
     bool IsTurningLeft() const { return _turning_left; }
     bool IsTurningRight() const { return _turning_right; }
 
@@ -239,8 +261,34 @@ private:
         ps->_turning_left = false;
     }
 
+    static void BackInput(SDL_Event ev, void* user_data)
+    {
+        auto ps = (PlayerInput*)user_data;
+        ps->_moving_backwards = true;
+    }
+
+    static void BackRelease(SDL_Event ev, void* user_data)
+    {
+        auto ps = (PlayerInput*)user_data;
+        ps->_moving_backwards = false;
+    }
+
+    static void ForwardInput(SDL_Event ev, void* user_data)
+    {
+        auto ps = (PlayerInput*)user_data;
+        ps->_moving_forwards = true;
+    }
+
+    static void ForwardRelease(SDL_Event ev, void* user_data)
+    {
+        auto ps = (PlayerInput*)user_data;
+        ps->_moving_forwards = false;
+    }
+
     bool _moving_left;
     bool _moving_right;
+    bool _moving_backwards;
+    bool _moving_forwards;
     bool _turning_right;
     bool _turning_left;
 };
@@ -337,26 +385,26 @@ main()
 
         if (player_input.IsMovingLeft()) {
             camera.MoveLeft(0.01f);
-            LOG_INFO("Position: x=%.2f, y=%.2f, z=%.2f", camera.Position().x, camera.Position().y, camera.Position().z);
-            LOG_INFO("Front: x=%.2f, y=%.2f, z=%.2f", camera.Front().x, camera.Front().y, camera.Front().z);
         }
 
         if (player_input.IsMovingRight()) {
             camera.MoveRight(0.01f);
-            LOG_INFO("Position: x=%.2f, y=%.2f, z=%.2f", camera.Position().x, camera.Position().y, camera.Position().z);
-            LOG_INFO("Front: x=%.2f, y=%.2f, z=%.2f", camera.Front().x, camera.Front().y, camera.Front().z);
         }
 
         if (player_input.IsTurningLeft()) {
             camera.Rotate(camera.Up());
-            LOG_INFO("Position: x=%.2f, y=%.2f, z=%.2f", camera.Position().x, camera.Position().y, camera.Position().z);
-            LOG_INFO("Front: x=%.2f, y=%.2f, z=%.2f", camera.Front().x, camera.Front().y, camera.Front().z);
         }
 
         if (player_input.IsTurningRight()) {
             camera.Rotate(-camera.Up());
-            LOG_INFO("Position: x=%.2f, y=%.2f, z=%.2f", camera.Position().x, camera.Position().y, camera.Position().z);
-            LOG_INFO("Front: x=%.2f, y=%.2f, z=%.2f", camera.Front().x, camera.Front().y, camera.Front().z);
+        }
+
+        if (player_input.IsMovingForwards()) {
+            camera.MoveForwards(0.01f);
+        }
+
+        if (player_input.IsMovingBackwards()) {
+            camera.MoveBackwards(0.01f);
         }
 
         //
@@ -366,6 +414,8 @@ main()
 
         glUseProgram(basic_program);
 
+        // TODO: is ok to calculate the view matrix every time here?
+        // consider only updating the view matrix when something changed on the camera.
         auto view_matrix = camera.GetViewMatrix();
         glUniformMatrix4fv(view_location, 1, GL_FALSE, &view_matrix.data[0]);
 
