@@ -1,4 +1,4 @@
-#include "math/mat4.hpp"
+#include "Math/Mat4.hpp"
 
 Vec4
 operator*(const Mat4& lhs, const Vec4& rhs)
@@ -20,6 +20,22 @@ Mat4::LookAt(const Vec3& eye, const Vec3& center, const Vec3& up)
     Vec3 z_axis = Normalize(eye - center);
     Vec3 x_axis = Normalize(Cross(up, z_axis));
     Vec3 y_axis = Cross(z_axis, x_axis);
+
+    return Mat4::New(
+        x_axis.x, x_axis.y, x_axis.z, -Dot(x_axis, eye),
+        y_axis.x, y_axis.y, y_axis.z, -Dot(y_axis, eye),
+        z_axis.x, z_axis.y, z_axis.z, -Dot(z_axis, eye),
+               0,        0,        0,                 1
+    );
+}
+
+Mat4
+Mat4::LookAt(const Vec3& eye, const Vec3& forward, const Vec3& right, const Vec3& up)
+{
+    using namespace Math;
+    Vec3 z_axis = -forward;
+    Vec3 x_axis = right;
+    Vec3 y_axis = up;
 
     return Mat4::New(
         x_axis.x, x_axis.y, x_axis.z, -Dot(x_axis, eye),

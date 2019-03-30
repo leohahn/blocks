@@ -1,5 +1,4 @@
-#ifndef BLOCKS_PLAYER_INPUT_CONTEXT_HPP
-#define BLOCKS_PLAYER_INPUT_CONTEXT_HPP
+#pragma once
 
 #include <SDL_event.h>
 
@@ -17,5 +16,3 @@ public:
 private:
     static void OnInputEvent(SDL_Event ev, void* user_data);
 };
-
-#endif // BLOCKS_PLAYER_INPUT_CONTEXT_HPP

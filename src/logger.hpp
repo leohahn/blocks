@@ -1,9 +1,8 @@
-#ifndef BLOCKS_LOGGER_H
-#define BLOCKS_LOGGER_H
+#pragma once
 
 #include <string.h>
 #include <stdio.h>
-#include "defines.hpp"
+#include "Defines.hpp"
 
 enum LogLevel
 {
@@ -50,5 +49,3 @@ const char* PrettyTime();
 #else
 #define LOG_ERROR(fmt, ...)
 #endif
-
-#endif // BLOCKS_LOGGER_H

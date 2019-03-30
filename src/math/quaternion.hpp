@@ -1,11 +1,10 @@
-#ifndef BLOCKS_MATH_QUATERNION_HPP
-#define BLOCKS_MATH_QUATERNION_HPP
+#pragma once
 
 #include <math.h>
 #include <assert.h>
-#include "math/vec3.hpp"
-#include "math/mat4.hpp"
-#include "math/float.hpp"
+#include "Math/Vec3.hpp"
+#include "Math/Mat4.hpp"
+#include "Math/Float.hpp"
 
 struct Quaternion
 {
@@ -92,6 +91,8 @@ struct Quaternion
     {
         return Quaternion::New(val[0]/k, val[1]/k, val[2]/k, val[3]/k);
     }
+
+    static void Print(const Quaternion& q);
 };
 
 inline Quaternion
@@ -115,6 +116,15 @@ operator==(const Quaternion& a, const Quaternion& b)
            Math::IsAlmostEqual(a.val[3], b.val[3]);
 }
 
+inline bool
+operator!=(const Quaternion& a, const Quaternion& b)
+{
+    return !Math::IsAlmostEqual(a.val[0], b.val[0]) ||
+           !Math::IsAlmostEqual(a.val[1], b.val[1]) ||
+           !Math::IsAlmostEqual(a.val[2], b.val[2]) ||
+           !Math::IsAlmostEqual(a.val[3], b.val[3]);
+}
+
 namespace Math
 {
 
@@ -136,5 +146,3 @@ Dot(const Quaternion& a, const Quaternion& b)
 }
 
 }
-
-#endif // BLOCKS_MATH_QUATERNION_HPP

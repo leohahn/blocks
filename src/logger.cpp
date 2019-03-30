@@ -1,4 +1,4 @@
-#include "logger.hpp"
+#include "Logger.hpp"
 #include <time.h>
 
 static LogLevel g_log_level = LogLevel_Debug;

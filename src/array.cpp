@@ -1,2 +1,2 @@
-#include "array.hpp"
+#include "Array.hpp"
 

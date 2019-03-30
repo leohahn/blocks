@@ -1,11 +1,10 @@
-#ifndef BLOCKS_INPUT_HPP
-#define BLOCKS_INPUT_HPP
+#pragma once
 
 #include <stdlib.h>
 #include <math.h>
 #include <SDL.h>
-#include "array.hpp"
-#include "linear_allocator.hpp"
+#include "Array.hpp"
+#include "LinearAllocator.hpp"
 
 enum KeyboardEvent
 {
@@ -47,5 +46,3 @@ private:
     uint8_t* _last_keyboard_state;
     bool _should_quit;
 };
-
-#endif // BLOCKS_INPUT_HPP

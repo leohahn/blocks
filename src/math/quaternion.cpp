@@ -1,4 +1,12 @@
-#include "math/quaternion.hpp"
+#include "Math/Quaternion.hpp"
+#include <stdio.h>
+
+void 
+Quaternion::Print(const Quaternion& q)
+{
+    printf("s = %.2f, vx = %.2f, vy = %.2f, vz = %.2f\n",
+           q.s, q.v.x, q.v.y, q.v.z);
+}
 
 Quaternion
 Quaternion::Inverse(const Quaternion& q)

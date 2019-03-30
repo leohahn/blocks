@@ -1,5 +1,4 @@
-#ifndef BLOCKS_DEFINES_H
-#define BLOCKS_DEFINES_H
+#pragma once
 
 #define KILOBYTES(x) (x)*1024
 #define MEGABYTES(x) KILOBYTES(x)*1024
@@ -12,5 +11,3 @@
 #else
 #define BLOCKS_DEBUG 1
 #endif
-
-#endif // BLOCKS_DEFINES_H

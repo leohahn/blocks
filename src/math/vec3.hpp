@@ -1,7 +1,8 @@
-#ifndef BLOCKS_MATH_VEC3_HPP
-#define BLOCKS_MATH_VEC3_HPP
+#pragma once
 
+#include <stdio.h>
 #include <math.h>
+#include "Math/Float.hpp"
 
 struct Vec3
 {
@@ -58,6 +59,8 @@ struct Vec3
     {
         return Vec3::New(-x, -y, -z);
     }
+
+    void Negate() { x = -x; y = -y; z = -z; }
 };
 
 inline Vec3
@@ -78,6 +81,22 @@ operator*(const Vec3& v, float k)
         v.y * k,
         v.z * k
     );
+}
+
+inline bool
+operator==(const Vec3& lhs, const Vec3& rhs)
+{
+    return Math::IsAlmostEqual(lhs.x, rhs.x) &&
+           Math::IsAlmostEqual(lhs.y, rhs.y) &&
+           Math::IsAlmostEqual(lhs.z, rhs.z);
+}
+
+inline bool
+operator!=(const Vec3& lhs, const Vec3& rhs)
+{
+    return !Math::IsAlmostEqual(lhs.x, rhs.x) ||
+           !Math::IsAlmostEqual(lhs.y, rhs.y) ||
+           !Math::IsAlmostEqual(lhs.z, rhs.z);
 }
 
 inline Vec3
@@ -125,5 +144,3 @@ namespace Math
         );
     }
 }
-
-#endif // BLOCKS_MATH_VEC3_HPP

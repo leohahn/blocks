@@ -1,9 +1,8 @@
-#ifndef BLOCKS_ARRAY_HPP
-#define BLOCKS_ARRAY_HPP
+#pragma once
 
 #include <stdlib.h>
 #include <assert.h>
-#include "allocator.hpp"
+#include "Allocator.hpp"
 
 #define ARRAY_INITIAL_SIZE 8
 #define ARRAY_INVALID_POS ((size_t)-1)
@@ -66,5 +65,3 @@ private:
     size_t _cap;
     T* _data;
 };
-
-#endif // BLOCKS_ARRAY_HPP

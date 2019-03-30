@@ -5,12 +5,12 @@
 #include <glad/glad.h>
 #include <SDL_opengl.h>
 
-#include "defines.hpp"
-#include "logger.hpp"
-#include "input_system.hpp"
-#include "allocator.hpp"
-#include "math.hpp"
-#include "shader.hpp"
+#include "Defines.hpp"
+#include "Logger.hpp"
+#include "InputSystem.hpp"
+#include "Allocator.hpp"
+#include "Math.hpp"
+#include "Shader.hpp"
 
 static GLuint
 SetupCube(size_t* cube_num_indices)
@@ -36,8 +36,19 @@ SetupCube(size_t* cube_num_indices)
         6, 7, 4,
         // left face
         0, 4, 7,
-        7, 3, 0
-        // TODO: finish the other faces
+        7, 3, 0,
+        // right face
+        1, 2, 6,
+        6, 5, 1,
+        // back face
+        0, 3, 2,
+        2, 1, 0,
+        // bottom face
+        0, 1, 5,
+        5, 4, 0,
+        // top face
+        3, 7, 6,
+        6, 2, 3,
     };
 
     *cube_num_indices = ARRAY_SIZE(indices);
@@ -88,13 +99,31 @@ struct Camera
         Camera c = {};
         c._position = position;
         c._front.v = Math::Normalize(front);
+        c._up_world = Vec3::New(0, 1, 0);
         c.UpdateUpAndRightVectors();
         return c;
     }
 
-    Mat4 GetViewMatrix() const
+    Mat4 GetViewMatrix()
     {
-        auto view_matrix = Mat4::LookAt(_position, _position + _front.v, _up);
+        using namespace Math;
+        const float epsilon = std::numeric_limits<float>::epsilon();
+
+        Vec3 up_world;
+        if (fabs(_front.v.x) < epsilon && fabs(_front.v.z) < epsilon) {
+            if (_front.v.y > 0)
+                up_world = Vec3::New(0, 0, -1);
+            else
+                up_world = Vec3::New(0, 0, 1);
+        } else {
+            up_world = Vec3::New(0, 1, 0);
+        }
+
+        // _right = Normalize(Cross(_front.v, up_world));
+        _right = Normalize(Cross(_front.v, up_world));
+        // _up = Cross(_front.v, _right);
+
+        auto view_matrix = Mat4::LookAt(_position, _front.v, _right, _up);
         return view_matrix;
     }
 
@@ -120,24 +149,39 @@ struct Camera
 
     void Rotate(const Vec3& axis)
     {
+        using namespace Math;
         float rotation_speed = 0.001f;
-        auto rotated_front = Quaternion::Rotate(
+
+        _front = Quaternion::Rotate(
             _front, rotation_speed, Quaternion::New(0, axis)
         );
-        _front = rotated_front;
+
         UpdateUpAndRightVectors();
     }
 
     Vec3 Position() const { return _position; }
     Vec3 Up() const { return _up; }
     Vec3 Front() const { return _front.v; }
+    Vec3 Right() const { return _right; }
 
 private:
     void UpdateUpAndRightVectors()
     {
-        auto up_world = Vec3::New(0, 1, 0);
-        _right = Math::Normalize(Math::Cross(_front.v, up_world));
-        _up = Math::Normalize(Math::Cross(_right, _front.v));
+        using namespace Math;
+        const float epsilon = std::numeric_limits<float>::epsilon();
+
+        if (fabs(_front.v.x) < epsilon && fabs(_front.v.z) < epsilon) {
+            if (_front.v.y > 0) {
+                _up_world = Vec3::New(0, 0, 1);
+            } else {
+                _up_world = Vec3::New(0, 0, -1);
+            }
+        } else {
+            _up_world = Vec3::New(0, 1, 0);
+        }
+
+        _right = Normalize(Cross(_front.v, _up_world));
+        _up = Normalize(Cross(_right, _front.v));
     }
 
 private:
@@ -145,6 +189,7 @@ private:
     Quaternion _front;
     Vec3 _up;
     Vec3 _right;
+    Vec3 _up_world;
 };
 
 //
@@ -155,13 +200,32 @@ private:
 //           - Orthogonal
 //  [*DONE*] - Draw the same triangle but with correct world space
 //  [*DONE*] - Make a camera that moves sideways compared to the triangle
-//  [TODO] - Turn camera around
+//  [DONE] - Turn camera around
 //            - Quaternions?
 //            - Euler angles?
-//  [TODO] - Draw a cube
-//  [TODO] - Quaternions?  
-//  [TODO] - Make an FPS camera
+//  [DONE] - Draw a cube
+//  [DONE] - Make an FPS camera
+//  [TODO] - Load a texture
 //
+
+static void*
+LoadTexture(const char* asset_path, LinearAllocator& alloc)
+{
+    FILE* fp = fopen(asset_path, "rb");
+    assert(fp && "opening the file should not fail");
+
+    // Get the size of the asset
+    fseek(fp, 0, SEEK_END);
+    size_t asset_size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    void* mem = alloc.Allocate(asset_size);
+
+    size_t nread = fread(mem, 1, asset_size, fp);
+    assert(nread == asset_size);
+
+    return mem;
+}
 
 class PlayerInput
 {
@@ -195,6 +259,16 @@ public:
             kKeyboardEventButtonUp, SDLK_LEFT, TurnLeftRelease, this, allocator);
 
         input_system->AddKeyboardEventListener(
+            kKeyboardEventButtonHold, SDLK_UP, TurnAboveInput, this, allocator);
+        input_system->AddKeyboardEventListener(
+            kKeyboardEventButtonUp, SDLK_UP, TurnAboveRelease, this, allocator);
+
+        input_system->AddKeyboardEventListener(
+            kKeyboardEventButtonHold, SDLK_DOWN, TurnBelowInput, this, allocator);
+        input_system->AddKeyboardEventListener(
+            kKeyboardEventButtonUp, SDLK_DOWN, TurnBelowRelease, this, allocator);
+
+        input_system->AddKeyboardEventListener(
             kKeyboardEventButtonHold, SDLK_s, BackInput, this, allocator);
         input_system->AddKeyboardEventListener(
             kKeyboardEventButtonUp, SDLK_s, BackRelease, this, allocator);
@@ -211,6 +285,8 @@ public:
     bool IsMovingBackwards() const { return _moving_backwards; }
     bool IsTurningLeft() const { return _turning_left; }
     bool IsTurningRight() const { return _turning_right; }
+    bool IsTurningAbove() const { return _turning_above; }
+    bool IsTurningBelow() const { return _turning_below; }
 
 private:
     static void LeftInput(SDL_Event ev, void* user_data)
@@ -261,6 +337,30 @@ private:
         ps->_turning_left = false;
     }
 
+    static void TurnAboveInput(SDL_Event ev, void* user_data)
+    {
+        auto ps = (PlayerInput*)user_data;
+        ps->_turning_above = true;
+    }
+
+    static void TurnAboveRelease(SDL_Event ev, void* user_data)
+    {
+        auto ps = (PlayerInput*)user_data;
+        ps->_turning_above = false;
+    }
+
+    static void TurnBelowInput(SDL_Event ev, void* user_data)
+    {
+        auto ps = (PlayerInput*)user_data;
+        ps->_turning_below = true;
+    }
+
+    static void TurnBelowRelease(SDL_Event ev, void* user_data)
+    {
+        auto ps = (PlayerInput*)user_data;
+        ps->_turning_below = false;
+    }
+
     static void BackInput(SDL_Event ev, void* user_data)
     {
         auto ps = (PlayerInput*)user_data;
@@ -291,6 +391,8 @@ private:
     bool _moving_forwards;
     bool _turning_right;
     bool _turning_left;
+    bool _turning_above;
+    bool _turning_below;
 };
 
 #define SCREEN_WIDTH 800
@@ -322,6 +424,7 @@ main()
     }
 
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    glEnable(GL_CULL_FACE);
 
     //
     // Create total scratch memory
@@ -392,11 +495,21 @@ main()
         }
 
         if (player_input.IsTurningLeft()) {
-            camera.Rotate(camera.Up());
+            // camera.Rotate(camera.Up());
+            camera.Rotate(Vec3::New(0, 1, 0));
         }
 
         if (player_input.IsTurningRight()) {
-            camera.Rotate(-camera.Up());
+            // camera.Rotate(-camera.Up());
+            camera.Rotate(Vec3::New(0, -1, 0));
+        }
+
+        if (player_input.IsTurningAbove()) {
+            camera.Rotate(camera.Right());
+        }
+
+        if (player_input.IsTurningBelow()) {
+            camera.Rotate(-camera.Right());
         }
 
         if (player_input.IsMovingForwards()) {

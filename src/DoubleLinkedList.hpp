@@ -1,9 +1,8 @@
-#ifndef BLOCKS_DOUBLE_LINKED_LIST_HPP
-#define BLOCKS_DOUBLE_LINKED_LIST_HPP
+#pragma once
 
 #include <assert.h>
 #include <utility>
-#include "allocator.hpp"
+#include "Allocator.hpp"
 
 template<typename T> class DoubleLinkedList;
 
@@ -68,6 +67,3 @@ private:
     DoubleLinkedListNode<T>* _last_node;
     Allocator* _allocator;
 };
-
-
-#endif // BLOCKS_DOUBLE_LINKED_LIST_HPP

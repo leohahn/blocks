@@ -1,5 +1,4 @@
-#ifndef BLOCKS_MEMORY_HPP
-#define BLOCKS_MEMORY_HPP
+#pragma once
 
 #include <stddef.h>
 #include <string.h>
@@ -25,5 +24,3 @@ struct Memory
         free(mem.ptr);
     }
 };
-
-#endif // BLOCKS_MEMORY_HPP

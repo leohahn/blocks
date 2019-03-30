@@ -1,5 +1,4 @@
-#ifndef BLOCKS_MATH_FLOAT_HPP
-#define BLOCKS_MATH_FLOAT_HPP
+#pragma once
 
 namespace Math
 {
@@ -13,5 +12,3 @@ IsAlmostEqual(float x, float y, float epsilon = std::numeric_limits<float>::epsi
 }
 
 }
-
-#endif // BLOCKS_MATH_FLOAT_HPP

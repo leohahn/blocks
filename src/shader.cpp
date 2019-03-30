@@ -1,6 +1,6 @@
-#include "shader.hpp"
+#include "Shader.hpp"
 #include <assert.h>
-#include "logger.hpp"
+#include "Logger.hpp"
 
 namespace Shader
 {

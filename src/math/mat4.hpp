@@ -1,8 +1,7 @@
-#ifndef BLOCKS_MAT4_HPP
-#define BLOCKS_MAT4_HPP
+#pragma once
 
-#include "math/vec4.hpp"
-#include "math/vec3.hpp"
+#include "Math/Vec4.hpp"
+#include "Math/Vec3.hpp"
 
 // A matrix is represented in this class
 // as column major:
@@ -77,7 +76,9 @@ public:
                    0,    0,    0,    1);
     }
 
-    static Mat4 LookAt(const Vec3& eye, const Vec3& center, const Vec3& up);
+    static Mat4 LookAt(const Vec3& eye, const Vec3& center, const Vec3& up_world);
+
+    static Mat4 LookAt(const Vec3& eye, const Vec3& forward, const Vec3& right, const Vec3& up);
 
     static Mat4 Frustum(float left, float right, float bottom, float top, float near, float far);
 
@@ -87,5 +88,3 @@ public:
 };
 
 Vec4 operator*(const Mat4& lhs, const Vec4& rhs);
-
-#endif // BLOCKS_MAT4_HPP

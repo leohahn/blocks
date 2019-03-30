@@ -1,6 +1,6 @@
-#include "input_system.hpp"
-#include "utils.hpp"
-#include "logger.hpp"
+#include "InputSystem.hpp"
+#include "Utils.hpp"
+#include "Logger.hpp"
 #include <SDL.h>
 
 InputSystem*

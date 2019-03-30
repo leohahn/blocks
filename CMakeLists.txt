@@ -17,29 +17,32 @@ endif()
 
 add_executable(blocks
     deps/glad/src/glad.cpp
-    src/linear_allocator.hpp
-    src/double_linked_list.hpp
-    src/input_system.hpp
-    src/input_system.cpp
+    src/LinearAllocator.hpp
+    src/InputSystem.hpp
+    src/InputSystem.cpp
+
     # Memory
-    src/memory.hpp
-    src/allocator.hpp
+    src/Memory.hpp
+    src/Allocator.hpp
+
     # Utils
-    src/defines.hpp
-    src/logger.cpp
-    src/logger.hpp
-    src/utils.hpp
-    src/utils.cpp
+    src/Defines.hpp
+    src/Logger.cpp
+    src/Logger.hpp
+    src/Utils.hpp
+    src/Utils.cpp
+
     # Math
-    src/math/vec3.hpp
-    src/math/mat4.hpp
-    src/math/mat4.cpp
-    src/math/float.hpp
-    src/math/quaternion.hpp
-    src/math/quaternion.cpp
+    src/math/Vec3.hpp
+    src/math/Mat4.hpp
+    src/math/Mat4.cpp
+    src/math/Float.hpp
+    src/math/Quaternion.hpp
+    src/math/Quaternion.cpp
+
     # Shaders
-    src/shader.hpp
-    src/shader.cpp
+    src/Shader.hpp
+    src/Shader.cpp
 
     src/main.cpp)
 

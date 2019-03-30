@@ -1,7 +1,6 @@
-#ifndef BLOCKS_MATH_VEC4_HPP
-#define BLOCKS_MATH_VEC4_HPP
+#pragma once
 
-#include "math/vec3.hpp"
+#include "Math/Vec3.hpp"
 
 struct Vec4
 {
@@ -71,5 +70,3 @@ namespace Math
         return v1.x*v2.x + v1.y*v2.y + v1.z*v2.z + v1.w*v2.w;
     }
 }
-
-#endif // BLOCKS_MATH_VEC4_HPP

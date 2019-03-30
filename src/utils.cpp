@@ -1,5 +1,5 @@
-#include "utils.hpp"
-#include "defines.hpp"
+#include "Utils.hpp"
+#include "Defines.hpp"
 #include <assert.h>
 #include <stdio.h>
 

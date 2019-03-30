@@ -1,8 +1,7 @@
-#ifndef BLOCKS_SHADER_HPP
-#define BLOCKS_SHADER_HPP
+#pragma once
 
 #include <glad/glad.h>
-#include "linear_allocator.hpp"
+#include "LinearAllocator.hpp"
 
 namespace Shader
 {
@@ -10,5 +9,3 @@ namespace Shader
 GLuint LoadFromFile(const char* path, LinearAllocator allocator);
 
 }
-
-#endif // BLOCKS_SHADER_HPP

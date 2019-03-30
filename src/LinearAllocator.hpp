@@ -1,8 +1,7 @@
-#ifndef BLOCKS_LINEAR_ALLOCATOR_HPP
-#define BLOCKS_LINEAR_ALLOCATOR_HPP
+#pragma once
 
-#include "allocator.hpp"
-#include "memory.hpp"
+#include "Allocator.hpp"
+#include "Memory.hpp"
 
 class LinearAllocator : public Allocator
 {
@@ -55,6 +54,3 @@ private:
     size_t _bytes_allocated;
     size_t _size;
 };
-
-
-#endif // BLOCKS_LINEAR_ALLOCATOR_HPP
