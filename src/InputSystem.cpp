@@ -1,28 +1,38 @@
 #include "InputSystem.hpp"
-#include "Utils.hpp"
+
 #include "Logger.hpp"
+#include "Utils.hpp"
 #include <SDL.h>
 
-InputSystem*
-InputSystem::Make(LinearAllocator allocator)
+InputSystem::InputSystem()
+: _allocator(nullptr)
+, _last_keyboard_state(nullptr)
+, _should_quit(false)
 {
-    size_t size = sizeof(InputSystem) + (sizeof(uint8_t) * SDL_NUM_SCANCODES);
+}
 
-    void* mem = allocator.Allocate(size);
-    assert(mem);
-    memset(mem, 0, size);
-
-    InputSystem* input = (InputSystem*)mem;
-    input->_last_keyboard_state = (uint8_t*)(input+1);
+void
+InputSystem::Create(Allocator* allocator)
+{
+    _allocator = allocator;
+    size_t size = sizeof(uint8_t) * SDL_NUM_SCANCODES;
+    _last_keyboard_state = (uint8_t*)(_allocator->Allocate(size));
+    assert(_last_keyboard_state);
 
     for (int i = 0; i < kKeyboardEventMax; ++i) {
-        auto* arr = &input->_keyboard_map[i];
-        *arr = Array<KeyboardEventListener>::New(&allocator);
+        _keyboard_map[i] = Array<KeyboardEventListener>();
+        _keyboard_map[i].Create(_allocator);
     }
 
-    LOG_INFO("Input sytem initialized with %s of memory", GetPrettySize(size));
+    LOG_INFO("Input sytem initialized with %s of memory", Utils::GetPrettySize(size));
+}
 
-    return input;
+void 
+InputSystem::Destroy()
+{
+    for (int i = 0; i < kKeyboardEventMax; ++i) {
+        _keyboard_map[i].Destroy();
+    }
 }
 
 KeyboardEvent*
@@ -55,7 +65,9 @@ InputSystem::GetKeyboardEvents(const uint8_t* keyboard_state, SDL_KeyboardEvent 
 }
 
 bool
-InputSystem::MatchesKeyboardEvent(SDL_Event event, KeyboardEvent keyboard_event, const uint8_t* keyboard_state)
+InputSystem::MatchesKeyboardEvent(SDL_Event event,
+                                  KeyboardEvent keyboard_event,
+                                  const uint8_t* keyboard_state)
 {
     // NOTE: this functions assumes that event is a keyboard event, it will not check otherwise.
     SDL_Scancode ev_scancode = event.key.keysym.scancode;
@@ -100,12 +112,10 @@ InputSystem::Update()
             // See if the current event is a keyboard event.
             case SDL_KEYUP:
             case SDL_KEYDOWN: {
-                for (
-                    int keyboard_event_it = 0;
-                    keyboard_event_it < kKeyboardEventMax;
-                    ++keyboard_event_it
-                ) {
-                    bool event_matches = MatchesKeyboardEvent(event, (KeyboardEvent)keyboard_event_it, keyboard_state);
+                for (int keyboard_event_it = 0; keyboard_event_it < kKeyboardEventMax;
+                     ++keyboard_event_it) {
+                    bool event_matches = MatchesKeyboardEvent(
+                        event, (KeyboardEvent)keyboard_event_it, keyboard_state);
 
                     if (!event_matches) {
                         // The event does not match, ignore and continue for loop.
@@ -117,11 +127,11 @@ InputSystem::Update()
                     // or not.
 
                     Array<KeyboardEventListener>* listeners = &_keyboard_map[keyboard_event_it];
-                    for (size_t i = 0; i < listeners->Len(); ++i) {
-                        bool key_matches = listeners->Get(i)->keycode == ev_keycode;
+                    for (size_t i = 0; i < listeners->len(); ++i) {
+                        bool key_matches = (*listeners)[i]->keycode == ev_keycode;
                         if (key_matches) {
-                            assert(listeners->Get(i)->cb);
-                            listeners->Get(i)->cb(event, listeners->Get(i)->user_data);
+                            assert((*listeners)[i]->cb);
+                            (*listeners)[i]->cb(event, (*listeners)[i]->user_data);
                         }
                     }
                 }
@@ -132,14 +142,20 @@ InputSystem::Update()
 
     // Copy current keyboard state to last keyboard state
     memcpy(_last_keyboard_state, keyboard_state, SDL_NUM_SCANCODES);
-
 }
 
-bool InputSystem::ReceivedQuitEvent() const { return _should_quit; }
+bool
+InputSystem::ReceivedQuitEvent() const
+{
+    return _should_quit;
+}
 
 void
-InputSystem::AddKeyboardEventListener(KeyboardEvent event, SDL_Keycode keycode, KeyboardEventCallback callback,
-                                      void* user, LinearAllocator allocator)
+InputSystem::AddKeyboardEventListener(KeyboardEvent event,
+                                      SDL_Keycode keycode,
+                                      KeyboardEventCallback callback,
+                                      void* user,
+                                      Allocator* allocator)
 {
     assert(event < kKeyboardEventMax);
     assert(callback);
@@ -151,6 +167,5 @@ InputSystem::AddKeyboardEventListener(KeyboardEvent event, SDL_Keycode keycode, 
     listener.user_data = user;
     listener.keycode = keycode;
 
-    arr->PushBack(listener, &allocator);
+    arr->PushBack(listener, allocator);
 }
-

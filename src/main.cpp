@@ -1,62 +1,107 @@
-#include <stdio.h>
-#include <assert.h>
-
-#include <SDL.h>
-#include <glad/glad.h>
-#include <SDL_opengl.h>
-
-#include "Defines.hpp"
-#include "Logger.hpp"
-#include "InputSystem.hpp"
 #include "Allocator.hpp"
+#include "Defines.hpp"
+#include "FileSystem.hpp"
+#include "InputSystem.hpp"
+#include "Logger.hpp"
 #include "Math.hpp"
+#include "PlayerInput.hpp"
+#include "Renderer.hpp"
 #include "Shader.hpp"
+#include "Texture.hpp"
+#include <SDL.h>
+#include <SDL_opengl.h>
+#include <assert.h>
+#include <glad/glad.h>
+#include <stdio.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 static GLuint
-SetupCube(size_t* cube_num_indices)
+SetupCube(size_t* out_cube_num_indices)
 {
-    assert(cube_num_indices);
+    assert(out_cube_num_indices);
 
     static float vertices[] = {
         // vertices on the back of the cube
-        -1, -1, -1,  // 0
-         1, -1, -1,  // 1
-         1,  1, -1,  // 2
-        -1,  1, -1,  // 3
+        -1,
+        -1,
+        -1, // 0
+        1,
+        -1,
+        -1, // 1
+        1,
+        1,
+        -1, // 2
+        -1,
+        1,
+        -1, // 3
         // vertices on the front of the cube
-        -1, -1,  1,  // 4
-         1, -1,  1,  // 5
-         1,  1,  1,  // 6
-        -1,  1,  1   // 7
+        -1,
+        -1,
+        1, // 4
+        1,
+        -1,
+        1, // 5
+        1,
+        1,
+        1, // 6
+        -1,
+        1,
+        1 // 7
     };
 
     static unsigned indices[] = {
         // front face
-        4, 5, 6,
-        6, 7, 4,
+        4,
+        5,
+        6,
+        6,
+        7,
+        4,
         // left face
-        0, 4, 7,
-        7, 3, 0,
+        0,
+        4,
+        7,
+        7,
+        3,
+        0,
         // right face
-        1, 2, 6,
-        6, 5, 1,
+        1,
+        2,
+        6,
+        6,
+        5,
+        1,
         // back face
-        0, 3, 2,
-        2, 1, 0,
+        0,
+        3,
+        2,
+        2,
+        1,
+        0,
         // bottom face
-        0, 1, 5,
-        5, 4, 0,
+        0,
+        1,
+        5,
+        5,
+        4,
+        0,
         // top face
-        3, 7, 6,
-        6, 2, 3,
+        3,
+        7,
+        6,
+        6,
+        2,
+        3,
     };
 
-    *cube_num_indices = ARRAY_SIZE(indices);
+    *out_cube_num_indices = ARRAY_SIZE(indices);
 
     // create the vao
     GLuint vao;
     glGenVertexArrays(1, &vao);
-    glad_glBindVertexArray(vao);
+    glBindVertexArray(vao);
 
     // create the vbo and ebo
     GLuint vbo, ebo;
@@ -65,7 +110,7 @@ SetupCube(size_t* cube_num_indices)
 
     // bind vbo
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*ARRAY_SIZE(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * ARRAY_SIZE(vertices), vertices, GL_STATIC_DRAW);
 
     // specify how buffer data is layed out in memory
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
@@ -73,7 +118,8 @@ SetupCube(size_t* cube_num_indices)
 
     // bind ebo
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, ARRAY_SIZE(indices)*sizeof(unsigned), indices, GL_STATIC_DRAW);
+    glBufferData(
+        GL_ELEMENT_ARRAY_BUFFER, ARRAY_SIZE(indices) * sizeof(unsigned), indices, GL_STATIC_DRAW);
     return vao;
 }
 
@@ -94,14 +140,12 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 
 struct Camera
 {
-    static Camera New(Vec3 position, Vec3 front)
+    Camera(Vec3 position, Vec3 front)
+        : _position(position)
+        , _up_world(0, 1, 0)
     {
-        Camera c = {};
-        c._position = position;
-        c._front.v = Math::Normalize(front);
-        c._up_world = Vec3::New(0, 1, 0);
-        c.UpdateUpAndRightVectors();
-        return c;
+        _front.v = Math::Normalize(front);
+        UpdateUpAndRightVectors();
     }
 
     Mat4 GetViewMatrix()
@@ -112,49 +156,32 @@ struct Camera
         Vec3 up_world;
         if (fabs(_front.v.x) < epsilon && fabs(_front.v.z) < epsilon) {
             if (_front.v.y > 0)
-                up_world = Vec3::New(0, 0, -1);
+                up_world = Vec3(0, 0, -1);
             else
-                up_world = Vec3::New(0, 0, 1);
+                up_world = Vec3(0, 0, 1);
         } else {
-            up_world = Vec3::New(0, 1, 0);
+            up_world = Vec3(0, 1, 0);
         }
 
-        // _right = Normalize(Cross(_front.v, up_world));
         _right = Normalize(Cross(_front.v, up_world));
-        // _up = Cross(_front.v, _right);
-
         auto view_matrix = Mat4::LookAt(_position, _front.v, _right, _up);
         return view_matrix;
     }
 
-    void MoveLeft(float offset)
-    {
-        _position -= _right * 0.01f;
-    }
+    void MoveLeft(float offset) { _position -= _right * 0.01f; }
 
-    void MoveRight(float offset)
-    {
-        _position += _right * 0.01f;
-    }
+    void MoveRight(float offset) { _position += _right * 0.01f; }
 
-    void MoveForwards(float offset)
-    {
-        _position += _front.v * 0.01f;
-    }
+    void MoveForwards(float offset) { _position += _front.v * 0.01f; }
 
-    void MoveBackwards(float offset)
-    {
-        _position -= _front.v * 0.01f;
-    }
+    void MoveBackwards(float offset) { _position -= _front.v * 0.01f; }
 
     void Rotate(const Vec3& axis)
     {
         using namespace Math;
         float rotation_speed = 0.001f;
 
-        _front = Quaternion::Rotate(
-            _front, rotation_speed, Quaternion::New(0, axis)
-        );
+        _front = Quaternion::Rotate(_front, rotation_speed, Quaternion::New(0, axis));
 
         UpdateUpAndRightVectors();
     }
@@ -172,12 +199,12 @@ private:
 
         if (fabs(_front.v.x) < epsilon && fabs(_front.v.z) < epsilon) {
             if (_front.v.y > 0) {
-                _up_world = Vec3::New(0, 0, 1);
+                _up_world = Vec3(0, 0, 1);
             } else {
-                _up_world = Vec3::New(0, 0, -1);
+                _up_world = Vec3(0, 0, -1);
             }
         } else {
-            _up_world = Vec3::New(0, 1, 0);
+            _up_world = Vec3(0, 1, 0);
         }
 
         _right = Normalize(Cross(_front.v, _up_world));
@@ -208,193 +235,6 @@ private:
 //  [TODO] - Load a texture
 //
 
-static void*
-LoadTexture(const char* asset_path, LinearAllocator& alloc)
-{
-    FILE* fp = fopen(asset_path, "rb");
-    assert(fp && "opening the file should not fail");
-
-    // Get the size of the asset
-    fseek(fp, 0, SEEK_END);
-    size_t asset_size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-
-    void* mem = alloc.Allocate(asset_size);
-
-    size_t nread = fread(mem, 1, asset_size, fp);
-    assert(nread == asset_size);
-
-    return mem;
-}
-
-class PlayerInput
-{
-public:
-    static PlayerInput New()
-    {
-        PlayerInput pi = {};
-        return pi;
-    }
-
-    void RegisterInputs(InputSystem* input_system, LinearAllocator& allocator)
-    {
-        input_system->AddKeyboardEventListener(
-            kKeyboardEventButtonHold, SDLK_a, LeftInput, this, allocator);
-        input_system->AddKeyboardEventListener(
-            kKeyboardEventButtonUp, SDLK_a, LeftRelease, this, allocator);
-
-        input_system->AddKeyboardEventListener(
-            kKeyboardEventButtonHold, SDLK_d, RightInput, this, allocator);
-        input_system->AddKeyboardEventListener(
-            kKeyboardEventButtonUp, SDLK_d, RightRelease, this, allocator);
-
-        input_system->AddKeyboardEventListener(
-            kKeyboardEventButtonHold, SDLK_RIGHT, TurnRightInput, this, allocator);
-        input_system->AddKeyboardEventListener(
-            kKeyboardEventButtonUp, SDLK_RIGHT, TurnRightRelease, this, allocator);
-
-        input_system->AddKeyboardEventListener(
-            kKeyboardEventButtonHold, SDLK_LEFT, TurnLeftInput, this, allocator);
-        input_system->AddKeyboardEventListener(
-            kKeyboardEventButtonUp, SDLK_LEFT, TurnLeftRelease, this, allocator);
-
-        input_system->AddKeyboardEventListener(
-            kKeyboardEventButtonHold, SDLK_UP, TurnAboveInput, this, allocator);
-        input_system->AddKeyboardEventListener(
-            kKeyboardEventButtonUp, SDLK_UP, TurnAboveRelease, this, allocator);
-
-        input_system->AddKeyboardEventListener(
-            kKeyboardEventButtonHold, SDLK_DOWN, TurnBelowInput, this, allocator);
-        input_system->AddKeyboardEventListener(
-            kKeyboardEventButtonUp, SDLK_DOWN, TurnBelowRelease, this, allocator);
-
-        input_system->AddKeyboardEventListener(
-            kKeyboardEventButtonHold, SDLK_s, BackInput, this, allocator);
-        input_system->AddKeyboardEventListener(
-            kKeyboardEventButtonUp, SDLK_s, BackRelease, this, allocator);
-
-        input_system->AddKeyboardEventListener(
-            kKeyboardEventButtonHold, SDLK_w, ForwardInput, this, allocator);
-        input_system->AddKeyboardEventListener(
-            kKeyboardEventButtonUp, SDLK_w, ForwardRelease, this, allocator);
-    }
-
-    bool IsMovingLeft() const { return _moving_left; }
-    bool IsMovingRight() const { return _moving_right; }
-    bool IsMovingForwards() const { return _moving_forwards; }
-    bool IsMovingBackwards() const { return _moving_backwards; }
-    bool IsTurningLeft() const { return _turning_left; }
-    bool IsTurningRight() const { return _turning_right; }
-    bool IsTurningAbove() const { return _turning_above; }
-    bool IsTurningBelow() const { return _turning_below; }
-
-private:
-    static void LeftInput(SDL_Event ev, void* user_data)
-    {
-        auto ps = (PlayerInput*)user_data;
-        ps->_moving_left = true;
-    }
-
-    static void LeftRelease(SDL_Event ev, void* user_data)
-    {
-        auto ps = (PlayerInput*)user_data;
-        ps->_moving_left = false;
-    }
-
-    static void RightInput(SDL_Event ev, void* user_data)
-    {
-        auto ps = (PlayerInput*)user_data;
-        ps->_moving_right = true;
-    }
-
-    static void RightRelease(SDL_Event ev, void* user_data)
-    {
-        auto ps = (PlayerInput*)user_data;
-        ps->_moving_right = false;
-    }
-
-    static void TurnRightInput(SDL_Event ev, void* user_data)
-    {
-        auto ps = (PlayerInput*)user_data;
-        ps->_turning_right = true;
-    }
-
-    static void TurnRightRelease(SDL_Event ev, void* user_data)
-    {
-        auto ps = (PlayerInput*)user_data;
-        ps->_turning_right = false;
-    }
-
-    static void TurnLeftInput(SDL_Event ev, void* user_data)
-    {
-        auto ps = (PlayerInput*)user_data;
-        ps->_turning_left = true;
-    }
-
-    static void TurnLeftRelease(SDL_Event ev, void* user_data)
-    {
-        auto ps = (PlayerInput*)user_data;
-        ps->_turning_left = false;
-    }
-
-    static void TurnAboveInput(SDL_Event ev, void* user_data)
-    {
-        auto ps = (PlayerInput*)user_data;
-        ps->_turning_above = true;
-    }
-
-    static void TurnAboveRelease(SDL_Event ev, void* user_data)
-    {
-        auto ps = (PlayerInput*)user_data;
-        ps->_turning_above = false;
-    }
-
-    static void TurnBelowInput(SDL_Event ev, void* user_data)
-    {
-        auto ps = (PlayerInput*)user_data;
-        ps->_turning_below = true;
-    }
-
-    static void TurnBelowRelease(SDL_Event ev, void* user_data)
-    {
-        auto ps = (PlayerInput*)user_data;
-        ps->_turning_below = false;
-    }
-
-    static void BackInput(SDL_Event ev, void* user_data)
-    {
-        auto ps = (PlayerInput*)user_data;
-        ps->_moving_backwards = true;
-    }
-
-    static void BackRelease(SDL_Event ev, void* user_data)
-    {
-        auto ps = (PlayerInput*)user_data;
-        ps->_moving_backwards = false;
-    }
-
-    static void ForwardInput(SDL_Event ev, void* user_data)
-    {
-        auto ps = (PlayerInput*)user_data;
-        ps->_moving_forwards = true;
-    }
-
-    static void ForwardRelease(SDL_Event ev, void* user_data)
-    {
-        auto ps = (PlayerInput*)user_data;
-        ps->_moving_forwards = false;
-    }
-
-    bool _moving_left;
-    bool _moving_right;
-    bool _moving_backwards;
-    bool _moving_forwards;
-    bool _turning_right;
-    bool _turning_left;
-    bool _turning_above;
-    bool _turning_below;
-};
-
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
@@ -413,7 +253,9 @@ main()
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, true);
 
-    SDL_Window* window = SDL_CreateWindow("Blocks", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
+    SDL_Window* window =
+        SDL_CreateWindow("Blocks", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
+
     SDL_GLContext context = SDL_GL_CreateContext(window);
 
     // Now that sdl is initialized, we initialize glad to handle opengl calls.
@@ -429,25 +271,24 @@ main()
     //
     // Create total scratch memory
     //
-    Memory main_memory = Memory::New(MEGABYTES(5));
-    auto main_allocator = LinearAllocator::Make(main_memory);
+    Memory main_memory(MEGABYTES(5));
+    main_memory.Create();
+
+    LinearAllocator main_allocator(main_memory);
 
     //
     // Load shaders
     //
     LOG_DEBUG("Loading shaders\n");
 
-    auto shaders_allocator = LinearAllocator::Make(
-        main_allocator.Allocate(KILOBYTES(10)), KILOBYTES(10)
-    );
+    LinearAllocator shaders_allocator(main_allocator.Allocate(KILOBYTES(10)), KILOBYTES(10));
 
     // TODO: figure out a way of abstracting the shader away
     GLuint basic_program = Shader::LoadFromFile(
-        "/Users/lhahn/dev/prototypes/blocks/resources/shaders/basic.glsl", shaders_allocator
-    );
-    auto view_location = glGetUniformLocation(basic_program, "view");
-    auto model_location = glGetUniformLocation(basic_program, "model");
-    auto projection_location = glGetUniformLocation(basic_program, "projection");
+        "/Users/lhahn/dev/prototypes/blocks/resources/shaders/basic.glsl", &shaders_allocator);
+    GLuint view_location = glGetUniformLocation(basic_program, "view");
+    GLuint model_location = glGetUniformLocation(basic_program, "model");
+    GLuint projection_location = glGetUniformLocation(basic_program, "projection");
 
     shaders_allocator.Clear();
 
@@ -457,31 +298,37 @@ main()
     //
     // Create the input system
     //
-    auto input_system = InputSystem::Make(main_allocator);
-    input_system->AddKeyboardEventListener(kKeyboardEventButtonDown, SDLK_q, OnApplicationQuit, &running, main_allocator);
+    InputSystem input_system;
+    input_system.Create(&main_allocator);
+    input_system.AddKeyboardEventListener(
+        kKeyboardEventButtonDown, SDLK_q, OnApplicationQuit, &running, &main_allocator);
 
-    auto player_input = PlayerInput::New();
-    player_input.RegisterInputs(input_system, main_allocator);
+    PlayerInput player_input;
+    player_input.RegisterInputs(&input_system, &main_allocator);
 
     size_t cube_num_indices;
     GLuint cube_vao = SetupCube(&cube_num_indices);
 
-    auto camera = Camera::New(Vec3::New(0, 0, 5), Vec3::New(0, 0, -1));
+    Camera camera(Vec3(0, 0, 5), Vec3(0, 0, -1));
 
     glUseProgram(basic_program);
 
     auto view_matrix = camera.GetViewMatrix();
     glUniformMatrix4fv(view_location, 1, false, &view_matrix.data[0]);
 
-    auto projection_matrix = Mat4::Perspective(60.0f, (float)SCREEN_WIDTH/SCREEN_HEIGHT, 0.1f, 100.0f);
+    auto projection_matrix =
+        Mat4::Perspective(60.0f, (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
     glUniformMatrix4fv(projection_location, 1, false, &projection_matrix.data[0]);
+
+    GLuint wall_texture =
+        LoadTexture(&main_allocator, "/Users/lhahn/dev/prototypes/blocks/resources/wall.jpg");
 
     LOG_DEBUG("Starting main loop");
     glClearColor(0, 0, 0, 1);
     while (running) {
-        input_system->Update();
+        input_system.Update();
 
-        if (input_system->ReceivedQuitEvent()) {
+        if (input_system.ReceivedQuitEvent()) {
             LOG_INFO("Received quit event, exiting application");
             break;
         }
@@ -496,12 +343,12 @@ main()
 
         if (player_input.IsTurningLeft()) {
             // camera.Rotate(camera.Up());
-            camera.Rotate(Vec3::New(0, 1, 0));
+            camera.Rotate(Vec3(0, 1, 0));
         }
 
         if (player_input.IsTurningRight()) {
             // camera.Rotate(-camera.Up());
-            camera.Rotate(Vec3::New(0, -1, 0));
+            camera.Rotate(Vec3(0, -1, 0));
         }
 
         if (player_input.IsTurningAbove()) {
@@ -540,7 +387,9 @@ main()
 
     LOG_INFO("Deallocating main resources");
 
-    Memory::Delete(main_memory);
+    main_allocator.Clear();
+    input_system.Destroy();
+    main_memory.Destroy();
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
     SDL_Quit();

@@ -70,10 +70,10 @@ struct Quaternion
 
     Mat4 ToMat4() const
     {
-        return Mat4::New(s,   -v.i, -v.j, -v.k,
-                         v.i,    s, -v.k,  v.j,
-                         v.j,  v.k,    s, -v.i,
-                         v.k, -v.j,  v.i,    s);
+        return Mat4(s,   -v.i, -v.j, -v.k,
+                    v.i,    s, -v.k,  v.j,
+                    v.j,  v.k,    s, -v.i,
+                    v.k, -v.j,  v.i,    s);
     }
 
     Quaternion operator+(const Quaternion& rhs) const

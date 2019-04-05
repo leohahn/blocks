@@ -1,13 +1,25 @@
 #pragma once
 
-#define KILOBYTES(x) (x)*1024
-#define MEGABYTES(x) KILOBYTES(x)*1024
-#define GIGABYTES(x) MEGABYTES(x)*1024
+#define KILOBYTES(x) (x) * 1024
+#define MEGABYTES(x) KILOBYTES(x) * 1024
+#define GIGABYTES(x) MEGABYTES(x) * 1024
 
-#define ARRAY_SIZE(arr) (sizeof(arr)/sizeof((arr)[0]))
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 #ifdef NDEBUG
 #define BLOCKS_PRODUCTION 1
 #else
 #define BLOCKS_DEBUG 1
+#endif
+
+#ifndef MIN
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#else
+#error "MIN is already defined"
+#endif
+
+#ifndef MAX
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#else
+#error "MIN is already defined"
 #endif

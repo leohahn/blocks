@@ -6,7 +6,7 @@ namespace Shader
 {
 
 GLuint
-LoadFromFile(const char* path, LinearAllocator allocator)
+LoadFromFile(const char* path, Allocator* allocator)
 {
     assert(path);
 
@@ -27,7 +27,7 @@ LoadFromFile(const char* path, LinearAllocator allocator)
         fseek(fp, 0, SEEK_SET);
 
         // allocate enough memory
-        shader_string = (char*)allocator.Allocate(file_size);
+        shader_string = (char*)allocator->Allocate(file_size);
         assert(shader_string && "there should be enough memory here");
 
         // read the file into the buffer

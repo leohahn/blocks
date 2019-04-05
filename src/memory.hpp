@@ -1,26 +1,29 @@
 #pragma once
 
+#include <assert.h>
 #include <stddef.h>
 #include <string.h>
-#include <assert.h>
 
 struct Memory
 {
     void* ptr;
     size_t size;
 
-    static Memory New(size_t size)
+    Memory(size_t size)
+        : ptr(nullptr)
+        , size(size)
+    {}
+
+    void Create()
     {
-        Memory mem = {};
-        mem.ptr = calloc(1, size);
-        assert(mem.ptr);
-        mem.size = size;
-        return mem;
+        ptr = calloc(1, size);
+        assert(ptr);
     }
 
-    inline void
-    static Delete(Memory mem)
+    void Destroy()
     {
-        free(mem.ptr);
+        free(ptr);
+        ptr = nullptr;
+        size = 0;
     }
 };

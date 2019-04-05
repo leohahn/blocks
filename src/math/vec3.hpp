@@ -22,27 +22,21 @@ struct Vec3
         };
     };
 
-    static Vec3 New(float x, float y, float z)
-    {
-        Vec3 v;
-        v.x = x;
-        v.y = y;
-        v.z = z;
-        return v;
-    }
+    Vec3() = default;
 
-    static Vec3 New(float val)
-    {
-        Vec3 v;
-        v.x = val;
-        v.y = val;
-        v.z = val;
-        return v;
-    }
+    Vec3(float x, float y, float z)
+        : x(x), y(y), z(z)
+    {}
+
+    Vec3(float val)
+        : x(val)
+        , y(val)
+        , z(val)
+    {} 
 
     static Vec3 Zero()
     {
-        return Vec3::New(0.0f);
+        return Vec3(0.0f);
     }
 
     void operator-=(const Vec3& vec)
@@ -57,7 +51,7 @@ struct Vec3
 
     Vec3 operator-() const
     {
-        return Vec3::New(-x, -y, -z);
+        return Vec3(-x, -y, -z);
     }
 
     void Negate() { x = -x; y = -y; z = -z; }
@@ -66,7 +60,7 @@ struct Vec3
 inline Vec3
 operator+(const Vec3& lhs, const Vec3& rhs)
 {
-    return Vec3::New(
+    return Vec3(
         lhs.x + rhs.x,
         lhs.y + rhs.y,
         lhs.z + rhs.z
@@ -76,7 +70,7 @@ operator+(const Vec3& lhs, const Vec3& rhs)
 inline Vec3
 operator*(const Vec3& v, float k)
 {
-    return Vec3::New(
+    return Vec3(
         v.x * k,
         v.y * k,
         v.z * k
@@ -102,7 +96,7 @@ operator!=(const Vec3& lhs, const Vec3& rhs)
 inline Vec3
 operator*(float k, const Vec3& v)
 {
-    return Vec3::New(
+    return Vec3(
         v.x * k,
         v.y * k,
         v.z * k
@@ -112,11 +106,11 @@ operator*(float k, const Vec3& v)
 inline Vec3
 operator-(Vec3 lhs, Vec3 rhs)
 {
-    Vec3 res;
-    res.x = lhs.x - rhs.x;
-    res.y = lhs.y - rhs.y;
-    res.z = lhs.z - rhs.z;
-    return res;
+    return Vec3(
+        lhs.x - rhs.x,
+        lhs.y - rhs.y,
+        lhs.z - rhs.z
+    );
 }
 
 namespace Math
@@ -131,13 +125,13 @@ namespace Math
     Normalize(const Vec3& vec)
     {
         float len = sqrtf(vec.x*vec.x + vec.y*vec.y + vec.z*vec.z);
-        return Vec3::New(vec.x/len, vec.y/len, vec.z/len);
+        return Vec3(vec.x/len, vec.y/len, vec.z/len);
     }
 
     inline Vec3
     Cross(const Vec3& vec_a, const Vec3& vec_b)
     {
-        return Vec3::New(
+        return Vec3(
             vec_a.y * vec_b.z - vec_a.z * vec_b.y,
             vec_a.z * vec_b.x - vec_a.x * vec_b.z,
             vec_a.x * vec_b.y - vec_a.y * vec_b.x

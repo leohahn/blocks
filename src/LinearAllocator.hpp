@@ -1,32 +1,32 @@
 #pragma once
 
 #include "Allocator.hpp"
+#include "Defines.hpp"
 #include "Memory.hpp"
 
 class LinearAllocator : public Allocator
 {
 public:
-    static LinearAllocator Make(Memory mem)
+    LinearAllocator(Memory mem)
+        : LinearAllocator(mem.ptr, mem.size)
+    {}
+
+    LinearAllocator(Memory mem, size_t size)
+        : LinearAllocator(mem.ptr, MIN(size, mem.size))
+    {}
+
+    ~LinearAllocator()
     {
-        return Make(mem.ptr, mem.size);
+        assert(_bytes_allocated == 0);
     }
 
-    static LinearAllocator Make(Memory mem, size_t size)
+    LinearAllocator(void* mem, size_t size)
+        : _mem(mem)
+        , _bytes_allocated(0)
+        , _size(size)
     {
-        assert(size <= mem.size);
-        return Make(mem.ptr, size);
-    }
-
-    static LinearAllocator Make(void* mem, size_t size)
-    {
-        assert(mem && "should be instantiated with memory");
-        assert(size > 0 && "allocator should have allocated bytes");
-
-        LinearAllocator alloc;
-        alloc._mem = mem;
-        alloc._bytes_allocated = 0;
-        alloc._size = size;
-        return alloc;
+        assert(_mem && "should be instantiated with memory");
+        assert(_size > 0 && "allocator should have allocated bytes");
     }
 
     void* Allocate(size_t size) override
@@ -45,7 +45,10 @@ public:
         return free_mem;
     }
 
-    void Deallocate(void* ptr) override {/* Do nothing */ (void)ptr;}
+    void Deallocate(void* ptr) override
+    { /* Do nothing */
+        (void)ptr;
+    }
 
     void Clear() { _bytes_allocated = 0; }
 

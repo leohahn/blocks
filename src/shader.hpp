@@ -6,6 +6,6 @@
 namespace Shader
 {
 
-GLuint LoadFromFile(const char* path, LinearAllocator allocator);
+GLuint LoadFromFile(const char* path, Allocator* allocator);
 
 }

@@ -35,45 +35,43 @@ public:
         return m[col][row];
     }
 
-    static Mat4 New(float m00, float m01, float m02, float m03,
-                    float m10, float m11, float m12, float m13,
-                    float m20, float m21, float m22, float m23,
-                    float m30, float m31, float m32, float m33)
+    Mat4(float m00, float m01, float m02, float m03,
+         float m10, float m11, float m12, float m13,
+         float m20, float m21, float m22, float m23,
+         float m30, float m31, float m32, float m33)
     {
-        Mat4 mat;
-        mat.data[0]  = m00;
-        mat.data[1]  = m10;
-        mat.data[2]  = m20;
-        mat.data[3]  = m30;
-        mat.data[4]  = m01;
-        mat.data[5]  = m11;
-        mat.data[6]  = m21;
-        mat.data[7]  = m31;
-        mat.data[8]  = m02;
-        mat.data[9]  = m12;
-        mat.data[10] = m22;
-        mat.data[11] = m32;
-        mat.data[12] = m03;
-        mat.data[13] = m13;
-        mat.data[14] = m23;
-        mat.data[15] = m33;
-        return mat;
+        data[0]  = m00;
+        data[1]  = m10;
+        data[2]  = m20;
+        data[3]  = m30;
+        data[4]  = m01;
+        data[5]  = m11;
+        data[6]  = m21;
+        data[7]  = m31;
+        data[8]  = m02;
+        data[9]  = m12;
+        data[10] = m22;
+        data[11] = m32;
+        data[12] = m03;
+        data[13] = m13;
+        data[14] = m23;
+        data[15] = m33;
     }
 
     static Mat4 Identity()
     {
-        return Mat4::New(1, 0, 0, 0,
-                         0, 1, 0, 0,
-                         0, 0, 1, 0,
-                         0, 0, 0, 1);
+        return Mat4(1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 1, 0,
+                    0, 0, 0, 1);
     }
 
     static Mat4 Diag(float diag)
     {
-        return New(diag, 0,    0,    0,
-                   0,    diag, 0,    0,
-                   0,    0,    diag, 0,
-                   0,    0,    0,    1);
+        return Mat4(diag, 0,    0,    0,
+                    0,    diag, 0,    0,
+                    0,    0,    diag, 0,
+                    0,    0,    0,    1);
     }
 
     static Mat4 LookAt(const Vec3& eye, const Vec3& center, const Vec3& up_world);

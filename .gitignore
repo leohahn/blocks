@@ -2,3 +2,5 @@ build
 _builds
 .clang_complete
 .vscode/ipch
+.ccls-cache
+.ccls-root

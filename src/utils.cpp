@@ -10,7 +10,7 @@ static const char* kSizeNames[] = {
 thread_local static char g_buf[64];
 
 char*
-GetPrettySize(size_t size)
+Utils::GetPrettySize(size_t size)
 {
     unsigned index = 0;
     size_t new_size = size;

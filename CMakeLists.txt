@@ -44,7 +44,25 @@ add_executable(blocks
     src/Shader.hpp
     src/Shader.cpp
 
+    # Rendering
+    src/Renderer.hpp
+
+    # FileSystem
+    src/FileSystem.hpp
+
+    # Gameplay
+    src/PlayerInput.hpp
+    
+    # Textures
+    src/Texture.hpp
+    src/Texture.cpp
+
     src/main.cpp)
+
+if(APPLE)
+    target_sources(blocks PRIVATE
+        src/FileSystem/Apple.cpp)
+endif()
 
 target_compile_options(blocks PRIVATE -fno-rtti -fno-exceptions -std=c++14)
 
