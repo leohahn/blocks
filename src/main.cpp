@@ -22,83 +22,86 @@ SetupCube(size_t* out_cube_num_indices)
 {
     assert(out_cube_num_indices);
 
-    static float vertices[] = {
-        // vertices on the back of the cube
-        -1,
-        -1,
-        -1, // 0
-        1,
-        -1,
-        -1, // 1
-        1,
-        1,
-        -1, // 2
-        -1,
-        1,
-        -1, // 3
-        // vertices on the front of the cube
-        -1,
-        -1,
-        1, // 4
-        1,
-        -1,
-        1, // 5
-        1,
-        1,
-        1, // 6
-        -1,
-        1,
-        1 // 7
+    // clang-format off
+    static const uint32_t indices[] =
+    {
+        0,  1,  2,  2,  3,  0,
+        4,  5,  6,  6,  7,  4,
+        8,  9, 10, 10, 11,  8,
+        12, 13, 14, 14, 15, 12,
+        16, 17, 18, 18, 19, 16,
+        20, 21, 22, 22, 23, 20,
     };
+    
+    static const float vertices[] =
+    {
+        // FRONT
+        -1, -1,  1,   0, 0, // 0
+         1, -1,  1,   1, 0,// 1
+         1,  1,  1,   1, 1,// 2
+        -1,  1,  1,   0, 1,// 3
+        // BACK
+         1, -1, -1,   0, 0, // 4
+        -1, -1, -1,   1, 0, // 5
+        -1,  1, -1,   1, 1, // 6
+         1,  1, -1,   0, 1, // 7
+        // TOP
+        -1,  1,  1,   0, 0, // 8
+         1,  1,  1,   1, 0, // 9
+         1,  1, -1,   1, 1, // 10
+        -1,  1, -1,   0, 1, // 11
+        // BOTTOM
+         1, -1,  1,   0, 0, // 12
+        -1, -1,  1,   1, 0, // 13
+        -1, -1, -1,   1, 1, // 14
+         1, -1, -1,   0, 1, // 15
+        // LEFT
+        -1, -1, -1,   0, 0, // 16
+        -1, -1,  1,   1, 0, // 17
+        -1,  1,  1,   1, 1, // 18
+        -1,  1, -1,   0, 1, // 19
+        // RIGHT
+         1, -1,  1,   0, 0, // 20
+         1, -1, -1,   1, 0, // 21
+         1,  1, -1,   1, 1, // 22
+         1,  1,  1,   0, 1, // 23
 
-    static unsigned indices[] = {
-        // front face
-        4,
-        5,
-        6,
-        6,
-        7,
-        4,
-        // left face
-        0,
-        4,
-        7,
-        7,
-        3,
-        0,
-        // right face
-        1,
-        2,
-        6,
-        6,
-        5,
-        1,
-        // back face
-        0,
-        3,
-        2,
-        2,
-        1,
-        0,
-        // bottom face
-        0,
-        1,
-        5,
-        5,
-        4,
-        0,
-        // top face
-        3,
-        7,
-        6,
-        6,
-        2,
-        3,
+        // // Texture coordinates
+        // // FRONT
+        // 0, 0, // 0
+        // 1, 0, // 1
+        // 1, 1, // 2
+        // 0, 1, // 3
+        // // BACK
+        // 0, 0, // 4
+        // 1, 0, // 5
+        // 1, 1, // 6
+        // 0, 1, // 7
+        // // TOP
+        // 0, 0, // 8
+        // 1, 0, // 9
+        // 1, 1, // 10
+        // 0, 1, // 11
+        // // BOTTOM
+        // 0, 0, // 12
+        // 1, 0, // 13
+        // 1, 1, // 14
+        // 0, 1, // 15
+        // // LEFT
+        // 0, 0, // 16
+        // 1, 0, // 17
+        // 1, 1, // 18
+        // 0, 1, // 19
+        // // RIGHT
+        // 0, 0, // 20
+        // 1, 0, // 21
+        // 1, 1, // 22
+        // 0, 1, // 23
     };
+    // clang-format on
 
     *out_cube_num_indices = ARRAY_SIZE(indices);
 
-    // create the vao
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -113,8 +116,18 @@ SetupCube(size_t* out_cube_num_indices)
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * ARRAY_SIZE(vertices), vertices, GL_STATIC_DRAW);
 
     // specify how buffer data is layed out in memory
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-    glEnableVertexAttribArray(0);
+    size_t stride = 5 * sizeof(float);
+    size_t first_byte_offset;
+    {
+        first_byte_offset = 0;
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)first_byte_offset);
+        glEnableVertexAttribArray(0);
+    }
+    {
+        first_byte_offset = 3 * sizeof(float);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)first_byte_offset);
+        glEnableVertexAttribArray(1);
+    }
 
     // bind ebo
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
@@ -286,13 +299,13 @@ main()
     // TODO: figure out a way of abstracting the shader away
     GLuint basic_program = Shader::LoadFromFile(
         "/Users/lhahn/dev/prototypes/blocks/resources/shaders/basic.glsl", &shaders_allocator);
+    assert(basic_program > 0 && "program should be valid");
+
     GLuint view_location = glGetUniformLocation(basic_program, "view");
     GLuint model_location = glGetUniformLocation(basic_program, "model");
     GLuint projection_location = glGetUniformLocation(basic_program, "projection");
 
     shaders_allocator.Clear();
-
-    assert(basic_program > 0 && "program should be valid");
 
     bool running = true;
     //

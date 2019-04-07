@@ -33,6 +33,7 @@ add_executable(blocks
     src/Utils.cpp
 
     # Math
+    src/math/Vec2.hpp
     src/math/Vec3.hpp
     src/math/Mat4.hpp
     src/math/Mat4.cpp

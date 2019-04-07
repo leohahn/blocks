@@ -18,12 +18,12 @@ SetLogLevel(LogLevel level)
 const char*
 GetLogTag(LogLevel level)
 {
-    static const char* tags[] = {
+    static constexpr const char* tags[] = {
         "DEBUG",
         "INFO",
         "WARN",
         "ERROR",
-        NULL,
+        nullptr,
     };
     return tags[level];
 }
