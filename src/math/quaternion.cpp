@@ -20,7 +20,7 @@ Quaternion
 Quaternion::Rotation(float angle, const Vec3& axis)
 {
     Vec3 sin_axis = axis * sinf(angle/2.0f);
-    return Quaternion::New(cosf(angle/2.0f), sin_axis);
+    return Quaternion(cosf(angle/2.0f), sin_axis);
 }
 
 float

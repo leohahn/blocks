@@ -1,10 +1,10 @@
 #pragma once
 
-#include <math.h>
-#include <assert.h>
-#include "Math/Vec3.hpp"
-#include "Math/Mat4.hpp"
 #include "Math/Float.hpp"
+#include "Math/Mat4.hpp"
+#include "Math/Vec3.hpp"
+#include <assert.h>
+#include <math.h>
 
 struct Quaternion
 {
@@ -18,39 +18,32 @@ struct Quaternion
         };
     };
 
-    static Quaternion New(float s, float i, float j, float k)
+    Quaternion()
     {
-        Quaternion q;
-        q.val[0] = s;
-        q.val[1] = i;
-        q.val[2] = j;
-        q.val[3] = k;
-        return q;
+        val[0] = 0;
+        val[1] = 0;
+        val[2] = 0;
+        val[3] = 0;
     }
 
-    static Quaternion New(float s, const Vec3& v)
+    Quaternion(float s, float i, float j, float k)
     {
-        Quaternion q;
-        q.s = s;
-        q.v = v;
-        return q;
+        val[0] = s;
+        val[1] = i;
+        val[2] = j;
+        val[3] = k;
     }
 
-    static Quaternion Zero()
+    Quaternion(float s, const Vec3& v)
+        : s(s), v(v)
     {
-        Quaternion q = {};
-        return q;
     }
 
-    static Quaternion Identity()
-    {
-        return Quaternion::New(1, 0, 0, 0);
-    }
+    static Quaternion Zero() { return Quaternion(); }
 
-    static Quaternion Conjugate(const Quaternion& q)
-    {
-        return Quaternion::New(q.s, -q.v);
-    }
+    static Quaternion Identity() { return Quaternion(1, 0, 0, 0); }
+
+    static Quaternion Conjugate(const Quaternion& q) { return Quaternion(q.s, -q.v); }
 
     static Quaternion Rotate(const Quaternion& q, float angle, const Quaternion& axis)
     {
@@ -70,79 +63,67 @@ struct Quaternion
 
     Mat4 ToMat4() const
     {
-        return Mat4(s,   -v.i, -v.j, -v.k,
-                    v.i,    s, -v.k,  v.j,
-                    v.j,  v.k,    s, -v.i,
-                    v.k, -v.j,  v.i,    s);
+        return Mat4(s, -v.i, -v.j, -v.k, v.i, s, -v.k, v.j, v.j, v.k, s, -v.i, v.k, -v.j, v.i, s);
     }
 
     Quaternion operator+(const Quaternion& rhs) const
     {
-        return Quaternion::New(s+rhs.s, v.i+rhs.v.i, v.j+rhs.v.j, v.k+rhs.v.k);
+        return Quaternion(s + rhs.s, v.i + rhs.v.i, v.j + rhs.v.j, v.k + rhs.v.k);
     }
 
     Quaternion operator*(const Quaternion& rhs) const
     {
-        return Quaternion::New((s*rhs.s) - Math::Dot(v, rhs.v),
-                    rhs.s*v + s*rhs.v + Math::Cross(v, rhs.v));
+        return Quaternion((s * rhs.s) - Math::Dot(v, rhs.v),
+                          rhs.s * v + s * rhs.v + Math::Cross(v, rhs.v));
     }
 
     Quaternion operator/(float k) const
     {
-        return Quaternion::New(val[0]/k, val[1]/k, val[2]/k, val[3]/k);
+        return Quaternion(val[0] / k, val[1] / k, val[2] / k, val[3] / k);
     }
 
     static void Print(const Quaternion& q);
 };
 
-inline Quaternion
-operator*(const Quaternion& q, float k)
+inline Quaternion operator*(const Quaternion& q, float k)
 {
-    return Quaternion::New(q.s*k, q.v*k);
+    return Quaternion(q.s * k, q.v * k);
 }
 
-inline Quaternion
-operator*(float k, const Quaternion& q)
+inline Quaternion operator*(float k, const Quaternion& q)
 {
-    return Quaternion::New(q.s*k, q.v*k);
+    return Quaternion(q.s * k, q.v * k);
 }
 
 inline bool
 operator==(const Quaternion& a, const Quaternion& b)
 {
-    return Math::IsAlmostEqual(a.val[0], b.val[0]) &&
-           Math::IsAlmostEqual(a.val[1], b.val[1]) &&
-           Math::IsAlmostEqual(a.val[2], b.val[2]) &&
-           Math::IsAlmostEqual(a.val[3], b.val[3]);
+    return Math::IsAlmostEqual(a.val[0], b.val[0]) && Math::IsAlmostEqual(a.val[1], b.val[1]) &&
+           Math::IsAlmostEqual(a.val[2], b.val[2]) && Math::IsAlmostEqual(a.val[3], b.val[3]);
 }
 
 inline bool
 operator!=(const Quaternion& a, const Quaternion& b)
 {
-    return !Math::IsAlmostEqual(a.val[0], b.val[0]) ||
-           !Math::IsAlmostEqual(a.val[1], b.val[1]) ||
-           !Math::IsAlmostEqual(a.val[2], b.val[2]) ||
-           !Math::IsAlmostEqual(a.val[3], b.val[3]);
+    return !Math::IsAlmostEqual(a.val[0], b.val[0]) || !Math::IsAlmostEqual(a.val[1], b.val[1]) ||
+           !Math::IsAlmostEqual(a.val[2], b.val[2]) || !Math::IsAlmostEqual(a.val[3], b.val[3]);
 }
 
-namespace Math
-{
+namespace Math {
 
 inline Quaternion
 Normalize(const Quaternion& q)
 {
-    return Quaternion::New(
-        q.s/Quaternion::Norm(q),
-        q.v.i/Quaternion::Norm(q),
-        q.v.j/Quaternion::Norm(q),
-        q.v.k/Quaternion::Norm(q)
-    );
+    return Quaternion(q.s / Quaternion::Norm(q),
+                      q.v.i / Quaternion::Norm(q),
+                      q.v.j / Quaternion::Norm(q),
+                      q.v.k / Quaternion::Norm(q));
 }
 
 inline float
 Dot(const Quaternion& a, const Quaternion& b)
 {
-	return a.val[0]*b.val[0] + a.val[1]*b.val[1] + a.val[2]*b.val[2] + a.val[3]*b.val[3];
+    return a.val[0] * b.val[0] + a.val[1] * b.val[1] + a.val[2] * b.val[2] + a.val[3] * b.val[3];
 }
 
-}
+} // namespace Math

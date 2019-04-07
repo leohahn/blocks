@@ -1,4 +1,5 @@
 #include "Allocator.hpp"
+#include "Camera.hpp"
 #include "Defines.hpp"
 #include "FileSystem.hpp"
 #include "InputSystem.hpp"
@@ -151,87 +152,6 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
     *running = false;
 }
 
-struct Camera
-{
-    Camera(Vec3 position, Vec3 front)
-        : _position(position)
-        , _up_world(0, 1, 0)
-    {
-        _front.v = Math::Normalize(front);
-        UpdateUpAndRightVectors();
-    }
-
-    Mat4 GetViewMatrix()
-    {
-        using namespace Math;
-        const float epsilon = std::numeric_limits<float>::epsilon();
-
-        Vec3 up_world;
-        if (fabs(_front.v.x) < epsilon && fabs(_front.v.z) < epsilon) {
-            if (_front.v.y > 0)
-                up_world = Vec3(0, 0, -1);
-            else
-                up_world = Vec3(0, 0, 1);
-        } else {
-            up_world = Vec3(0, 1, 0);
-        }
-
-        _right = Normalize(Cross(_front.v, up_world));
-        auto view_matrix = Mat4::LookAt(_position, _front.v, _right, _up);
-        return view_matrix;
-    }
-
-    void MoveLeft(float offset) { _position -= _right * 0.01f; }
-
-    void MoveRight(float offset) { _position += _right * 0.01f; }
-
-    void MoveForwards(float offset) { _position += _front.v * 0.01f; }
-
-    void MoveBackwards(float offset) { _position -= _front.v * 0.01f; }
-
-    void Rotate(const Vec3& axis)
-    {
-        using namespace Math;
-        float rotation_speed = 0.001f;
-
-        _front = Quaternion::Rotate(_front, rotation_speed, Quaternion::New(0, axis));
-
-        UpdateUpAndRightVectors();
-    }
-
-    Vec3 Position() const { return _position; }
-    Vec3 Up() const { return _up; }
-    Vec3 Front() const { return _front.v; }
-    Vec3 Right() const { return _right; }
-
-private:
-    void UpdateUpAndRightVectors()
-    {
-        using namespace Math;
-        const float epsilon = std::numeric_limits<float>::epsilon();
-
-        if (fabs(_front.v.x) < epsilon && fabs(_front.v.z) < epsilon) {
-            if (_front.v.y > 0) {
-                _up_world = Vec3(0, 0, 1);
-            } else {
-                _up_world = Vec3(0, 0, -1);
-            }
-        } else {
-            _up_world = Vec3(0, 1, 0);
-        }
-
-        _right = Normalize(Cross(_front.v, _up_world));
-        _up = Normalize(Cross(_right, _front.v));
-    }
-
-private:
-    Vec3 _position;
-    Quaternion _front;
-    Vec3 _up;
-    Vec3 _right;
-    Vec3 _up_world;
-};
-
 //
 // What needs to be done
 //  [*DONE*] - Mat4 implementation
@@ -365,11 +285,11 @@ main()
         }
 
         if (player_input.IsTurningAbove()) {
-            camera.Rotate(camera.Right());
+            camera.Rotate(camera.right);
         }
 
         if (player_input.IsTurningBelow()) {
-            camera.Rotate(-camera.Right());
+            camera.Rotate(-camera.right);
         }
 
         if (player_input.IsMovingForwards()) {

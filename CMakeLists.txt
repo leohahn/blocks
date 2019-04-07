@@ -17,13 +17,22 @@ endif()
 
 add_executable(blocks
     deps/glad/src/glad.cpp
-    src/LinearAllocator.hpp
+
+    # Core
     src/InputSystem.hpp
     src/InputSystem.cpp
+    src/Camera.hpp
+    src/Camera.cpp
+    src/Shader.hpp
+    src/Shader.cpp
+    src/PlayerInput.hpp
+    src/Texture.hpp
+    src/Texture.cpp
 
     # Memory
     src/Memory.hpp
     src/Allocator.hpp
+    src/LinearAllocator.hpp
 
     # Utils
     src/Defines.hpp
@@ -41,22 +50,11 @@ add_executable(blocks
     src/math/Quaternion.hpp
     src/math/Quaternion.cpp
 
-    # Shaders
-    src/Shader.hpp
-    src/Shader.cpp
-
     # Rendering
     src/Renderer.hpp
 
     # FileSystem
     src/FileSystem.hpp
-
-    # Gameplay
-    src/PlayerInput.hpp
-    
-    # Textures
-    src/Texture.hpp
-    src/Texture.cpp
 
     src/main.cpp)
 
