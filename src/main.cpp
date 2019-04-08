@@ -4,6 +4,7 @@
 #include "FileSystem.hpp"
 #include "InputSystem.hpp"
 #include "Logger.hpp"
+#include "MallocAllocator.hpp"
 #include "Math.hpp"
 #include "PlayerInput.hpp"
 #include "Renderer.hpp"
@@ -174,7 +175,7 @@ main()
 
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     glEnable(GL_CULL_FACE);
-    
+
     /////////////////////////////////////////////////////////////////////////////////////////
 
     //
@@ -190,7 +191,8 @@ main()
     //
     LOG_DEBUG("Loading shaders\n");
 
-    LinearAllocator shaders_allocator("shaders", main_allocator.Allocate(KILOBYTES(10)), KILOBYTES(10));
+    LinearAllocator shaders_allocator(
+        "shaders", main_allocator.Allocate(KILOBYTES(10)), KILOBYTES(10));
 
     // TODO: figure out a way of abstracting the shader away
     GLuint basic_program = Shader::LoadFromFile(
@@ -229,8 +231,10 @@ main()
         Mat4::Perspective(60.0f, (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
     glUniformMatrix4fv(projection_location, 1, false, &projection_matrix.data[0]);
 
-    Texture wall_texture =
-        LoadTexture(&main_allocator, "wall.jpg");
+    // TODO, FIXME: instead of using malloc here, use a better defined allocator, like a frame one.
+    MallocAllocator temp_allocator("temporary_allocator");
+
+    Texture wall_texture = LoadTexture(&main_allocator, &temp_allocator, "wall.jpg");
 
     LOG_DEBUG("Loaded texture named: %s", wall_texture.name.data);
     LOG_DEBUG("       width: %d", wall_texture.width);

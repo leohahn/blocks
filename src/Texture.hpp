@@ -18,4 +18,4 @@ struct Texture
     {}
 };
 
-Texture LoadTexture(Allocator* allocator, const char* asset_path);
+Texture LoadTexture(Allocator* allocator, Allocator* scratch_allocator, const char* texture_file);

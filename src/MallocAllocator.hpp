@@ -7,19 +7,17 @@ class MallocAllocator : public Allocator
 {
 public:
     MallocAllocator(const char* name)
-        : _bytes_allocated(0)
+        : _bytes_water_mark(0)
         , _name(name)
     {
         assert(_name && "allocator should have a name");
     }
 
-    ~MallocAllocator() { assert(_bytes_allocated == 0); }
-
     void* Allocate(size_t size) override
     {
         void* new_mem = malloc(size);
         assert(new_mem);
-        _bytes_allocated += size;
+        _bytes_water_mark += size;
         return new_mem;
     }
 
@@ -28,6 +26,6 @@ public:
     const char* GetName() const override { return _name; }
 
 private:
-    size_t _bytes_allocated;
+    size_t _bytes_water_mark;
     const char* _name;
 };

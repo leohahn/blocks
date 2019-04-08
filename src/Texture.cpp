@@ -6,14 +6,14 @@
 #include "stb_image.h"
 #include <assert.h>
 
-// TODO: change this to receive a scratch allocator as well?
 Texture
-LoadTexture(Allocator* allocator, const char* texture_file)
+LoadTexture(Allocator* allocator, Allocator* scratch_allocator, const char* texture_file)
 {
-    String resources_path = FileSystem::GetResourcesPath(allocator);
-    String full_asset_path = FileSystem::JoinPaths(allocator, resources_path.View(), texture_file);
+    String resources_path = FileSystem::GetResourcesPath(scratch_allocator);
+    String full_asset_path = FileSystem::JoinPaths(scratch_allocator, resources_path.View(), texture_file);
 
     assert(allocator);
+    assert(scratch_allocator);
     assert(texture_file);
 
     Texture texture;
