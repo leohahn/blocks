@@ -1,17 +1,21 @@
+#include "Defines.hpp"
 #include "FileSystem.hpp"
 #include <assert.h>
+#include <limits.h>
 #include <stdio.h>
+#include <unistd.h>
 
 uint8_t*
-FileSystem::LoadFileToMemory(Allocator* allocator, const char* path, size_t* out_file_size)
+FileSystem::LoadFileToMemory(Allocator* allocator, const StringView& path, size_t* out_file_size)
 {
     assert(allocator);
+    assert(path.data[path.len] == 0);
 
     FILE* fp = nullptr;
     size_t file_size = 0;
     uint8_t* file_mem = nullptr;
 
-    fp = fopen(path, "rb");
+    fp = fopen(path.data, "rb");
     if (!fp) {
         return nullptr;
     }
@@ -43,4 +47,38 @@ cleanup_memory:
 cleanup_file:
     fclose(fp);
     return file_mem;
+}
+
+String
+FileSystem::GetResourcesPath(Allocator* allocator)
+{
+    String resources_path;
+    resources_path.Create(allocator);
+
+    char cwd_buf[PATH_MAX];
+    getcwd(cwd_buf, PATH_MAX);
+
+    resources_path.Append(cwd_buf);
+    resources_path.Append("/resources");
+
+    return resources_path;
+}
+
+String
+FileSystem::JoinPaths(Allocator* allocator, const StringView& p1, const StringView& p2)
+{
+    String res;
+    res.Create(allocator, p1);
+
+    if (res.Back() != '/') {
+        res.Append('/');
+    }
+
+    if (p2.Front() == '/') {
+        res.Append(p2, 1);
+    } else {
+        res.Append(p2);
+    }
+
+    return res;
 }

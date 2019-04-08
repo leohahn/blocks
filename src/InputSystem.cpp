@@ -5,11 +5,10 @@
 #include <SDL.h>
 
 InputSystem::InputSystem()
-: _allocator(nullptr)
-, _last_keyboard_state(nullptr)
-, _should_quit(false)
-{
-}
+    : _allocator(nullptr)
+    , _last_keyboard_state(nullptr)
+    , _should_quit(false)
+{}
 
 void
 InputSystem::Create(Allocator* allocator)
@@ -24,10 +23,12 @@ InputSystem::Create(Allocator* allocator)
         _keyboard_map[i].Create(_allocator);
     }
 
-    LOG_INFO("Input sytem initialized with %s of memory", Utils::GetPrettySize(size));
+    LOG_INFO("Input sytem initialized with %s of memory in %s allocator",
+             Utils::GetPrettySize(size),
+             allocator->GetName());
 }
 
-void 
+void
 InputSystem::Destroy()
 {
     for (int i = 0; i < kKeyboardEventMax; ++i) {
@@ -127,7 +128,7 @@ InputSystem::Update()
                     // or not.
 
                     Array<KeyboardEventListener>* listeners = &_keyboard_map[keyboard_event_it];
-                    for (size_t i = 0; i < listeners->len(); ++i) {
+                    for (size_t i = 0; i < listeners->len; ++i) {
                         bool key_matches = (*listeners)[i]->keycode == ev_keycode;
                         if (key_matches) {
                             assert((*listeners)[i]->cb);

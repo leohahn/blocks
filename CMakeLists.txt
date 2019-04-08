@@ -15,6 +15,13 @@ if(EXISTS ${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
     conan_basic_setup(TARGETS NO_OUTPUT_DIRS)
 endif()
 
+# Copy the resources folder to the correct executable location
+if(CMAKE_GENERATOR STREQUAL "Ninja")
+  file(COPY "resources" DESTINATION "${CMAKE_BINARY_DIR}")
+elseif(CMAKE_GENERATOR STREQUAL "Xcode")
+  file(COPY "resources" DESTINATION "${CMAKE_BINARY_DIR}/Debug")
+endif()
+
 add_executable(blocks
     deps/glad/src/glad.cpp
 
@@ -28,10 +35,13 @@ add_executable(blocks
     src/PlayerInput.hpp
     src/Texture.hpp
     src/Texture.cpp
+    src/TextureCatalog.hpp
+    src/TriangleMesh.hpp
 
     # Memory
     src/Memory.hpp
     src/Allocator.hpp
+    src/MallocAllocator.hpp
     src/LinearAllocator.hpp
 
     # Utils
@@ -44,6 +54,7 @@ add_executable(blocks
     # Math
     src/math/Vec2.hpp
     src/math/Vec3.hpp
+    src/math/Vec4.hpp
     src/math/Mat4.hpp
     src/math/Mat4.cpp
     src/math/Float.hpp
@@ -52,9 +63,15 @@ add_executable(blocks
 
     # Rendering
     src/Renderer.hpp
+    src/Renderer.cpp
 
     # FileSystem
     src/FileSystem.hpp
+
+    # Collections
+    src/Collections/Array.hpp
+    src/Collections/String.hpp
+    src/Collections/StringView.hpp
 
     src/main.cpp)
 

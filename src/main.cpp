@@ -9,6 +9,7 @@
 #include "Renderer.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
+#include "TextureCatalog.hpp"
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include <assert.h>
@@ -66,38 +67,6 @@ SetupCube(size_t* out_cube_num_indices)
          1, -1, -1,   1, 0, // 21
          1,  1, -1,   1, 1, // 22
          1,  1,  1,   0, 1, // 23
-
-        // // Texture coordinates
-        // // FRONT
-        // 0, 0, // 0
-        // 1, 0, // 1
-        // 1, 1, // 2
-        // 0, 1, // 3
-        // // BACK
-        // 0, 0, // 4
-        // 1, 0, // 5
-        // 1, 1, // 6
-        // 0, 1, // 7
-        // // TOP
-        // 0, 0, // 8
-        // 1, 0, // 9
-        // 1, 1, // 10
-        // 0, 1, // 11
-        // // BOTTOM
-        // 0, 0, // 12
-        // 1, 0, // 13
-        // 1, 1, // 14
-        // 0, 1, // 15
-        // // LEFT
-        // 0, 0, // 16
-        // 1, 0, // 17
-        // 1, 1, // 18
-        // 0, 1, // 19
-        // // RIGHT
-        // 0, 0, // 20
-        // 1, 0, // 21
-        // 1, 1, // 22
-        // 0, 1, // 23
     };
     // clang-format on
 
@@ -165,7 +134,10 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 //            - Euler angles?
 //  [DONE] - Draw a cube
 //  [DONE] - Make an FPS camera
-//  [TODO] - Load a texture
+//  [DONE] - Load a texture
+//  [TODO] - Load from relative paths instead of absolute ones
+//  [TODO] - Keep textures accessible throughout the program's lifetime
+//  [TODO] - Abstract cube into a triangle mesh and render it
 //
 
 #define SCREEN_WIDTH 800
@@ -174,6 +146,8 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 int
 main()
 {
+    // Main initialization of SDL and GLAD
+
     LOG_INFO("Initializing SDL");
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -200,6 +174,8 @@ main()
 
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     glEnable(GL_CULL_FACE);
+    
+    /////////////////////////////////////////////////////////////////////////////////////////
 
     //
     // Create total scratch memory
@@ -207,14 +183,14 @@ main()
     Memory main_memory(MEGABYTES(5));
     main_memory.Create();
 
-    LinearAllocator main_allocator(main_memory);
+    LinearAllocator main_allocator("main", main_memory);
 
     //
     // Load shaders
     //
     LOG_DEBUG("Loading shaders\n");
 
-    LinearAllocator shaders_allocator(main_allocator.Allocate(KILOBYTES(10)), KILOBYTES(10));
+    LinearAllocator shaders_allocator("shaders", main_allocator.Allocate(KILOBYTES(10)), KILOBYTES(10));
 
     // TODO: figure out a way of abstracting the shader away
     GLuint basic_program = Shader::LoadFromFile(
@@ -253,8 +229,12 @@ main()
         Mat4::Perspective(60.0f, (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
     glUniformMatrix4fv(projection_location, 1, false, &projection_matrix.data[0]);
 
-    GLuint wall_texture =
-        LoadTexture(&main_allocator, "/Users/lhahn/dev/prototypes/blocks/resources/wall.jpg");
+    Texture wall_texture =
+        LoadTexture(&main_allocator, "wall.jpg");
+
+    LOG_DEBUG("Loaded texture named: %s", wall_texture.name.data);
+    LOG_DEBUG("       width: %d", wall_texture.width);
+    LOG_DEBUG("       height: %d", wall_texture.height);
 
     LOG_DEBUG("Starting main loop");
     glClearColor(0, 0, 0, 1);
@@ -319,6 +299,9 @@ main()
     }
 
     LOG_INFO("Deallocating main resources");
+
+    // TODO: remove this
+    wall_texture.name.Destroy();
 
     main_allocator.Clear();
     input_system.Destroy();

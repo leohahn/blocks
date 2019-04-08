@@ -1,20 +1,15 @@
 #pragma once
 
 #include "Allocator.hpp"
-#include "Array.hpp"
+#include "Collections/Array.hpp"
+#include "Math/Quaternion.hpp"
+#include "Math/Vec3.hpp"
+#include "Math/Vec4.hpp"
+#include "TriangleMesh.hpp"
 
-struct Mesh
-{
-    Array<int> meshes;
-};
-
-class Renderer
-{
-public:
-    Renderer()
-    : _allocator(nullptr)
-    {}
-
-private:
-    Allocator* _allocator;
-};
+void RenderMesh(const TriangleMesh& mesh,
+                Vec3 position,
+                Quaternion orientation,
+                float mesh_scale,
+                Vec4* scale_color = nullptr,
+                Vec4* override_color = nullptr);

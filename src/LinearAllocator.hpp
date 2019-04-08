@@ -7,12 +7,12 @@
 class LinearAllocator : public Allocator
 {
 public:
-    LinearAllocator(Memory mem)
-        : LinearAllocator(mem.ptr, mem.size)
+    LinearAllocator(const char* name, Memory mem)
+        : LinearAllocator(name, mem.ptr, mem.size)
     {}
 
-    LinearAllocator(Memory mem, size_t size)
-        : LinearAllocator(mem.ptr, MIN(size, mem.size))
+    LinearAllocator(const char* name, Memory mem, size_t size)
+        : LinearAllocator(name, mem.ptr, MIN(size, mem.size))
     {}
 
     ~LinearAllocator()
@@ -20,13 +20,15 @@ public:
         assert(_bytes_allocated == 0);
     }
 
-    LinearAllocator(void* mem, size_t size)
+    LinearAllocator(const char* name, void* mem, size_t size)
         : _mem(mem)
         , _bytes_allocated(0)
         , _size(size)
+        , _name(name)
     {
         assert(_mem && "should be instantiated with memory");
         assert(_size > 0 && "allocator should have allocated bytes");
+        assert(_name && "allocator should have a name");
     }
 
     void* Allocate(size_t size) override
@@ -50,10 +52,16 @@ public:
         (void)ptr;
     }
 
+    const char* GetName() const override
+    {
+        return _name;
+    }
+
     void Clear() { _bytes_allocated = 0; }
 
 private:
     void* _mem;
     size_t _bytes_allocated;
     size_t _size;
+    const char* _name;
 };

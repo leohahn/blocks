@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 static const char* kSizeNames[] = {
-    "B", "KB", "MB", "GB", "TB",
+    "B", "KiB", "MiB", "GiB", "TiB",
 };
 
 thread_local static char g_buf[64];

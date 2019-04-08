@@ -23,3 +23,29 @@
 #else
 #error "MIN is already defined"
 #endif
+
+#ifdef __GNUC__
+#define COMPILER_GCC 1
+#endif
+#ifdef __clang__
+#define COMPILER_CLANG 1
+#endif
+#ifdef _MSC_VER
+#define COMPILER_MSC 1
+#endif
+#ifdef __linux__
+#define OS_LINUX 1
+#endif
+#ifdef _WIN32
+#define OS_WINDOWS 1
+#endif
+#ifdef __APPLE__
+#define OS_APPLE 1
+#endif
+#if defined(unix) || defined(__unix__) || defined(__unix)
+#define PLATFORM_UNIX 1
+#endif
+
+#if defined(__x86_64__) || defined(_M_X86) || defined(__i386__)
+#define ARCH_X86 1
+#endif

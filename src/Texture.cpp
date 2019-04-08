@@ -2,26 +2,34 @@
 
 #include "FileSystem.hpp"
 #include "Logger.hpp"
+#include "glad/glad.h"
 #include "stb_image.h"
 #include <assert.h>
 
-GLuint
-LoadTexture(Allocator* allocator, const char* asset_path)
+// TODO: change this to receive a scratch allocator as well?
+Texture
+LoadTexture(Allocator* allocator, const char* texture_file)
 {
-    GLuint texture;
+    String resources_path = FileSystem::GetResourcesPath(allocator);
+    String full_asset_path = FileSystem::JoinPaths(allocator, resources_path.View(), texture_file);
+
+    assert(allocator);
+    assert(texture_file);
+
+    Texture texture;
+    texture.name.Create(allocator, "dummy_name");
+
     size_t texture_buffer_size;
     uint8_t* texture_buffer =
-        FileSystem::LoadFileToMemory(allocator, asset_path, &texture_buffer_size);
+        FileSystem::LoadFileToMemory(allocator, full_asset_path.View(), &texture_buffer_size);
     int texture_width, texture_height, texture_channel_count;
 
     assert(texture_buffer);
 
     // memory was read, now load it into an opengl buffer
 
-    // load image, create texture and generate mipmaps
-
-    stbi_set_flip_vertically_on_load(
-        true); // tell stb_image.h to flip loaded texture's on the y-axis.
+    // tell stb_image.h to flip loaded texture's on the y-axis.
+    stbi_set_flip_vertically_on_load(true);
     uint8_t* data = stbi_load_from_memory(texture_buffer,
                                           texture_buffer_size,
                                           &texture_width,
@@ -29,13 +37,16 @@ LoadTexture(Allocator* allocator, const char* asset_path)
                                           &texture_channel_count,
                                           0);
 
+    texture.width = texture_width;
+    texture.height = texture_height;
+
     if (!data) {
-        LOG_ERROR("Failed to load texture at %s", asset_path);
+        LOG_ERROR("Failed to load texture at %s", full_asset_path.data);
         goto cleanup_texture_buffer;
     }
 
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glGenTextures(1, &texture.handle);
+    glBindTexture(GL_TEXTURE_2D, texture.handle);
 
     glTexParameteri(GL_TEXTURE_2D,
                     GL_TEXTURE_WRAP_S,
@@ -53,6 +64,9 @@ LoadTexture(Allocator* allocator, const char* asset_path)
 
 cleanup_texture_buffer:
     allocator->Deallocate(texture_buffer);
+    full_asset_path.Destroy();
+    resources_path.Destroy();
 
+    texture.loaded = true;
     return texture;
 }
