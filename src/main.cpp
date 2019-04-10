@@ -168,14 +168,6 @@ static TriangleMesh SetupCube(Allocator* allocator) // TODO: receive a texture c
 }
 
 static void
-DrawCube(GLuint shader_program, GLuint vao, size_t num_indices)
-{
-    glUseProgram(shader_program);
-    glBindVertexArray(vao);
-    glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, 0);
-}
-
-static void
 OnApplicationQuit(SDL_Event ev, void* user_data)
 {
     bool* running = (bool*)user_data;
@@ -198,7 +190,8 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 //  [DONE] - Load a texture
 //  [DONE] - Load from relative paths instead of absolute ones
 //  [DONE] - Keep textures accessible throughout the program's lifetime
-//  [TODO] - Abstract cube into a triangle mesh and render it
+//  [DONE] - Abstract cube into a triangle mesh
+//  [TODO] - Render the cube triangle mesh
 //
 
 #define SCREEN_WIDTH 800
@@ -352,6 +345,8 @@ main()
         //
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        // TODO: figure out a way of keeping track of the shader, especially
+        // when rendering a mesh (should it be stored in the mesh?)
         glUseProgram(basic_program);
 
         // TODO: is ok to calculate the view matrix every time here?
@@ -359,8 +354,12 @@ main()
         auto view_matrix = camera.GetViewMatrix();
         glUniformMatrix4fv(view_location, 1, GL_FALSE, &view_matrix.data[0]);
 
-        // Here is the rendering code
-        DrawCube(basic_program, cube_mesh.vao, cube_mesh.indices.len);
+        // TODO: add real values here for the parameters
+        Vec3 cube_position(0);
+        Quaternion cube_orientation;
+        float cube_scale = 2.0f;
+
+        RenderMesh(cube_mesh, cube_position, cube_orientation, cube_scale);
 
         SDL_GL_SwapWindow(window);
     }
