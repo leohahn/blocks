@@ -73,8 +73,8 @@ struct Array
         return -1;
     }
 
-    T* operator[](size_t index) { return &data[index]; }
-    const T* operator[](size_t index) const { return &data[index]; }
+    T& operator[](size_t index) { return data[index]; }
+    const T& operator[](size_t index) const { return data[index]; }
 
     void Reset() { len = 0; }
 

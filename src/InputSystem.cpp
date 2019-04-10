@@ -126,12 +126,12 @@ InputSystem::Update()
                     // this way we would not need to loop over each array seeing if the key matches
                     // or not.
 
-                    Array<KeyboardEventListener>* listeners = &_keyboard_map[keyboard_event_it];
-                    for (size_t i = 0; i < listeners->len; ++i) {
-                        bool key_matches = (*listeners)[i]->keycode == ev_keycode;
+                    Array<KeyboardEventListener>& listeners = _keyboard_map[keyboard_event_it];
+                    for (size_t i = 0; i < listeners.len; ++i) {
+                        bool key_matches = listeners[i].keycode == ev_keycode;
                         if (key_matches) {
-                            assert((*listeners)[i]->cb);
-                            (*listeners)[i]->cb(event, (*listeners)[i]->user_data);
+                            assert(listeners[i].cb);
+                            listeners[i].cb(event, listeners[i].user_data);
                         }
                     }
                 }

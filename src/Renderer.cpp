@@ -15,9 +15,9 @@ RenderMesh(const TriangleMesh& mesh,
     for (size_t i = 0; i < mesh.triangle_list_infos.GetLen(); ++i) {
         const auto& list_info = mesh.triangle_list_infos[i];
         glDrawElements(GL_TRIANGLES,
-                       list_info->num_indices,
+                       list_info.num_indices,
                        GL_UNSIGNED_INT,
-                       reinterpret_cast<const void*>(list_info->first_index));
+                       reinterpret_cast<const void*>(list_info.first_index));
     }
 
     glBindVertexArray(0);

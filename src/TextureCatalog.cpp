@@ -15,7 +15,7 @@ TextureCatalog::Destroy()
     assert(allocator);
     
     for (size_t i = 0; i < textures.len; ++i) {
-        textures[i]->name.Destroy();
+        textures[i].name.Destroy();
     }
 
     textures.Destroy();
@@ -28,8 +28,8 @@ TextureCatalog::GetTexture(const StringView& name)
     Texture* tex = nullptr;
 
     for (size_t i = 0; i < textures.len; ++i) {
-        if (textures[i]->name == name) {
-            tex = textures[i];
+        if (textures[i].name == name) {
+            tex = &textures[i];
             break;
         }
     }

@@ -139,7 +139,7 @@ static TriangleMesh SetupCube(Allocator* allocator) // TODO: receive a texture c
     // Build the buffer that is going to be uploaded to the GPU.
     Array<OpenGL::Vertex_PT> buffer(allocator);
     for (size_t i = 0; i < mesh.vertices.len; ++i) {
-        buffer.PushBack(OpenGL::Vertex_PT(*mesh.vertices[i], *mesh.uvs[i]));
+        buffer.PushBack(OpenGL::Vertex_PT(mesh.vertices[i], mesh.uvs[i]));
     }
 
     glGenVertexArrays(1, &mesh.vao);
