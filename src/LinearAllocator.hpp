@@ -2,7 +2,9 @@
 
 #include "Allocator.hpp"
 #include "Defines.hpp"
+#include "Logger.hpp"
 #include "Memory.hpp"
+#include "Utils.hpp"
 
 class LinearAllocator : public Allocator
 {
@@ -15,10 +17,7 @@ public:
         : LinearAllocator(name, mem.ptr, MIN(size, mem.size))
     {}
 
-    ~LinearAllocator()
-    {
-        assert(_bytes_allocated == 0);
-    }
+    ~LinearAllocator() { assert(_bytes_allocated == 0); }
 
     LinearAllocator(const char* name, void* mem, size_t size)
         : _mem(mem)
@@ -33,11 +32,13 @@ public:
 
     void* Allocate(size_t size) override
     {
-        if (!_mem) {
-            return nullptr;
-        }
+        assert(_mem);
 
         if (size > _size - _bytes_allocated) {
+            LOG_WARN("Cannot allocate %s memory in %s allocator (size of %s)",
+                     Utils::GetPrettySize(size),
+                     _name,
+                     Utils::GetPrettySize(_size));
             return nullptr;
         }
 
@@ -52,10 +53,7 @@ public:
         (void)ptr;
     }
 
-    const char* GetName() const override
-    {
-        return _name;
-    }
+    const char* GetName() const override { return _name; }
 
     void Clear() { _bytes_allocated = 0; }
 

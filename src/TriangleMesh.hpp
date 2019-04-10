@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Allocator.hpp"
 #include "Collections/Array.hpp"
 #include "Collections/String.hpp"
 #include "Math/Vec2.hpp"
@@ -19,15 +18,15 @@ struct Frame3
 struct TriangleListInfo
 {
     // int32_t material_index; // which material used for rendering this?
-    int32_t num_indices;
-    int32_t first_index;
-    Texture* texture;
+    int32_t num_indices = 0;
+    int32_t first_index = 0;
+    Texture* texture = nullptr;
 };
 
 struct TriangleMesh
 {
+    // TODO: probably need some flags here
     // uint32_t checksum;
-    Allocator* allocator;
     String name;
     String full_path;
     String source_file_path;
@@ -37,6 +36,28 @@ struct TriangleMesh
     Array<Vec4> colors;
     Array<Frame3> vertex_frames;
 
-    Array<int32_t> indexes;
+    Array<int32_t> indices;
     Array<TriangleListInfo> triangle_list_infos;
+    
+    // OpenGL state
+    uint32_t vao;
+    uint32_t vbo;
+    uint32_t ebo;
+    
+    TriangleMesh(Allocator* allocator)
+        : name(allocator)
+        , full_path(allocator)
+        , source_file_path(allocator)
+        , vertices(allocator)
+        , uvs(allocator)
+        , colors(allocator)
+        , vertex_frames(allocator)
+        , indices(allocator)
+        , triangle_list_infos(allocator)
+        , vao(0)
+        , vbo(0)
+        , ebo(0)
+    {}
 };
+
+

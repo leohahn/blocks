@@ -7,6 +7,7 @@
 #include <string.h>
 
 static constexpr const size_t kStringInitialCapacity = 8;
+static constexpr const float kStringGrowthFactor = 1.5f;
 
 struct String
 {
@@ -16,61 +17,58 @@ struct String
     char* data;
 
     String()
-        : allocator(nullptr)
+        : String(nullptr)
+    {}
+
+    String(Allocator* allocator)
+        : allocator(allocator)
         , cap(0)
         , len(0)
         , data(nullptr)
     {}
 
+    String(String&& str)
+        : String()
+    {
+        *this = std::move(str);
+    }
+
+    String& operator=(String&& str)
+    {
+        assert(this != &str);
+        Destroy();
+        CopyFields(str);
+        str.allocator = nullptr;
+        str.data = nullptr;
+        str.len = 0;
+        str.cap = 0;
+        return *this;
+    }
+
     ~String() { assert(data == nullptr && "string should be freed"); }
-
-    void Create(Allocator* allocator, const char* str = nullptr)
-    {
-        assert(len == 0);
-        assert(cap == 0);
-        assert(allocator);
-
-        this->allocator = allocator;
-        if (str) {
-            size_t len = strlen(str);
-            cap = len;
-            data = (char*)allocator->Allocate(len + 1); // we need to count the null terminator
-            memcpy(data, str, len);
-            data[len] = 0; // null terminated string
-        } else {
-            cap = kStringInitialCapacity;
-            data = (char*)allocator->Allocate(cap);
-        }
-
-        assert(data);
-    }
-
-    void Create(Allocator* allocator, const StringView& str)
-    {
-        assert(str.data && str.len > 0);
-        assert(len == 0);
-        assert(cap == 0);
-        assert(allocator);
-
-        this->allocator = allocator;
-        this->cap = str.len;
-        this->len = str.len;
-        this->data = (char*)allocator->Allocate(len + 1); // we need to count the null terminator
-        memcpy(data, str.data, str.len);
-        data[len] = 0; // null terminated string
-
-        assert(data);
-    }
 
     void Destroy()
     {
-        assert(data);
-        assert(cap > 0);
-        allocator->Deallocate(data);
+        if (data) {
+            allocator->Deallocate(data);
+        }
         cap = 0;
         len = 0;
         data = nullptr;
         allocator = nullptr;
+    }
+
+    void Resize()
+    {
+        // Need to allocate more memory
+        size_t new_cap = cap * kStringGrowthFactor;
+        char* new_data = (char*)allocator->Allocate(new_cap);
+        assert(new_data);
+        memcpy(new_data, data, len);
+        new_data[len] = 0;
+        allocator->Deallocate(data);
+        data = new_data;
+        cap = new_cap;
     }
 
     void Append(char character)
@@ -80,20 +78,10 @@ struct String
         while (new_len > (cap - 1)) {
             Resize();
         }
+        assert(cap > len);
         data[len] = character;
+        data[len+1] = 0;
         len = new_len;
-    }
-
-    void Resize()
-    {
-        // Need to allocate more memory
-        size_t new_cap = cap * 1.5f;
-        char* new_data = (char*)allocator->Allocate(new_cap);
-        assert(new_data);
-        memcpy(new_data, data, len);
-        allocator->Deallocate(data);
-        data = new_data;
-        cap = new_cap;
     }
 
     void Append(const char* str) { Append(str, strlen(str)); }
@@ -108,15 +96,23 @@ struct String
 
     void Append(const char* str, size_t str_len)
     {
-        assert(data);
         assert(str);
-
-        size_t new_len = len + str_len;
-        while (new_len > (cap - 1)) {
-            Resize();
+        if (data) {
+            size_t new_len = len + str_len;
+            while (new_len > (cap - 1)) {
+                Resize();
+            }
+            memcpy(data + len, str, str_len);
+            len = new_len;
+        } else {
+            data = (char*)allocator->Allocate(str_len + 1);
+            assert(data);
+            memcpy(data, str, str_len);
+            data[str_len] = 0;
+            len = str_len;
+            cap = str_len;
         }
-        memcpy(data + len, str, str_len);
-        len = new_len;
+        data[len] = 0; // add null terminator
     }
 
     char Back() const { return data[len - 1]; }
@@ -127,5 +123,37 @@ struct String
 
     char operator[](size_t index) const { return data[index]; }
 
+    bool operator==(const String& str)
+    {
+        if (len != str.len) {
+            return false;
+        }
+        return memcmp(data, str.data, len) == 0;
+    }
+
     StringView View() const { return StringView(data, len); }
+
+private:
+    void CopyFields(const String& str)
+    {
+        allocator = str.allocator;
+        cap = str.cap;
+        len = str.len;
+        data = str.data;
+    }
 };
+
+inline bool
+operator==(const String& lhs, const StringView& rhs)
+{
+    if (lhs.len != rhs.len) {
+        return false;
+    }
+    return memcmp(lhs.data, rhs.data, rhs.len) == 0;
+}
+
+inline bool
+operator==(const StringView& lhs, const String& rhs)
+{
+    return rhs == lhs;
+}

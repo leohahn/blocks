@@ -15,7 +15,7 @@ struct StringView
         assert(str);
         assert(len > 0);
     }
-    
+
     StringView(const char* str, size_t len)
         : data(str)
         , len(len)

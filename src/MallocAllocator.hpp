@@ -25,6 +25,8 @@ public:
 
     const char* GetName() const override { return _name; }
 
+    size_t GetBytesWaterMark() const { return _bytes_water_mark; }
+
 private:
     size_t _bytes_water_mark;
     const char* _name;

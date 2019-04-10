@@ -19,8 +19,7 @@ InputSystem::Create(Allocator* allocator)
     assert(_last_keyboard_state);
 
     for (int i = 0; i < kKeyboardEventMax; ++i) {
-        _keyboard_map[i] = Array<KeyboardEventListener>();
-        _keyboard_map[i].Create(_allocator);
+        _keyboard_map[i].allocator = allocator;
     }
 
     LOG_INFO("Input sytem initialized with %s of memory in %s allocator",
@@ -168,5 +167,5 @@ InputSystem::AddKeyboardEventListener(KeyboardEvent event,
     listener.user_data = user;
     listener.keycode = keycode;
 
-    arr->PushBack(listener, allocator);
+    arr->PushBack(listener);
 }

@@ -6,11 +6,14 @@
 #include "Logger.hpp"
 #include "MallocAllocator.hpp"
 #include "Math.hpp"
+#include "OpenGL.hpp"
 #include "PlayerInput.hpp"
 #include "Renderer.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
 #include "TextureCatalog.hpp"
+#include "TriangleMesh.hpp"
+#include "Utils.hpp"
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include <assert.h>
@@ -20,11 +23,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-static GLuint
-SetupCube(size_t* out_cube_num_indices)
+static TriangleMesh SetupCube(Allocator* allocator) // TODO: receive a texture catalog
 {
-    assert(out_cube_num_indices);
-
     // clang-format off
     static const uint32_t indices[] =
     {
@@ -36,75 +36,135 @@ SetupCube(size_t* out_cube_num_indices)
         20, 21, 22, 22, 23, 20,
     };
     
-    static const float vertices[] =
+    static const Vec3 vertices[] =
     {
         // FRONT
-        -1, -1,  1,   0, 0, // 0
-         1, -1,  1,   1, 0,// 1
-         1,  1,  1,   1, 1,// 2
-        -1,  1,  1,   0, 1,// 3
+        Vec3(-1, -1,  1), // 0
+        Vec3(1, -1,  1), // 1
+        Vec3(1,  1,  1), // 2
+        Vec3(-1,  1,  1), // 3
         // BACK
-         1, -1, -1,   0, 0, // 4
-        -1, -1, -1,   1, 0, // 5
-        -1,  1, -1,   1, 1, // 6
-         1,  1, -1,   0, 1, // 7
+        Vec3(1, -1, -1), // 4
+        Vec3(-1, -1, -1), // 5
+        Vec3(-1,  1, -1), // 6
+        Vec3(1,  1, -1), // 7
         // TOP
-        -1,  1,  1,   0, 0, // 8
-         1,  1,  1,   1, 0, // 9
-         1,  1, -1,   1, 1, // 10
-        -1,  1, -1,   0, 1, // 11
+        Vec3(-1,  1,  1), // 8
+        Vec3(1,  1,  1), // 9
+        Vec3(1,  1, -1), // 10
+        Vec3(-1,  1, -1), // 11
         // BOTTOM
-         1, -1,  1,   0, 0, // 12
-        -1, -1,  1,   1, 0, // 13
-        -1, -1, -1,   1, 1, // 14
-         1, -1, -1,   0, 1, // 15
+        Vec3(1, -1,  1), // 12
+        Vec3(-1, -1,  1), // 13
+        Vec3(-1, -1, -1), // 14
+        Vec3(1, -1, -1), // 15
         // LEFT
-        -1, -1, -1,   0, 0, // 16
-        -1, -1,  1,   1, 0, // 17
-        -1,  1,  1,   1, 1, // 18
-        -1,  1, -1,   0, 1, // 19
+        Vec3(-1, -1, -1), // 16
+        Vec3(-1, -1,  1), // 17
+        Vec3(-1,  1,  1), // 18
+        Vec3(-1,  1, -1), // 19
         // RIGHT
-         1, -1,  1,   0, 0, // 20
-         1, -1, -1,   1, 0, // 21
-         1,  1, -1,   1, 1, // 22
-         1,  1,  1,   0, 1, // 23
+        Vec3(1, -1,  1), // 20
+        Vec3(1, -1, -1), // 21
+        Vec3(1,  1, -1), // 22
+        Vec3(1,  1,  1), // 23
     };
+    
+    static const Vec2 uvs[] =
+    {
+        // FRONT
+        Vec2(0, 0), // 0
+        Vec2(1, 0),// 1
+        Vec2(1, 1),// 2
+        Vec2(0, 1),// 3
+        // BACK
+        Vec2(0, 0), // 4
+        Vec2(1, 0), // 5
+        Vec2(1, 1), // 6
+        Vec2(0, 1), // 7
+        // TOP
+        Vec2(0, 0), // 8
+        Vec2(1, 0), // 9
+        Vec2(1, 1), // 10
+        Vec2(0, 1), // 11
+        // BOTTOM
+        Vec2(0, 0), // 12
+        Vec2(1, 0), // 13
+        Vec2(1, 1), // 14
+        Vec2(0, 1), // 15
+        // LEFT
+        Vec2(0, 0), // 16
+        Vec2(1, 0), // 17
+        Vec2(1, 1), // 18
+        Vec2(0, 1), // 19
+        // RIGHT
+        Vec2(0, 0), // 20
+        Vec2(1, 0), // 21
+        Vec2(1, 1), // 22
+        Vec2(0, 1), // 23
+    };
+
     // clang-format on
 
-    *out_cube_num_indices = ARRAY_SIZE(indices);
+    TriangleMesh mesh(allocator);
+    mesh.name.Append("Cube");
 
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    // Fill indices up
+    for (size_t i = 0; i < ARRAY_SIZE(indices); ++i) {
+        mesh.indices.PushBack(indices[i]);
+    }
+
+    // Fill vertices up
+    for (size_t i = 0; i < ARRAY_SIZE(vertices); ++i) {
+        mesh.vertices.PushBack(vertices[i]);
+    }
+
+    // Fill uvs up
+    for (size_t i = 0; i < ARRAY_SIZE(uvs); ++i) {
+        mesh.uvs.PushBack(uvs[i]);
+    }
+
+    TriangleListInfo list_info;
+    list_info.num_indices = mesh.indices.len;
+    list_info.first_index = 0;
+    list_info.texture = nullptr; // TODO: pass a texture here
+    mesh.triangle_list_infos.PushBack(list_info);
+
+    assert(mesh.vertices.len == mesh.uvs.len);
+
+    //--------------------------------------------
+    // Mesh setup
+    //--------------------------------------------
+
+    // Build the buffer that is going to be uploaded to the GPU.
+    Array<OpenGL::Vertex_PT> buffer(allocator);
+    for (size_t i = 0; i < mesh.vertices.len; ++i) {
+        buffer.PushBack(OpenGL::Vertex_PT(*mesh.vertices[i], *mesh.uvs[i]));
+    }
+
+    glGenVertexArrays(1, &mesh.vao);
+    glBindVertexArray(mesh.vao);
 
     // create the vbo and ebo
-    GLuint vbo, ebo;
-    glGenBuffers(1, &vbo);
-    glGenBuffers(1, &ebo);
+    glGenBuffers(1, &mesh.vbo);
+    glGenBuffers(1, &mesh.ebo);
 
     // bind vbo
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * ARRAY_SIZE(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo);
+    glBufferData(
+        GL_ARRAY_BUFFER, sizeof(OpenGL::Vertex_PT) * buffer.len, buffer.data, GL_STATIC_DRAW);
 
-    // specify how buffer data is layed out in memory
-    size_t stride = 5 * sizeof(float);
-    size_t first_byte_offset;
-    {
-        first_byte_offset = 0;
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)first_byte_offset);
-        glEnableVertexAttribArray(0);
-    }
-    {
-        first_byte_offset = 3 * sizeof(float);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)first_byte_offset);
-        glEnableVertexAttribArray(1);
-    }
+    OpenGL::SetVertexFormat_PT();
 
     // bind ebo
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(
-        GL_ELEMENT_ARRAY_BUFFER, ARRAY_SIZE(indices) * sizeof(unsigned), indices, GL_STATIC_DRAW);
-    return vao;
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 mesh.indices.len * sizeof(uint32_t),
+                 mesh.indices.data,
+                 GL_STATIC_DRAW);
+
+    buffer.Destroy();
+    return mesh;
 }
 
 static void
@@ -136,8 +196,8 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 //  [DONE] - Draw a cube
 //  [DONE] - Make an FPS camera
 //  [DONE] - Load a texture
-//  [TODO] - Load from relative paths instead of absolute ones
-//  [TODO] - Keep textures accessible throughout the program's lifetime
+//  [DONE] - Load from relative paths instead of absolute ones
+//  [DONE] - Keep textures accessible throughout the program's lifetime
 //  [TODO] - Abstract cube into a triangle mesh and render it
 //
 
@@ -181,7 +241,7 @@ main()
     //
     // Create total scratch memory
     //
-    Memory main_memory(MEGABYTES(5));
+    Memory main_memory(MEGABYTES(128));
     main_memory.Create();
 
     LinearAllocator main_allocator("main", main_memory);
@@ -217,8 +277,7 @@ main()
     PlayerInput player_input;
     player_input.RegisterInputs(&input_system, &main_allocator);
 
-    size_t cube_num_indices;
-    GLuint cube_vao = SetupCube(&cube_num_indices);
+    TriangleMesh cube_mesh = SetupCube(&main_allocator);
 
     Camera camera(Vec3(0, 0, 5), Vec3(0, 0, -1));
 
@@ -234,11 +293,15 @@ main()
     // TODO, FIXME: instead of using malloc here, use a better defined allocator, like a frame one.
     MallocAllocator temp_allocator("temporary_allocator");
 
-    Texture wall_texture = LoadTexture(&main_allocator, &temp_allocator, "wall.jpg");
+    LinearAllocator texture_catalog_allocator(
+        "texture_catalog", main_allocator.Allocate(MEGABYTES(10)), MEGABYTES(10));
+    TextureCatalog texture_catalog(&texture_catalog_allocator, &temp_allocator);
+    texture_catalog.LoadTexture("wall.jpg");
 
-    LOG_DEBUG("Loaded texture named: %s", wall_texture.name.data);
-    LOG_DEBUG("       width: %d", wall_texture.width);
-    LOG_DEBUG("       height: %d", wall_texture.height);
+    Texture* wall_texture = texture_catalog.GetTexture("wall.jpg");
+    LOG_DEBUG("Loaded texture named: %s", wall_texture->name.data);
+    LOG_DEBUG("       width: %d", wall_texture->width);
+    LOG_DEBUG("       height: %d", wall_texture->height);
 
     LOG_DEBUG("Starting main loop");
     glClearColor(0, 0, 0, 1);
@@ -297,16 +360,20 @@ main()
         glUniformMatrix4fv(view_location, 1, GL_FALSE, &view_matrix.data[0]);
 
         // Here is the rendering code
-        DrawCube(basic_program, cube_vao, cube_num_indices);
+        DrawCube(basic_program, cube_mesh.vao, cube_mesh.indices.len);
 
         SDL_GL_SwapWindow(window);
     }
 
     LOG_INFO("Deallocating main resources");
+    LOG_DEBUG("Total memory used by heap allocator: %s",
+              Utils::GetPrettySize(temp_allocator.GetBytesWaterMark()));
 
     // TODO: remove this
-    wall_texture.name.Destroy();
+    // wall_texture.name.Destroy();
 
+    texture_catalog.Destroy();
+    texture_catalog_allocator.Clear();
     main_allocator.Clear();
     input_system.Destroy();
     main_memory.Destroy();

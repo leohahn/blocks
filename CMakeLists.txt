@@ -34,9 +34,10 @@ add_executable(blocks
     src/Shader.cpp
     src/PlayerInput.hpp
     src/Texture.hpp
-    src/Texture.cpp
     src/TextureCatalog.hpp
+    src/TextureCatalog.cpp
     src/TriangleMesh.hpp
+    src/OpenGL.hpp
 
     # Memory
     src/Memory.hpp

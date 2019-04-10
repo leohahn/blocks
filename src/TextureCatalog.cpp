@@ -1,23 +1,65 @@
-#include "Texture.hpp"
+#include "TextureCatalog.hpp"
 
 #include "FileSystem.hpp"
 #include "Logger.hpp"
 #include "glad/glad.h"
 #include "stb_image.h"
-#include <assert.h>
 
-Texture
-LoadTexture(Allocator* allocator, Allocator* scratch_allocator, const char* texture_file)
+static Texture LoadTextureFromFile(Allocator* allocator,
+                                   Allocator* scratch_allocator,
+                                   const StringView& texture_file);
+
+void
+TextureCatalog::Destroy()
 {
-    String resources_path = FileSystem::GetResourcesPath(scratch_allocator);
-    String full_asset_path = FileSystem::JoinPaths(scratch_allocator, resources_path.View(), texture_file);
+    assert(allocator);
+    
+    for (size_t i = 0; i < textures.len; ++i) {
+        textures[i]->name.Destroy();
+    }
 
+    textures.Destroy();
+    allocator = nullptr;
+}
+
+Texture*
+TextureCatalog::GetTexture(const StringView& name)
+{
+    Texture* tex = nullptr;
+
+    for (size_t i = 0; i < textures.len; ++i) {
+        if (textures[i]->name == name) {
+            tex = textures[i];
+            break;
+        }
+    }
+    
+    assert(tex);
+    return tex;
+}
+
+void
+TextureCatalog::LoadTexture(const StringView& texture_file)
+{
+    assert(texture_file.data[texture_file.len] == 0);
+    Texture new_texture = LoadTextureFromFile(allocator, scratch_allocator, texture_file);
+    textures.PushBack(std::move(new_texture));
+}
+
+static Texture
+LoadTextureFromFile(Allocator* allocator,
+                    Allocator* scratch_allocator,
+                    const StringView& texture_file)
+{
     assert(allocator);
     assert(scratch_allocator);
-    assert(texture_file);
 
-    Texture texture;
-    texture.name.Create(allocator, "dummy_name");
+    String resources_path = FileSystem::GetResourcesPath(scratch_allocator);
+    String full_asset_path =
+        FileSystem::JoinPaths(scratch_allocator, resources_path.View(), texture_file);
+
+    Texture texture(allocator);
+    texture.name.Append(texture_file);
 
     size_t texture_buffer_size;
     uint8_t* texture_buffer =
@@ -61,7 +103,7 @@ LoadTexture(Allocator* allocator, Allocator* scratch_allocator, const char* text
     glGenerateMipmap(GL_TEXTURE_2D);
 
     free(data);
-
+    
 cleanup_texture_buffer:
     allocator->Deallocate(texture_buffer);
     full_asset_path.Destroy();

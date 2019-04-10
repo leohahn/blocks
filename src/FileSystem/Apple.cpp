@@ -1,5 +1,6 @@
 #include "Defines.hpp"
 #include "FileSystem.hpp"
+#include "Logger.hpp"
 #include <assert.h>
 #include <limits.h>
 #include <stdio.h>
@@ -9,7 +10,9 @@ uint8_t*
 FileSystem::LoadFileToMemory(Allocator* allocator, const StringView& path, size_t* out_file_size)
 {
     assert(allocator);
-    assert(path.data[path.len] == 0);
+    if (path.data[path.len] != 0) {
+        LOG_ERROR("oops: %s", path.data);
+    }
 
     FILE* fp = nullptr;
     size_t file_size = 0;
@@ -52,12 +55,10 @@ cleanup_file:
 String
 FileSystem::GetResourcesPath(Allocator* allocator)
 {
-    String resources_path;
-    resources_path.Create(allocator);
-
     char cwd_buf[PATH_MAX];
     getcwd(cwd_buf, PATH_MAX);
 
+    String resources_path(allocator);
     resources_path.Append(cwd_buf);
     resources_path.Append("/resources");
 
@@ -67,8 +68,8 @@ FileSystem::GetResourcesPath(Allocator* allocator)
 String
 FileSystem::JoinPaths(Allocator* allocator, const StringView& p1, const StringView& p2)
 {
-    String res;
-    res.Create(allocator, p1);
+    String res(allocator);
+    res.Append(p1);
 
     if (res.Back() != '/') {
         res.Append('/');
