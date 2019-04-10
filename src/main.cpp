@@ -23,7 +23,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-static TriangleMesh SetupCube(Allocator* allocator) // TODO: receive a texture catalog
+static TriangleMesh SetupCube(Allocator* allocator, Allocator* scratch_allocator) // TODO: receive a texture catalog
 {
     // clang-format off
     static const uint32_t indices[] =
@@ -137,7 +137,7 @@ static TriangleMesh SetupCube(Allocator* allocator) // TODO: receive a texture c
     //--------------------------------------------
 
     // Build the buffer that is going to be uploaded to the GPU.
-    Array<OpenGL::Vertex_PT> buffer(allocator);
+    Array<OpenGL::Vertex_PT> buffer(scratch_allocator);
     for (size_t i = 0; i < mesh.vertices.len; ++i) {
         buffer.PushBack(OpenGL::Vertex_PT(mesh.vertices[i], mesh.uvs[i]));
     }
@@ -259,6 +259,10 @@ main()
     shaders_allocator.Clear();
 
     bool running = true;
+
+    // TODO, FIXME: instead of using malloc here, use a better defined allocator, like a frame one.
+    MallocAllocator temp_allocator("temporary_allocator");
+
     //
     // Create the input system
     //
@@ -270,7 +274,7 @@ main()
     PlayerInput player_input;
     player_input.RegisterInputs(&input_system, &main_allocator);
 
-    TriangleMesh cube_mesh = SetupCube(&main_allocator);
+    TriangleMesh cube_mesh = SetupCube(&main_allocator, &temp_allocator);
 
     Camera camera(Vec3(0, 0, 5), Vec3(0, 0, -1));
 
@@ -282,9 +286,6 @@ main()
     auto projection_matrix =
         Mat4::Perspective(60.0f, (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
     glUniformMatrix4fv(projection_location, 1, false, &projection_matrix.data[0]);
-
-    // TODO, FIXME: instead of using malloc here, use a better defined allocator, like a frame one.
-    MallocAllocator temp_allocator("temporary_allocator");
 
     LinearAllocator texture_catalog_allocator(
         "texture_catalog", main_allocator.Allocate(MEGABYTES(10)), MEGABYTES(10));
