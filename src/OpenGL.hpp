@@ -1,6 +1,7 @@
 #pragma once
 #include "Math/Vec2.hpp"
 #include "Math/Vec3.hpp"
+#include "Math/Mat4.hpp"
 #include "glad/glad.h"
 #include <stdlib.h>
 
@@ -21,7 +22,7 @@ struct Vertex_PT
 
 static_assert(sizeof(Vertex_PT) == (sizeof(float) * 5), "Should be 5 floats in size");
 
-void
+inline void
 SetVertexFormat_PT()
 {
     // TODO: consider saving some information here in a Shader, like the position location
@@ -41,6 +42,12 @@ SetVertexFormat_PT()
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)first_byte_offset);
         glEnableVertexAttribArray(1);
     }
+}
+
+inline static void
+SetUniformMatrixForCurrentShader(GLuint location, const Mat4& mat)
+{
+    glUniformMatrix4fv(location, 1, GL_FALSE, &mat.data[0]);
 }
 
 } // namespace OpenGL

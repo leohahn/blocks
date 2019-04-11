@@ -2,17 +2,15 @@
 #include <assert.h>
 #include "Logger.hpp"
 
-namespace Shader
-{
-
-GLuint
-LoadFromFile(const char* path, Allocator* allocator)
+Shader
+Shader::LoadFromFile(const char* path, Allocator* allocator)
 {
     assert(path);
 
     LOG_DEBUG("Making shader program for %s\n", path);
 
-    GLuint vertex_shader = 0, fragment_shader = 0, program = 0;
+    Shader shader = {};
+    GLuint vertex_shader = 0, fragment_shader = 0;
     GLchar info[512] = {};
     GLint success = false;
 
@@ -77,13 +75,13 @@ LoadFromFile(const char* path, Allocator* allocator)
         goto cleanup_shaders;
     }
 
-    program = glCreateProgram();
-    glAttachShader(program, vertex_shader);
-    glAttachShader(program, fragment_shader);
-    glLinkProgram(program);
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    shader.program = glCreateProgram();
+    glAttachShader(shader.program, vertex_shader);
+    glAttachShader(shader.program, fragment_shader);
+    glLinkProgram(shader.program);
+    glGetProgramiv(shader.program, GL_LINK_STATUS, &success);
     if (!success) {
-        glGetProgramInfoLog(program, 512, nullptr, info);
+        glGetProgramInfoLog(shader.program, 512, nullptr, info);
         LOG_ERROR("Shader linking failed: %s\n", info);
         goto cleanup_shaders;
     }
@@ -92,7 +90,5 @@ cleanup_shaders:
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
 
-    return program;
-}
-
+    return shader;
 }

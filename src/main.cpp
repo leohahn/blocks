@@ -23,7 +23,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-static TriangleMesh SetupCube(Allocator* allocator, Allocator* scratch_allocator) // TODO: receive a texture catalog
+#define SCREEN_WIDTH 800
+#define SCREEN_HEIGHT 600
+
+// TODO: receive a texture catalog
+static TriangleMesh
+SetupCube(Allocator* allocator, Allocator* scratch_allocator)
 {
     // clang-format off
     static const uint32_t indices[] =
@@ -191,11 +196,11 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 //  [DONE] - Load from relative paths instead of absolute ones
 //  [DONE] - Keep textures accessible throughout the program's lifetime
 //  [DONE] - Abstract cube into a triangle mesh
-//  [TODO] - Render the cube triangle mesh
+//  [DONE] - Render the cube triangle mesh
+//  [TODO] - Render the floor
+//  [TODO] - Use a fixed top-down camera
+//  [TODO] - Move the top-down camera
 //
-
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
 
 int
 main()
@@ -248,14 +253,10 @@ main()
         "shaders", main_allocator.Allocate(KILOBYTES(10)), KILOBYTES(10));
 
     // TODO: figure out a way of abstracting the shader away
-    GLuint basic_program = Shader::LoadFromFile(
+    Shader basic_shader = Shader::LoadFromFile(
         "/Users/lhahn/dev/prototypes/blocks/resources/shaders/basic.glsl", &shaders_allocator);
-    assert(basic_program > 0 && "program should be valid");
-
-    GLuint view_location = glGetUniformLocation(basic_program, "view");
-    GLuint model_location = glGetUniformLocation(basic_program, "model");
-    GLuint projection_location = glGetUniformLocation(basic_program, "projection");
-
+    assert(basic_shader.IsValid() > 0 && "program should be valid");
+    SetLocationsForShader(&basic_shader);
     shaders_allocator.Clear();
 
     bool running = true;
@@ -278,14 +279,11 @@ main()
 
     Camera camera(Vec3(0, 0, 5), Vec3(0, 0, -1));
 
-    glUseProgram(basic_program);
-
-    auto view_matrix = camera.GetViewMatrix();
-    glUniformMatrix4fv(view_location, 1, false, &view_matrix.data[0]);
+    glUseProgram(basic_shader.program);
 
     auto projection_matrix =
         Mat4::Perspective(60.0f, (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
-    glUniformMatrix4fv(projection_location, 1, false, &projection_matrix.data[0]);
+    glUniformMatrix4fv(basic_shader.projection_location, 1, false, &projection_matrix.data[0]);
 
     LinearAllocator texture_catalog_allocator(
         "texture_catalog", main_allocator.Allocate(MEGABYTES(10)), MEGABYTES(10));
@@ -348,19 +346,22 @@ main()
 
         // TODO: figure out a way of keeping track of the shader, especially
         // when rendering a mesh (should it be stored in the mesh?)
-        glUseProgram(basic_program);
+        glUseProgram(basic_shader.program);
+
+        auto ticks = SDL_GetTicks();
 
         // TODO: is ok to calculate the view matrix every time here?
         // consider only updating the view matrix when something changed on the camera.
-        auto view_matrix = camera.GetViewMatrix();
-        glUniformMatrix4fv(view_location, 1, GL_FALSE, &view_matrix.data[0]);
+        OpenGL::SetUniformMatrixForCurrentShader(basic_shader.view_location, camera.GetViewMatrix());
 
         // TODO: add real values here for the parameters
         Vec3 cube_position(0);
+        cube_position.x += ticks * 0.001f;
+
         Quaternion cube_orientation;
         float cube_scale = 2.0f;
 
-        RenderMesh(cube_mesh, cube_position, cube_orientation, cube_scale);
+        RenderMesh(cube_mesh, basic_shader, cube_position, cube_orientation, cube_scale);
 
         SDL_GL_SwapWindow(window);
     }
