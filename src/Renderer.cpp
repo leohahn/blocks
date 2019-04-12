@@ -19,6 +19,11 @@ RenderMesh(const TriangleMesh& mesh,
     model_matrix.m03 = position.x;
     model_matrix.m13 = position.y;
     model_matrix.m23 = position.z;
+
+    model_matrix.m00 = mesh_scale;
+    model_matrix.m11 = mesh_scale;
+    model_matrix.m22 = mesh_scale;
+
     OpenGL::SetUniformMatrixForCurrentShader(shader.model_location, model_matrix);
 
     for (size_t i = 0; i < mesh.triangle_list_infos.GetLen(); ++i) {
