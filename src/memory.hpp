@@ -9,6 +9,10 @@ struct Memory
     void* ptr;
     size_t size;
 
+    Memory()
+        : Memory(0)
+    {}
+
     Memory(size_t size)
         : ptr(nullptr)
         , size(size)

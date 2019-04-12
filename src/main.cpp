@@ -26,6 +26,97 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
+static TriangleMesh
+SetupPlane(Allocator* allocator, Allocator* scratch_allocator)
+{
+    // clang-format off
+    static const uint32_t indices[] =
+    {
+        0, 1, 2, 2, 3, 0
+    };
+
+    static const Vec3 vertices[] =
+    {
+        Vec3(-1.0f, -1.0f,  0.0f), // 0
+        Vec3( 1.0f, -1.0f,  0.0f), // 1
+        Vec3( 1.0f,  1.0f,  0.0f), // 2
+        Vec3(-1.0f,  1.0f,  0.0f), // 3
+    };
+
+    static const Vec2 uvs[] =
+    {
+        Vec2(0.0f, 0.0f), // 0
+        Vec2(1.0f, 0.0f), // 1
+        Vec2(1.0f, 1.0f), // 2
+        Vec2(0.0f, 1.0f), // 3
+    };
+
+    static_assert(ARRAY_SIZE(vertices) == ARRAY_SIZE(uvs),
+                  "vertices and tex_coords should be the same size");
+
+    // clang-format on
+
+    TriangleMesh mesh(allocator);
+    mesh.name.Append("Plane");
+
+    // Fill indices up
+    for (size_t i = 0; i < ARRAY_SIZE(indices); ++i) {
+        mesh.indices.PushBack(indices[i]);
+    }
+
+    // Fill vertices up
+    for (size_t i = 0; i < ARRAY_SIZE(vertices); ++i) {
+        mesh.vertices.PushBack(vertices[i]);
+    }
+
+    // Fill uvs up
+    for (size_t i = 0; i < ARRAY_SIZE(uvs); ++i) {
+        mesh.uvs.PushBack(uvs[i]);
+    }
+
+    TriangleListInfo list_info;
+    list_info.num_indices = mesh.indices.len;
+    list_info.first_index = 0;
+    list_info.texture = nullptr; // TODO: pass a texture here
+    mesh.triangle_list_infos.PushBack(list_info);
+
+    assert(mesh.vertices.len == mesh.uvs.len);
+
+    //--------------------------------------------
+    // Mesh setup
+    //--------------------------------------------
+
+    // Build the buffer that is going to be uploaded to the GPU.
+    Array<OpenGL::Vertex_PT> buffer(scratch_allocator);
+    for (size_t i = 0; i < mesh.vertices.len; ++i) {
+        buffer.PushBack(OpenGL::Vertex_PT(mesh.vertices[i], mesh.uvs[i]));
+    }
+
+    glGenVertexArrays(1, &mesh.vao);
+    glBindVertexArray(mesh.vao);
+
+    // create the vbo and ebo
+    glGenBuffers(1, &mesh.vbo);
+    glGenBuffers(1, &mesh.ebo);
+
+    // bind vbo
+    glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo);
+    glBufferData(
+        GL_ARRAY_BUFFER, sizeof(OpenGL::Vertex_PT) * buffer.len, buffer.data, GL_STATIC_DRAW);
+
+    OpenGL::SetVertexFormat_PT();
+
+    // bind ebo
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 mesh.indices.len * sizeof(uint32_t),
+                 mesh.indices.data,
+                 GL_STATIC_DRAW);
+
+    buffer.Destroy();
+    return mesh;
+}
+
 // TODO: receive a texture catalog
 static TriangleMesh
 SetupCube(Allocator* allocator, Allocator* scratch_allocator)
@@ -202,47 +293,81 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 //  [TODO] - Move the top-down camera
 //
 
-int
-main()
+enum class ProgramState
 {
-    // Main initialization of SDL and GLAD
+    Game, Menu, Editor,
+};
+
+struct Program
+{
+    ProgramState state = ProgramState::Game;
+    Memory memory;
+    bool running = true;
+    SDL_Window* window = nullptr;
+    SDL_GLContext gl_context;
+};
+
+static Program
+InitProgram(size_t memory_amount)
+{
+    Program program;
+    program.memory = Memory(memory_amount);
+    program.memory.Create();
 
     LOG_INFO("Initializing SDL");
 
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         LOG_ERROR("Failed to init SDL\n");
-        return 1;
+        exit(1);
+    }
+
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        LOG_ERROR("Failed to init SDL\n");
+        exit(1);
     }
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, true);
-
-    SDL_Window* window =
+    
+    program.window =
         SDL_CreateWindow("Blocks", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
+    program.gl_context = SDL_GL_CreateContext(program.window);
 
-    SDL_GLContext context = SDL_GL_CreateContext(window);
-
-    // Now that sdl is initialized, we initialize glad to handle opengl calls.
     LOG_INFO("Initializing glad");
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
         LOG_ERROR("Failed to initialize GLAD\n");
-        return 1;
+        exit(1);
     }
 
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);  
+    
+    return program;
+}
 
-    /////////////////////////////////////////////////////////////////////////////////////////
+static void
+TerminateProgram(Program* program)
+{
+    assert(program);
+    program->memory.Destroy();
+    SDL_GL_DeleteContext(program->gl_context);
+    SDL_DestroyWindow(program->window);
+    SDL_Quit();
+}
+
+int
+main()
+{
+    // Instantiate a new program
+    Program program = InitProgram(MEGABYTES(128));
 
     //
     // Create total scratch memory
     //
-    Memory main_memory(MEGABYTES(128));
-    main_memory.Create();
-
-    LinearAllocator main_allocator("main", main_memory);
+    LinearAllocator main_allocator("main", program.memory);
 
     //
     // Load shaders
@@ -252,17 +377,16 @@ main()
     LinearAllocator shaders_allocator(
         "shaders", main_allocator.Allocate(KILOBYTES(10)), KILOBYTES(10));
 
-    // TODO: figure out a way of abstracting the shader away
     Shader basic_shader = Shader::LoadFromFile(
         "/Users/lhahn/dev/prototypes/blocks/resources/shaders/basic.glsl", &shaders_allocator);
     assert(basic_shader.IsValid() > 0 && "program should be valid");
     SetLocationsForShader(&basic_shader);
     shaders_allocator.Clear();
 
-    bool running = true;
-
     // TODO, FIXME: instead of using malloc here, use a better defined allocator, like a frame one.
     MallocAllocator temp_allocator("temporary_allocator");
+
+    bool running = true;
 
     //
     // Create the input system
@@ -275,6 +399,7 @@ main()
     PlayerInput player_input;
     player_input.RegisterInputs(&input_system, &main_allocator);
 
+    TriangleMesh floor_mesh = SetupPlane(&main_allocator, &temp_allocator);
     TriangleMesh cube_mesh = SetupCube(&main_allocator, &temp_allocator);
 
     Camera camera(Vec3(0, 0, 5), Vec3(0, 0, -1));
@@ -352,18 +477,27 @@ main()
 
         // TODO: is ok to calculate the view matrix every time here?
         // consider only updating the view matrix when something changed on the camera.
-        OpenGL::SetUniformMatrixForCurrentShader(basic_shader.view_location, camera.GetViewMatrix());
+        OpenGL::SetUniformMatrixForCurrentShader(basic_shader.view_location,
+                                                 camera.GetViewMatrix());
 
         // TODO: add real values here for the parameters
         Vec3 cube_position(0);
         cube_position.x += ticks * 0.001f;
 
         Quaternion cube_orientation;
-        float cube_scale = 2.0f;
+        float cube_scale = 1.0f;
 
         RenderMesh(cube_mesh, basic_shader, cube_position, cube_orientation, cube_scale);
+        
+        Vec3 floor_position(0);
+        floor_position.z -= ticks * 0.001f;
 
-        SDL_GL_SwapWindow(window);
+        Quaternion floor_orientation;
+        float floor_scale = 10.0f;
+
+        RenderMesh(floor_mesh, basic_shader, floor_position, floor_orientation, floor_scale);
+
+        SDL_GL_SwapWindow(program.window);
     }
 
     LOG_INFO("Deallocating main resources");
@@ -377,8 +511,5 @@ main()
     texture_catalog_allocator.Clear();
     main_allocator.Clear();
     input_system.Destroy();
-    main_memory.Destroy();
-    SDL_GL_DeleteContext(context);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+    TerminateProgram(&program);
 }
