@@ -13,73 +13,121 @@ struct Quaternion
         float val[4];
         struct
         {
-            float s;
             Vec3 v;
+            float s;
+        };
+        struct
+        {
+            float x;
+            float y;
+            float z;
+            float w;
         };
     };
 
     Quaternion()
-    {
-        val[0] = 0;
-        val[1] = 0;
-        val[2] = 0;
-        val[3] = 0;
-    }
+        : Quaternion(0, 0, 0, 0)
+    {}
 
-    Quaternion(float s, float i, float j, float k)
-    {
-        val[0] = s;
-        val[1] = i;
-        val[2] = j;
-        val[3] = k;
-    }
+    Quaternion(float x, float y, float z, float w)
+        : x(x)
+        , y(y)
+        , z(z)
+        , w(w)
+    {}
 
     Quaternion(float s, const Vec3& v)
-        : s(s), v(v)
-    {
-    }
+        : v(v)
+        , s(s)
+    {}
 
     static Quaternion Zero() { return Quaternion(); }
 
-    static Quaternion Identity() { return Quaternion(1, 0, 0, 0); }
+    static Quaternion Identity() { return Quaternion(0, 0, 0, 1); }
 
     static Quaternion Conjugate(const Quaternion& q) { return Quaternion(q.s, -q.v); }
 
     static Quaternion Rotate(const Quaternion& q, float angle, const Quaternion& axis)
     {
         const auto rotor = Quaternion::Rotation(angle, axis.v);
-        return rotor * q * Quaternion::Inverse(rotor);
+        // return rotor * q * Quaternion::Inverse(rotor);
+        // NOTE: since we always use unit quaternions, we can use the conjugate here instead
+        // of the inverse, since it is faster to compute
+        return rotor * q * Quaternion::Conjugate(rotor);
     }
 
-    static Quaternion Inverse(const Quaternion& q);
+    static Quaternion Inverse(const Quaternion& q)
+    {
+        Quaternion inv = Quaternion::Conjugate(q) / Quaternion::SqrNorm(q);
+        // assert(q * inv == Quaternion::Identity());
+        return inv;
+    }
 
-    static Quaternion Rotation(float angle, const Vec3& axis);
+    static Quaternion Rotation(float angle, const Vec3& axis)
+    {
+        const float half_angle = angle * 0.5f;
+        const Vec3 sin_axis = axis * sinf(half_angle);
+        return Quaternion(cosf(half_angle), sin_axis);
+    }
 
-    static float Norm(const Quaternion& q);
 
-    static float SqrNorm(const Quaternion& q);
+    static float SqrNorm(const Quaternion& q)
+    {
+        float v = q.val[0]*q.val[0] + q.val[1]*q.val[1] + q.val[2]*q.val[2] + q.val[3]*q.val[3];
+        return v;
+    }
+
+    static float Norm(const Quaternion& q)
+    {
+        return sqrtf(SqrNorm(q));
+    }
 
     static Quaternion Slerp(const Quaternion& start_q, const Quaternion& end_q, float t);
 
     Mat4 ToMat4() const
     {
-        return Mat4(s, -v.i, -v.j, -v.k, v.i, s, -v.k, v.j, v.j, v.k, s, -v.i, v.k, -v.j, v.i, s);
+        auto mat = Mat4::Identity();
+        const float qxx = x * x;
+		const float qyy = y * y;
+		const float qzz = z * z;
+		const float qxz = x * z;
+		const float qxy = x * y;
+		const float qyz = y * z;
+		const float qwx = w * x;
+		const float qwy = w * y;
+		const float qwz = w * z;
+
+		mat.m00 = 1.0f - 2.0f * (qyy +  qzz);
+		mat.m10 = 2.0f * (qxy + qwz);
+		mat.m20 = 2.0f * (qxz - qwy);
+
+		mat.m01 = 2.0f * (qxy - qwz);
+		mat.m11 = 1.0f - 2.0f * (qxx +  qzz);
+		mat.m21 = 2.0f * (qyz + qwx);
+
+		mat.m02 = 2.0f * (qxz + qwy);
+		mat.m12 = 2.0f * (qyz - qwx);
+        mat.m22 = 1.0f - 2.0f * (qxx + qyy);
+
+        return mat;
     }
 
     Quaternion operator+(const Quaternion& rhs) const
     {
-        return Quaternion(s + rhs.s, v.i + rhs.v.i, v.j + rhs.v.j, v.k + rhs.v.k);
+        return Quaternion(x + rhs.x, y + rhs.y, z + rhs.z, w + rhs.w);
     }
 
     Quaternion operator*(const Quaternion& rhs) const
     {
+        // TODO: fix equation
+        // pq = [(pSqV + qSpV + pV × qV) (pSqS − pV · qV)].
         return Quaternion((s * rhs.s) - Math::Dot(v, rhs.v),
                           rhs.s * v + s * rhs.v + Math::Cross(v, rhs.v));
     }
 
     Quaternion operator/(float k) const
     {
-        return Quaternion(val[0] / k, val[1] / k, val[2] / k, val[3] / k);
+        return Quaternion(x / k, y / k, z / k, w / k);
     }
 
     static void Print(const Quaternion& q);
@@ -114,16 +162,16 @@ namespace Math {
 inline Quaternion
 Normalize(const Quaternion& q)
 {
-    return Quaternion(q.s / Quaternion::Norm(q),
-                      q.v.i / Quaternion::Norm(q),
-                      q.v.j / Quaternion::Norm(q),
-                      q.v.k / Quaternion::Norm(q));
+    return Quaternion(q.x / Quaternion::Norm(q),
+                      q.y / Quaternion::Norm(q),
+                      q.z / Quaternion::Norm(q),
+                      q.w / Quaternion::Norm(q));
 }
 
 inline float
 Dot(const Quaternion& a, const Quaternion& b)
 {
-    return a.val[0] * b.val[0] + a.val[1] * b.val[1] + a.val[2] * b.val[2] + a.val[3] * b.val[3];
+    return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 }
 
 } // namespace Math

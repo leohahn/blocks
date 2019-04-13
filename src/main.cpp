@@ -288,7 +288,8 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 //  [DONE] - Keep textures accessible throughout the program's lifetime
 //  [DONE] - Abstract cube into a triangle mesh
 //  [DONE] - Render the cube triangle mesh
-//  [TODO] - Render the floor
+//  [DONE] - Render the floor
+//  [DONE] - Rotate the floor to be in the correct position
 //  [TODO] - Use a fixed top-down camera
 //  [TODO] - Move the top-down camera
 //
@@ -482,19 +483,22 @@ main()
 
         // TODO: add real values here for the parameters
         Vec3 cube_position(0);
-        cube_position.x += ticks * 0.001f;
+        // cube_position.x += ticks * 0.001f;
 
-        Quaternion cube_orientation;
+        Quaternion cube_orientation = Quaternion::Rotation(Math::DegreesToRadians(ticks * 0.035f), Vec3(0, 1, 0));
         float cube_scale = 1.0f;
 
         RenderMesh(cube_mesh, basic_shader, cube_position, cube_orientation, cube_scale);
         
-        Vec3 floor_position(0);
-        floor_position.z -= ticks * 0.001f;
+        Vec3 floor_position(0, -5, 3);
 
-        Quaternion floor_orientation;
+        static float degree = 0;
+        if (degree > -90) {
+            degree -= ticks * 0.00001f;
+        }
+
+        Quaternion floor_orientation = Quaternion::Rotation(Math::DegreesToRadians(degree), Vec3(1, 0, 0));
         float floor_scale = 10.0f;
-
         RenderMesh(floor_mesh, basic_shader, floor_position, floor_orientation, floor_scale);
 
         SDL_GL_SwapWindow(program.window);

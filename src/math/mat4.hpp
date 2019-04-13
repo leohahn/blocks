@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Math/Vec4.hpp"
 #include "Math/Vec3.hpp"
+#include "Math/Vec4.hpp"
 
 // A matrix is represented in this class
 // as column major:
@@ -17,7 +17,7 @@ struct Mat4
     // Matrix data
     union
     {
-        struct 
+        struct
         {
             float m00, m10, m20, m30;
             float m01, m11, m21, m31;
@@ -30,11 +30,11 @@ struct Mat4
 
 public:
     // Matrix API
-    float operator()(int row, int col)
-    {
-        return m[col][row];
-    }
+    float& operator()(int row, int col) { return m[col][row]; }
 
+    Mat4() = default;
+
+    // clang-format off
     Mat4(float m00, float m01, float m02, float m03,
          float m10, float m11, float m12, float m13,
          float m20, float m21, float m22, float m23,
@@ -58,6 +58,14 @@ public:
         data[15] = m33;
     }
 
+    static Mat4 Zero()
+    {
+        return Mat4(0, 0, 0, 0,
+                    0, 0, 0, 0,
+                    0, 0, 0, 0,
+                    0, 0, 0, 0);
+    }
+
     static Mat4 Identity()
     {
         return Mat4(1, 0, 0, 0,
@@ -66,13 +74,14 @@ public:
                     0, 0, 0, 1);
     }
 
-    static Mat4 Diag(float diag)
+    static Mat4 Scale(float scale)
     {
-        return Mat4(diag, 0,    0,    0,
-                    0,    diag, 0,    0,
-                    0,    0,    diag, 0,
-                    0,    0,    0,    1);
+        return Mat4(scale, 0,    0,    0,
+                    0,    scale, 0,    0,
+                    0,    0,    scale, 0,
+                    0,    0,     0,    1);
     }
+    // clang-format on
 
     static Mat4 LookAt(const Vec3& eye, const Vec3& center, const Vec3& up_world);
 
@@ -85,4 +94,5 @@ public:
     static Mat4 Ortho(float left, float right, float bottom, float top, float near, float far);
 };
 
+Mat4 operator*(const Mat4& lhs, const Mat4& rhs);
 Vec4 operator*(const Mat4& lhs, const Vec4& rhs);

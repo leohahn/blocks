@@ -9,35 +9,6 @@ Quaternion::Print(const Quaternion& q)
 }
 
 Quaternion
-Quaternion::Inverse(const Quaternion& q)
-{
-    Quaternion inv = Quaternion::Conjugate(q) / Quaternion::SqrNorm(q);
-    assert(q*inv == Quaternion::Identity());
-    return inv;
-}
-
-Quaternion
-Quaternion::Rotation(float angle, const Vec3& axis)
-{
-    Vec3 sin_axis = axis * sinf(angle/2.0f);
-    return Quaternion(cosf(angle/2.0f), sin_axis);
-}
-
-float
-Quaternion::Norm(const Quaternion& q)
-{
-    float v = q.val[0]*q.val[0] + q.val[1]*q.val[1] + q.val[2]*q.val[2] + q.val[3]*q.val[3];
-    return sqrtf(v);
-}
-
-float
-Quaternion::SqrNorm(const Quaternion& q)
-{
-    float v = q.val[0]*q.val[0] + q.val[1]*q.val[1] + q.val[2]*q.val[2] + q.val[3]*q.val[3];
-    return v;
-}
-
-Quaternion
 Quaternion::Slerp(const Quaternion& start_q, const Quaternion& end_q, float t)
 {
     assert(t >= 0);
