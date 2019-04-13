@@ -296,13 +296,16 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 
 enum class ProgramState
 {
-    Game, Menu, Editor,
+    Game,
+    Menu,
+    Editor,
 };
 
 struct Program
 {
     ProgramState state = ProgramState::Game;
     Memory memory;
+    LinearAllocator main_allocator;
     bool running = true;
     SDL_Window* window = nullptr;
     SDL_GLContext gl_context;
@@ -314,6 +317,7 @@ InitProgram(size_t memory_amount)
     Program program;
     program.memory = Memory(memory_amount);
     program.memory.Create();
+    program.main_allocator = LinearAllocator("main", program.memory);
 
     LOG_INFO("Initializing SDL");
 
@@ -331,7 +335,7 @@ InitProgram(size_t memory_amount)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, true);
-    
+
     program.window =
         SDL_CreateWindow("Blocks", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
     program.gl_context = SDL_GL_CreateContext(program.window);
@@ -344,8 +348,8 @@ InitProgram(size_t memory_amount)
 
     glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
     glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);  
-    
+    glEnable(GL_DEPTH_TEST);
+
     return program;
 }
 
@@ -353,6 +357,7 @@ static void
 TerminateProgram(Program* program)
 {
     assert(program);
+    program->main_allocator.Clear();
     program->memory.Destroy();
     SDL_GL_DeleteContext(program->gl_context);
     SDL_DestroyWindow(program->window);
@@ -362,13 +367,8 @@ TerminateProgram(Program* program)
 int
 main()
 {
-    // Instantiate a new program
+    // Instantiate a new program with preallocated memory
     Program program = InitProgram(MEGABYTES(128));
-
-    //
-    // Create total scratch memory
-    //
-    LinearAllocator main_allocator("main", program.memory);
 
     //
     // Load shaders
@@ -376,7 +376,7 @@ main()
     LOG_DEBUG("Loading shaders\n");
 
     LinearAllocator shaders_allocator(
-        "shaders", main_allocator.Allocate(KILOBYTES(10)), KILOBYTES(10));
+        "shaders", program.main_allocator.Allocate(KILOBYTES(10)), KILOBYTES(10));
 
     Shader basic_shader = Shader::LoadFromFile(
         "/Users/lhahn/dev/prototypes/blocks/resources/shaders/basic.glsl", &shaders_allocator);
@@ -393,15 +393,15 @@ main()
     // Create the input system
     //
     InputSystem input_system;
-    input_system.Create(&main_allocator);
+    input_system.Create(&program.main_allocator);
     input_system.AddKeyboardEventListener(
-        kKeyboardEventButtonDown, SDLK_q, OnApplicationQuit, &running, &main_allocator);
+        kKeyboardEventButtonDown, SDLK_q, OnApplicationQuit, &running, &program.main_allocator);
 
     PlayerInput player_input;
-    player_input.RegisterInputs(&input_system, &main_allocator);
+    player_input.RegisterInputs(&input_system, &program.main_allocator);
 
-    TriangleMesh floor_mesh = SetupPlane(&main_allocator, &temp_allocator);
-    TriangleMesh cube_mesh = SetupCube(&main_allocator, &temp_allocator);
+    TriangleMesh floor_mesh = SetupPlane(&program.main_allocator, &temp_allocator);
+    TriangleMesh cube_mesh = SetupCube(&program.main_allocator, &temp_allocator);
 
     Camera camera(Vec3(0, 0, 5), Vec3(0, 0, -1));
 
@@ -412,7 +412,7 @@ main()
     glUniformMatrix4fv(basic_shader.projection_location, 1, false, &projection_matrix.data[0]);
 
     LinearAllocator texture_catalog_allocator(
-        "texture_catalog", main_allocator.Allocate(MEGABYTES(10)), MEGABYTES(10));
+        "texture_catalog", program.main_allocator.Allocate(MEGABYTES(10)), MEGABYTES(10));
     TextureCatalog texture_catalog(&texture_catalog_allocator, &temp_allocator);
     texture_catalog.LoadTexture("wall.jpg");
 
@@ -483,21 +483,14 @@ main()
 
         // TODO: add real values here for the parameters
         Vec3 cube_position(0);
-        // cube_position.x += ticks * 0.001f;
-
-        Quaternion cube_orientation = Quaternion::Rotation(Math::DegreesToRadians(ticks * 0.035f), Vec3(0, 1, 0));
+        Quaternion cube_orientation =
+            Quaternion::Rotation(Math::DegreesToRadians(ticks * 0.035f), Vec3(0, 1, 0));
         float cube_scale = 1.0f;
-
         RenderMesh(cube_mesh, basic_shader, cube_position, cube_orientation, cube_scale);
-        
+
         Vec3 floor_position(0, -5, 3);
-
-        static float degree = 0;
-        if (degree > -90) {
-            degree -= ticks * 0.00001f;
-        }
-
-        Quaternion floor_orientation = Quaternion::Rotation(Math::DegreesToRadians(degree), Vec3(1, 0, 0));
+        Quaternion floor_orientation =
+            Quaternion::Rotation(Math::DegreesToRadians(90), Vec3(-1, 0, 0));
         float floor_scale = 10.0f;
         RenderMesh(floor_mesh, basic_shader, floor_position, floor_orientation, floor_scale);
 
@@ -513,7 +506,6 @@ main()
 
     texture_catalog.Destroy();
     texture_catalog_allocator.Clear();
-    main_allocator.Clear();
     input_system.Destroy();
     TerminateProgram(&program);
 }

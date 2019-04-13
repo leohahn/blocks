@@ -9,6 +9,8 @@
 class LinearAllocator : public Allocator
 {
 public:
+    LinearAllocator() = default;
+
     LinearAllocator(const char* name, Memory mem)
         : LinearAllocator(name, mem.ptr, mem.size)
     {}
