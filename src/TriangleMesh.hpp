@@ -58,6 +58,18 @@ struct TriangleMesh
         , vbo(0)
         , ebo(0)
     {}
+    
+    void Destroy()
+    {
+        name.Destroy();
+        full_path.Destroy();
+        source_file_path.Destroy();
+        vertices.Destroy();
+        uvs.Destroy();
+        colors.Destroy();
+        vertex_frames.Destroy();
+        indices.Destroy();
+        triangle_list_infos.Destroy();
+    }
 };
-
 

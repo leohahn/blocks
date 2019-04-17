@@ -8,6 +8,7 @@ struct StringView
     const char* data;
     size_t len;
 
+public:
     StringView(const char* str)
         : data(str)
         , len(strlen(str))

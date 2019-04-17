@@ -8,11 +8,13 @@
 #include "Math.hpp"
 #include "OpenGL.hpp"
 #include "PlayerInput.hpp"
+#include "Program.hpp"
 #include "Renderer.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
 #include "TextureCatalog.hpp"
 #include "TriangleMesh.hpp"
+#include "TriangleMeshCatalog.hpp"
 #include "Utils.hpp"
 #include <SDL.h>
 #include <SDL_opengl.h>
@@ -55,7 +57,6 @@ SetupPlane(Allocator* allocator, Allocator* scratch_allocator)
                   "vertices and tex_coords should be the same size");
 
     // clang-format on
-
     TriangleMesh mesh(allocator);
     mesh.name.Append("Plane");
 
@@ -294,81 +295,11 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 //  [TODO] - Move the top-down camera
 //
 
-enum class ProgramState
-{
-    Game,
-    Menu,
-    Editor,
-};
-
-struct Program
-{
-    ProgramState state = ProgramState::Game;
-    Memory memory;
-    LinearAllocator main_allocator;
-    bool running = true;
-    SDL_Window* window = nullptr;
-    SDL_GLContext gl_context;
-};
-
-static Program
-InitProgram(size_t memory_amount)
-{
-    Program program;
-    program.memory = Memory(memory_amount);
-    program.memory.Create();
-    program.main_allocator = LinearAllocator("main", program.memory);
-
-    LOG_INFO("Initializing SDL");
-
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        LOG_ERROR("Failed to init SDL\n");
-        exit(1);
-    }
-
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        LOG_ERROR("Failed to init SDL\n");
-        exit(1);
-    }
-
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, true);
-
-    program.window =
-        SDL_CreateWindow("Blocks", 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL);
-    program.gl_context = SDL_GL_CreateContext(program.window);
-
-    LOG_INFO("Initializing glad");
-    if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
-        LOG_ERROR("Failed to initialize GLAD\n");
-        exit(1);
-    }
-
-    glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_DEPTH_TEST);
-
-    return program;
-}
-
-static void
-TerminateProgram(Program* program)
-{
-    assert(program);
-    program->main_allocator.Clear();
-    program->memory.Destroy();
-    SDL_GL_DeleteContext(program->gl_context);
-    SDL_DestroyWindow(program->window);
-    SDL_Quit();
-}
-
 int
 main()
 {
     // Instantiate a new program with preallocated memory
-    Program program = InitProgram(MEGABYTES(128));
+    Program program = InitProgram(MEGABYTES(128), SCREEN_WIDTH, SCREEN_HEIGHT);
 
     //
     // Load shaders
@@ -411,6 +342,9 @@ main()
         Mat4::Perspective(60.0f, (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
     glUniformMatrix4fv(basic_shader.projection_location, 1, false, &projection_matrix.data[0]);
 
+    //------------------------------
+    // Create the texture catalog and textures
+    //------------------------------
     LinearAllocator texture_catalog_allocator(
         "texture_catalog", program.main_allocator.Allocate(MEGABYTES(10)), MEGABYTES(10));
     TextureCatalog texture_catalog(&texture_catalog_allocator, &temp_allocator);
@@ -421,8 +355,17 @@ main()
     LOG_DEBUG("       width: %d", wall_texture->width);
     LOG_DEBUG("       height: %d", wall_texture->height);
 
+    //------------------------------
+    // Create the mesh catalog and triangle meshes
+    //------------------------------
+    LinearAllocator mesh_catalog_allocator(
+        "mesh_catalog", program.main_allocator.Allocate(MEGABYTES(10)), MEGABYTES(10));
+    TriangleMeshCatalog mesh_catalog(&mesh_catalog_allocator, &temp_allocator);
+    mesh_catalog.LoadMeshFromFile("wall.jpg");
+
     LOG_DEBUG("Starting main loop");
     glClearColor(0, 0, 0, 1);
+
     while (running) {
         input_system.Update();
 
@@ -440,12 +383,10 @@ main()
         }
 
         if (player_input.IsTurningLeft()) {
-            // camera.Rotate(camera.Up());
             camera.Rotate(Vec3(0, 1, 0));
         }
 
         if (player_input.IsTurningRight()) {
-            // camera.Rotate(-camera.Up());
             camera.Rotate(Vec3(0, -1, 0));
         }
 
@@ -491,7 +432,7 @@ main()
         Vec3 floor_position(0, -5, 3);
         Quaternion floor_orientation =
             Quaternion::Rotation(Math::DegreesToRadians(90), Vec3(-1, 0, 0));
-        float floor_scale = 10.0f;
+        float floor_scale = 50.0f;
         RenderMesh(floor_mesh, basic_shader, floor_position, floor_orientation, floor_scale);
 
         SDL_GL_SwapWindow(program.window);
@@ -504,6 +445,10 @@ main()
     // TODO: remove this
     // wall_texture.name.Destroy();
 
+    floor_mesh.Destroy();
+    cube_mesh.Destroy();
+    mesh_catalog.Destroy();
+    mesh_catalog_allocator.Clear();
     texture_catalog.Destroy();
     texture_catalog_allocator.Clear();
     input_system.Destroy();

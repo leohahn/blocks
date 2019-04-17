@@ -22,10 +22,27 @@ elseif(CMAKE_GENERATOR STREQUAL "Xcode")
   file(COPY "resources" DESTINATION "${CMAKE_BINARY_DIR}/Debug")
 endif()
 
+#
+# Define Assimp library target
+#
+if(APPLE AND NOT IOS)
+    set(assimp_dir ${CMAKE_SOURCE_DIR}/deps/assimp/mac)
+else()
+    message(FATAL_ERROR "Platform not supported yet")
+endif()
+
+add_library(assimp STATIC IMPORTED)
+set_target_properties(assimp
+  PROPERTIES
+    IMPORTED_LOCATION "${assimp_dir}/lib/libassimp.a"
+    INTERFACE_INCLUDE_DIRECTORIES "${assimp_dir}/include")
+
 add_executable(blocks
     deps/glad/src/glad.cpp
 
     # Core
+    src/Program.hpp
+    src/Program.cpp
     src/InputSystem.hpp
     src/InputSystem.cpp
     src/Camera.hpp
@@ -37,7 +54,11 @@ add_executable(blocks
     src/TextureCatalog.hpp
     src/TextureCatalog.cpp
     src/TriangleMesh.hpp
+    src/TriangleMeshCatalog.hpp
+    src/TriangleMeshCatalog.cpp
     src/OpenGL.hpp
+    src/ResourceLoader.hpp
+    src/ResourceLoader.cpp
 
     # Memory
     src/Memory.hpp
@@ -88,4 +109,8 @@ target_include_directories(blocks
     deps/glad/include
     src)
 
-target_link_libraries(blocks PUBLIC CONAN_PKG::sdl2 -lm)
+target_link_libraries(blocks
+  PUBLIC
+    CONAN_PKG::sdl2
+    m
+    assimp)

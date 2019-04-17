@@ -27,17 +27,42 @@ struct String
         , data(nullptr)
     {}
 
+    String(const String& str)
+        : String(nullptr)
+    {
+        assert(str.allocator);
+        *this = str;
+    }
+
     String(String&& str)
         : String()
     {
         *this = std::move(str);
     }
 
+    // Copy assignment
+    String& operator=(const String& str)
+    {
+        assert(this != &str);
+        assert(str.allocator);
+        ShallowCopyFields(str);
+        // copy the contents as well
+        if (data) {
+            allocator->Deallocate(data);
+        }
+        data = (char*)allocator->Allocate(str.len + 1);
+        assert(data);
+        memcpy(data, str.data, str.len);
+        data[len] = '\0';
+        return *this;
+    }
+
+    // Move assignment
     String& operator=(String&& str)
     {
         assert(this != &str);
         Destroy();
-        CopyFields(str);
+        ShallowCopyFields(str);
         str.allocator = nullptr;
         str.data = nullptr;
         str.len = 0;
@@ -130,11 +155,13 @@ struct String
         }
         return memcmp(data, str.data, len) == 0;
     }
+    
+    bool IsEmpty() const { return len == 0; }
 
     StringView View() const { return StringView(data, len); }
 
 private:
-    void CopyFields(const String& str)
+    void ShallowCopyFields(const String& str)
     {
         allocator = str.allocator;
         cap = str.cap;
