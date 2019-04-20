@@ -6,6 +6,7 @@
 
 struct Shader
 {
+    // TODO: implement a Destroy function
     GLuint model_location;
     GLuint view_location;
     GLuint projection_location;

@@ -301,6 +301,9 @@ main()
     // Instantiate a new program with preallocated memory
     Program program = InitProgram(MEGABYTES(128), SCREEN_WIDTH, SCREEN_HEIGHT);
 
+    // TODO, FIXME: instead of using malloc here, use a better defined allocator, like a frame one.
+    MallocAllocator temp_allocator("temporary_allocator");
+
     //
     // Load shaders
     //
@@ -315,9 +318,6 @@ main()
     SetLocationsForShader(&basic_shader);
     shaders_allocator.Clear();
 
-    // TODO, FIXME: instead of using malloc here, use a better defined allocator, like a frame one.
-    MallocAllocator temp_allocator("temporary_allocator");
-
     bool running = true;
 
     //
@@ -331,8 +331,11 @@ main()
     PlayerInput player_input;
     player_input.RegisterInputs(&input_system, &program.main_allocator);
 
+    // DEBUG meshes for testing
     TriangleMesh floor_mesh = SetupPlane(&program.main_allocator, &temp_allocator);
     TriangleMesh cube_mesh = SetupCube(&program.main_allocator, &temp_allocator);
+
+
 
     Camera camera(Vec3(0, 0, 5), Vec3(0, 0, -1));
 

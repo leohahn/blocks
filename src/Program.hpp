@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Collections/String.hpp"
+#include "Path.hpp"
 #include "LinearAllocator.hpp"
 #include "Memory.hpp"
 #include <SDL.h>
@@ -22,7 +22,6 @@ struct Program
     int32_t window_width;
     int32_t window_height;
     SDL_GLContext gl_context;
-    String resources_path;
 };
 
 Program InitProgram(size_t memory_amount, int32_t window_width, int32_t window_height);

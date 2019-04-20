@@ -5,9 +5,9 @@
 #include "glad/glad.h"
 #include "stb_image.h"
 
-static Texture LoadTextureFromFile(Allocator* allocator,
-                                   Allocator* scratch_allocator,
-                                   const StringView& texture_file);
+static Texture* LoadTextureFromFile(Allocator* allocator,
+                                    Allocator* scratch_allocator,
+                                    const StringView& texture_file);
 
 void
 TextureCatalog::Destroy()
@@ -15,7 +15,8 @@ TextureCatalog::Destroy()
     assert(allocator);
     
     for (size_t i = 0; i < textures.len; ++i) {
-        textures[i].name.Destroy();
+        textures[i]->name.Destroy();
+        allocator->Delete(textures[i]);
     }
 
     textures.Destroy();
@@ -28,8 +29,8 @@ TextureCatalog::GetTexture(const StringView& name)
     Texture* tex = nullptr;
 
     for (size_t i = 0; i < textures.len; ++i) {
-        if (textures[i].name == name) {
-            tex = &textures[i];
+        if (textures[i]->name == name) {
+            tex = textures[i];
             break;
         }
     }
@@ -42,11 +43,11 @@ void
 TextureCatalog::LoadTexture(const StringView& texture_file)
 {
     assert(texture_file.data[texture_file.len] == 0);
-    Texture new_texture = LoadTextureFromFile(allocator, scratch_allocator, texture_file);
-    textures.PushBack(std::move(new_texture));
+    Texture* new_texture = LoadTextureFromFile(allocator, scratch_allocator, texture_file);
+    textures.PushBack(new_texture);
 }
 
-static Texture
+static Texture*
 LoadTextureFromFile(Allocator* allocator,
                     Allocator* scratch_allocator,
                     const StringView& texture_file)
@@ -54,16 +55,18 @@ LoadTextureFromFile(Allocator* allocator,
     assert(allocator);
     assert(scratch_allocator);
 
-    String resources_path = FileSystem::GetResourcesPath(scratch_allocator);
-    String full_asset_path =
-        FileSystem::JoinPaths(scratch_allocator, resources_path.View(), texture_file);
+    Path resources_path = FileSystem::GetResourcesPath(scratch_allocator);
 
-    Texture texture(allocator);
-    texture.name.Append(texture_file);
+    Path full_asset_path(scratch_allocator);
+    full_asset_path.Push(resources_path);
+    full_asset_path.Push(texture_file);
+
+    Texture* texture = allocator->New<Texture>(allocator);
+    texture->name.Append(texture_file);
 
     size_t texture_buffer_size;
     uint8_t* texture_buffer =
-        FileSystem::LoadFileToMemory(allocator, full_asset_path.View(), &texture_buffer_size);
+        FileSystem::LoadFileToMemory(allocator, full_asset_path, &texture_buffer_size);
     int texture_width, texture_height, texture_channel_count;
 
     assert(texture_buffer);
@@ -79,16 +82,16 @@ LoadTextureFromFile(Allocator* allocator,
                                           &texture_channel_count,
                                           0);
 
-    texture.width = texture_width;
-    texture.height = texture_height;
+    texture->width = texture_width;
+    texture->height = texture_height;
 
     if (!data) {
         LOG_ERROR("Failed to load texture at %s", full_asset_path.data);
         goto cleanup_texture_buffer;
     }
 
-    glGenTextures(1, &texture.handle);
-    glBindTexture(GL_TEXTURE_2D, texture.handle);
+    glGenTextures(1, &texture->handle);
+    glBindTexture(GL_TEXTURE_2D, texture->handle);
 
     glTexParameteri(GL_TEXTURE_2D,
                     GL_TEXTURE_WRAP_S,
@@ -109,6 +112,6 @@ cleanup_texture_buffer:
     full_asset_path.Destroy();
     resources_path.Destroy();
 
-    texture.loaded = true;
+    texture->loaded = true;
     return texture;
 }

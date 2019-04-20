@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 uint8_t*
-FileSystem::LoadFileToMemory(Allocator* allocator, const StringView& path, size_t* out_file_size)
+FileSystem::LoadFileToMemory(Allocator* allocator, const Path& path, size_t* out_file_size)
 {
     assert(allocator);
     if (path.data[path.len] != 0) {
@@ -52,34 +52,15 @@ cleanup_file:
     return file_mem;
 }
 
-String
+Path
 FileSystem::GetResourcesPath(Allocator* allocator)
 {
     char cwd_buf[PATH_MAX];
     getcwd(cwd_buf, PATH_MAX);
 
-    String resources_path(allocator);
-    resources_path.Append(cwd_buf);
-    resources_path.Append("/resources");
+    Path resources_path(allocator);
+    resources_path.Push(cwd_buf);
+    resources_path.Push("/resources");
 
     return resources_path;
-}
-
-String
-FileSystem::JoinPaths(Allocator* allocator, const StringView& p1, const StringView& p2)
-{
-    String res(allocator);
-    res.Append(p1);
-
-    if (res.Back() != '/') {
-        res.Append('/');
-    }
-
-    if (p2.Front() == '/') {
-        res.Append(p2, 1);
-    } else {
-        res.Append(p2);
-    }
-
-    return res;
 }

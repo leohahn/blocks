@@ -10,7 +10,7 @@ struct TextureCatalog
 {
     Allocator* allocator = nullptr;
     Allocator* scratch_allocator = nullptr;
-    Array<Texture> textures;
+    Array<Texture*> textures;
 
 public:
     TextureCatalog(Allocator* allocator, Allocator* scratch_allocator)

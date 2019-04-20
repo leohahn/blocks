@@ -57,8 +57,6 @@ add_executable(blocks
     src/TriangleMeshCatalog.hpp
     src/TriangleMeshCatalog.cpp
     src/OpenGL.hpp
-    src/ResourceLoader.hpp
-    src/ResourceLoader.cpp
 
     # Memory
     src/Memory.hpp
@@ -72,6 +70,8 @@ add_executable(blocks
     src/Logger.hpp
     src/Utils.hpp
     src/Utils.cpp
+    src/Path.hpp
+    src/Path.cpp
 
     # Math
     src/math/Vec2.hpp

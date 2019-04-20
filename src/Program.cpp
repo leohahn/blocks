@@ -11,7 +11,6 @@ InitProgram(size_t memory_amount, int32_t window_width, int32_t window_height)
     program.memory = Memory(memory_amount);
     program.memory.Create();
     program.main_allocator = LinearAllocator("main", program.memory);
-    program.resources_path = FileSystem::GetResourcesPath(&program.main_allocator);
     program.window_width = window_width;
     program.window_height = window_height;
 
@@ -53,7 +52,6 @@ void
 TerminateProgram(Program* program)
 {
     assert(program);
-    program->resources_path.Destroy();
     program->main_allocator.Clear();
     program->memory.Destroy();
     SDL_GL_DeleteContext(program->gl_context);
