@@ -49,3 +49,15 @@
 #if defined(__x86_64__) || defined(_M_X86) || defined(__i386__)
 #define ARCH_X86 1
 #endif
+
+#define DISABLE_OBJECT_COPY(Type) \
+    Type& operator=(const Type& t) = delete; \
+    Type(const Type& t) = delete
+
+#define DISABLE_OBJECT_MOVE(Type) \
+    Type& operator=(Type&& t) = delete; \
+    Type(Type&& t) = delete
+
+#define DISABLE_OBJECT_COPY_AND_MOVE(Type) \
+    DISABLE_OBJECT_COPY(Type);             \
+    DISABLE_OBJECT_MOVE(Type);             \

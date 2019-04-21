@@ -48,15 +48,12 @@ add_executable(blocks
     src/Camera.hpp
     src/Camera.cpp
     src/Shader.hpp
-    src/Shader.cpp
     src/PlayerInput.hpp
     src/Texture.hpp
-    src/TextureCatalog.hpp
-    src/TextureCatalog.cpp
     src/TriangleMesh.hpp
-    src/TriangleMeshCatalog.hpp
-    src/TriangleMeshCatalog.cpp
     src/OpenGL.hpp
+    src/ResourceManager.hpp
+    src/ResourceManager.cpp
 
     # Memory
     src/Memory.hpp

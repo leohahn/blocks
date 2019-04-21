@@ -3,6 +3,8 @@
 #include "Allocator.hpp"
 #include "Collections/String.hpp"
 #include "Collections/StringView.hpp"
+#include "Defines.hpp"
+#include "glad/glad.h"
 
 struct Texture
 {
@@ -13,6 +15,7 @@ struct Texture
     int32_t height;
     bool loaded;
 
+public:
     Texture()
         : Texture(nullptr)
     {}
@@ -24,4 +27,12 @@ struct Texture
         , height(0)
         , loaded(false)
     {}
+
+    void Destroy()
+    {
+        name.Destroy();
+        glDeleteTextures(1, &handle);
+    }
+    
+    DISABLE_OBJECT_COPY(Texture);
 };

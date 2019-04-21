@@ -15,14 +15,6 @@ struct Frame3
     Vec3 normal;
 };
 
-struct TriangleListInfo
-{
-    // int32_t material_index; // which material used for rendering this?
-    int32_t num_indices = 0;
-    int32_t first_index = 0;
-    Texture* texture = nullptr;
-};
-
 struct TriangleMesh
 {
     // TODO: probably need some flags here
@@ -37,7 +29,6 @@ struct TriangleMesh
     Array<Frame3> vertex_frames;
 
     Array<int32_t> indices;
-    Array<TriangleListInfo> triangle_list_infos;
     
     // OpenGL state
     uint32_t vao;
@@ -53,7 +44,6 @@ struct TriangleMesh
         , colors(allocator)
         , vertex_frames(allocator)
         , indices(allocator)
-        , triangle_list_infos(allocator)
         , vao(0)
         , vbo(0)
         , ebo(0)
@@ -69,7 +59,6 @@ struct TriangleMesh
         colors.Destroy();
         vertex_frames.Destroy();
         indices.Destroy();
-        triangle_list_infos.Destroy();
     }
 };
 

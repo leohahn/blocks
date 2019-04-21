@@ -10,11 +10,10 @@
 #include "PlayerInput.hpp"
 #include "Program.hpp"
 #include "Renderer.hpp"
+#include "ResourceManager.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
-#include "TextureCatalog.hpp"
 #include "TriangleMesh.hpp"
-#include "TriangleMeshCatalog.hpp"
 #include "Utils.hpp"
 #include <SDL.h>
 #include <SDL_opengl.h>
@@ -74,12 +73,6 @@ SetupPlane(Allocator* allocator, Allocator* scratch_allocator)
     for (size_t i = 0; i < ARRAY_SIZE(uvs); ++i) {
         mesh.uvs.PushBack(uvs[i]);
     }
-
-    TriangleListInfo list_info;
-    list_info.num_indices = mesh.indices.len;
-    list_info.first_index = 0;
-    list_info.texture = nullptr; // TODO: pass a texture here
-    mesh.triangle_list_infos.PushBack(list_info);
 
     assert(mesh.vertices.len == mesh.uvs.len);
 
@@ -221,12 +214,6 @@ SetupCube(Allocator* allocator, Allocator* scratch_allocator)
         mesh.uvs.PushBack(uvs[i]);
     }
 
-    TriangleListInfo list_info;
-    list_info.num_indices = mesh.indices.len;
-    list_info.first_index = 0;
-    list_info.texture = nullptr; // TODO: pass a texture here
-    mesh.triangle_list_infos.PushBack(list_info);
-
     assert(mesh.vertices.len == mesh.uvs.len);
 
     //--------------------------------------------
@@ -301,22 +288,26 @@ main()
     // Instantiate a new program with preallocated memory
     Program program = InitProgram(MEGABYTES(128), SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    // TODO, FIXME: instead of using malloc here, use a better defined allocator, like a frame one.
     MallocAllocator temp_allocator("temporary_allocator");
+    
+    const size_t resource_manager_designated_memory = MEGABYTES(10);
+    LinearAllocator resource_manager_allocator(
+        "resource_manager",
+        program.main_allocator.Allocate(resource_manager_designated_memory),
+        resource_manager_designated_memory
+    );
+    ResourceManager resource_manager(&resource_manager_allocator, &temp_allocator);
+    resource_manager.Create();
 
     //
     // Load shaders
     //
     LOG_DEBUG("Loading shaders\n");
 
-    LinearAllocator shaders_allocator(
-        "shaders", program.main_allocator.Allocate(KILOBYTES(10)), KILOBYTES(10));
-
-    Shader basic_shader = Shader::LoadFromFile(
-        "/Users/lhahn/dev/prototypes/blocks/resources/shaders/basic.glsl", &shaders_allocator);
-    assert(basic_shader.IsValid() > 0 && "program should be valid");
-    SetLocationsForShader(&basic_shader);
-    shaders_allocator.Clear();
+    resource_manager.LoadShader("basic.glsl");
+    Shader* basic_shader = resource_manager.GetShader("basic.glsl");
+    assert(basic_shader && basic_shader->IsValid() && "program should be valid");
+    SetLocationsForShader(basic_shader);
 
     bool running = true;
 
@@ -335,36 +326,28 @@ main()
     TriangleMesh floor_mesh = SetupPlane(&program.main_allocator, &temp_allocator);
     TriangleMesh cube_mesh = SetupCube(&program.main_allocator, &temp_allocator);
 
-
-
     Camera camera(Vec3(0, 0, 5), Vec3(0, 0, -1));
 
-    glUseProgram(basic_shader.program);
+    glUseProgram(basic_shader->program);
 
     auto projection_matrix =
-        Mat4::Perspective(60.0f, (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 100.0f);
-    glUniformMatrix4fv(basic_shader.projection_location, 1, false, &projection_matrix.data[0]);
+        Mat4::Perspective(60.0f, (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 500.0f);
+    glUniformMatrix4fv(basic_shader->projection_location, 1, false, &projection_matrix.data[0]);
 
     //------------------------------
     // Create the texture catalog and textures
     //------------------------------
-    LinearAllocator texture_catalog_allocator(
-        "texture_catalog", program.main_allocator.Allocate(MEGABYTES(10)), MEGABYTES(10));
-    TextureCatalog texture_catalog(&texture_catalog_allocator, &temp_allocator);
-    texture_catalog.LoadTexture("wall.jpg");
+    // LinearAllocator texture_catalog_allocator(
+    //     "texture_catalog", program.main_allocator.Allocate(MEGABYTES(10)), MEGABYTES(10));
+    // TextureCatalog texture_catalog(&texture_catalog_allocator, &temp_allocator);
+    resource_manager.LoadTexture("wall.jpg");
 
-    Texture* wall_texture = texture_catalog.GetTexture("wall.jpg");
+    Texture* wall_texture = resource_manager.GetTexture("wall.jpg");
     LOG_DEBUG("Loaded texture named: %s", wall_texture->name.data);
     LOG_DEBUG("       width: %d", wall_texture->width);
     LOG_DEBUG("       height: %d", wall_texture->height);
 
-    //------------------------------
-    // Create the mesh catalog and triangle meshes
-    //------------------------------
-    LinearAllocator mesh_catalog_allocator(
-        "mesh_catalog", program.main_allocator.Allocate(MEGABYTES(10)), MEGABYTES(10));
-    TriangleMeshCatalog mesh_catalog(&mesh_catalog_allocator, &temp_allocator);
-    mesh_catalog.LoadMeshFromFile("wall.jpg");
+    Model cottage = resource_manager.LoadModel("cottage_obj.obj");
 
     LOG_DEBUG("Starting main loop");
     glClearColor(0, 0, 0, 1);
@@ -416,13 +399,13 @@ main()
 
         // TODO: figure out a way of keeping track of the shader, especially
         // when rendering a mesh (should it be stored in the mesh?)
-        glUseProgram(basic_shader.program);
+        glUseProgram(basic_shader->program);
 
         auto ticks = SDL_GetTicks();
 
         // TODO: is ok to calculate the view matrix every time here?
         // consider only updating the view matrix when something changed on the camera.
-        OpenGL::SetUniformMatrixForCurrentShader(basic_shader.view_location,
+        OpenGL::SetUniformMatrixForCurrentShader(basic_shader->view_location,
                                                  camera.GetViewMatrix());
 
         // TODO: add real values here for the parameters
@@ -430,13 +413,17 @@ main()
         Quaternion cube_orientation =
             Quaternion::Rotation(Math::DegreesToRadians(ticks * 0.035f), Vec3(0, 1, 0));
         float cube_scale = 1.0f;
-        RenderMesh(cube_mesh, basic_shader, cube_position, cube_orientation, cube_scale);
+        RenderMesh(cube_mesh, *basic_shader, cube_position, cube_orientation, cube_scale);
 
         Vec3 floor_position(0, -5, 3);
         Quaternion floor_orientation =
             Quaternion::Rotation(Math::DegreesToRadians(90), Vec3(-1, 0, 0));
         float floor_scale = 50.0f;
-        RenderMesh(floor_mesh, basic_shader, floor_position, floor_orientation, floor_scale);
+        RenderMesh(floor_mesh, *basic_shader, floor_position, floor_orientation, floor_scale);
+
+        for (size_t i = 1; i < cottage.meshes.len; ++i) {
+            RenderMesh(*cottage.meshes[i], *basic_shader, Vec3::Zero(), Quaternion::Identity(), 1.0f);
+        }
 
         SDL_GL_SwapWindow(program.window);
     }
@@ -447,13 +434,13 @@ main()
 
     // TODO: remove this
     // wall_texture.name.Destroy();
+    
+    cottage.Destroy();
 
     floor_mesh.Destroy();
     cube_mesh.Destroy();
-    mesh_catalog.Destroy();
-    mesh_catalog_allocator.Clear();
-    texture_catalog.Destroy();
-    texture_catalog_allocator.Clear();
     input_system.Destroy();
+    resource_manager.Destroy();
+    resource_manager_allocator.Clear();
     TerminateProgram(&program);
 }

@@ -1,19 +1,39 @@
 #pragma once
 
+#include "Allocator.hpp"
+#include "Collections/String.hpp"
+#include "Defines.hpp"
 #include <assert.h>
 #include <glad/glad.h>
-#include "LinearAllocator.hpp"
 
 struct Shader
 {
-    // TODO: implement a Destroy function
+    String name;
     GLuint model_location;
     GLuint view_location;
     GLuint projection_location;
     GLuint program;
 
+public:
+    Shader()
+        : Shader(nullptr)
+    {}
+    Shader(Allocator* allocator)
+        : name(allocator)
+    {}
+
+    ~Shader() { assert(program == 0); }
+
+    void Destroy()
+    {
+        name.Destroy();
+        glDeleteProgram(program);
+        program = 0;
+    }
+
     bool IsValid() const { return program != 0; }
-    static Shader LoadFromFile(const char* path, Allocator* allocator);
+
+    DISABLE_OBJECT_COPY(Shader);
 };
 
 inline static void
