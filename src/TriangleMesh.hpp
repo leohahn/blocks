@@ -48,7 +48,7 @@ struct TriangleMesh
         , vbo(0)
         , ebo(0)
     {}
-    
+
     void Destroy()
     {
         name.Destroy();

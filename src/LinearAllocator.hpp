@@ -5,6 +5,7 @@
 #include "Logger.hpp"
 #include "Memory.hpp"
 #include "Utils.hpp"
+#include <stdint.h>
 
 class LinearAllocator : public Allocator
 {

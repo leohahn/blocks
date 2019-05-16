@@ -6,9 +6,6 @@
 #include "Path.hpp"
 #include "glad/glad.h"
 #include "stb_image.h"
-#include <assimp/Importer.hpp>
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
 
 static Texture* LoadTextureFromFile(Allocator* allocator,
                                     Allocator* scratch_allocator,
@@ -56,102 +53,7 @@ ResourceManager::LoadModel(const StringView& model_file)
     full_path.Push(resources_path);
     full_path.Push(model_file);
 
-    Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(
-        full_path.data,
-        // aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_FlipUVs);
-        aiProcess_Triangulate | aiProcess_JoinIdenticalVertices);
-    assert(scene && scene->mRootNode && !(scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE));
-
-    // LOG_INFO("Scene was loaded");
-    // LOG_INFO("Has animations: %d", scene->HasAnimations());
-    // LOG_INFO("Has materials: %d", scene->HasMaterials());
-    // LOG_INFO("Has lights: %d", scene->HasLights());
-    // LOG_INFO("Has textures: %d", scene->HasTextures());
-
-    LOG_INFO("Number of meshes: %d", scene->mNumMeshes);
-    // LOG_INFO("Number of materials: %d", scene->mNumMaterials);
-    
-    Model model(allocator);
-
-    aiNode* root_node = scene->mRootNode;
-    LOG_INFO("Number of children nodes: %d", root_node->mNumChildren);
-
-    for (size_t i = 0; i < scene->mNumMaterials; ++i) {
-        LOG_INFO("Material name: %s", scene->mMaterials[i]->GetName().C_Str());
-    }
-
-    for (size_t i = 0; i < scene->mNumMeshes; ++i) {
-        aiMesh* ai_mesh = scene->mMeshes[i];
-        LOG_INFO("Loading mesh %s", ai_mesh->mName.C_Str());
-
-        TriangleMesh* mesh = allocator->New<TriangleMesh>(allocator);
-        mesh->name.Append(ai_mesh->mName.C_Str());
-
-        for (size_t vertex_i = 0; vertex_i < ai_mesh->mNumVertices; ++vertex_i) {
-            aiVector3D v = ai_mesh->mVertices[vertex_i];
-            mesh->vertices.PushBack(Vec3(v.x, v.y, v.z));
-        }
-
-        if (ai_mesh->HasTextureCoords(0)) {
-            for (size_t uv_i = 0; uv_i < ai_mesh->mNumVertices; ++uv_i) {
-                aiVector3D uv = ai_mesh->mTextureCoords[0][uv_i];
-                mesh->uvs.PushBack(Vec2(uv.x, uv.y));
-            }
-        } else {
-            for (size_t uv_i = 0; uv_i < ai_mesh->mNumVertices; ++uv_i) {
-                mesh->uvs.PushBack(Vec2(0, 0));
-            }
-        }
-
-        for (size_t face_i = 0; face_i < ai_mesh->mNumFaces; ++face_i) {
-            aiFace face = ai_mesh->mFaces[face_i];
-            assert(face.mNumIndices == 3);
-            for (size_t indice_i = 0; indice_i < face.mNumIndices; ++indice_i) {
-                mesh->indices.PushBack(face.mIndices[indice_i]);
-            }
-        }
-
-        Array<OpenGL::Vertex_PT> buffer(scratch_allocator);
-        for (size_t i = 0; i < mesh->vertices.len; ++i) {
-            buffer.PushBack(OpenGL::Vertex_PT(mesh->vertices[i], mesh->uvs[i]));
-        }
-
-        glGenVertexArrays(1, &mesh->vao);
-        glBindVertexArray(mesh->vao);
-
-        // create the vbo and ebo
-        glGenBuffers(1, &mesh->vbo);
-        glGenBuffers(1, &mesh->ebo);
-
-        glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-        glBufferData(
-            GL_ARRAY_BUFFER, sizeof(OpenGL::Vertex_PT) * buffer.len, buffer.data, GL_STATIC_DRAW);
-        
-        OpenGL::SetVertexFormat_PT();
-
-        // bind ebo
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ebo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                     mesh->indices.len * sizeof(uint32_t),
-                     mesh->indices.data,
-                     GL_STATIC_DRAW);
-
-        buffer.Destroy();
-
-        meshes.PushBack(mesh);
-        model.meshes.PushBack(mesh);
-    }
-
-    // TriangleListInfo list_info = {};
-    // list_info.first_index = 0;
-    // list_info.num_indices = mesh->indices.len;
-    // mesh->triangle_list_infos.PushBack(list_info);
-
-    // Integrate the mesh with OpenGL
-    full_path.Destroy();
-    // meshes.PushBack(mesh);
-    return model;
+	return Model(allocator);
 }
 
 void
@@ -299,7 +201,7 @@ LoadTextureFromFile(Allocator* allocator,
     // tell stb_image.h to flip loaded texture's on the y-axis.
     stbi_set_flip_vertically_on_load(true);
     uint8_t* data = stbi_load_from_memory(texture_buffer,
-                                          texture_buffer_size,
+                                          (int)texture_buffer_size,
                                           &texture_width,
                                           &texture_height,
                                           &texture_channel_count,

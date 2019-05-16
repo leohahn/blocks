@@ -5,6 +5,7 @@
 #include "Collections/StringView.hpp"
 #include "Defines.hpp"
 #include "glad/glad.h"
+#include <stdint.h>
 
 struct Texture
 {

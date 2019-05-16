@@ -28,7 +28,7 @@ SetVertexFormat_PT()
     // TODO: consider saving some information here in a Shader, like the position location
 
     // specify how buffer data is layed out in memory
-    size_t stride = sizeof(Vertex_PT);
+    int stride = sizeof(Vertex_PT);
     size_t first_byte_offset;
     // pos
     {

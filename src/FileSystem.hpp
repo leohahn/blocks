@@ -2,6 +2,7 @@
 #include "Allocator.hpp"
 #include "Collections/String.hpp"
 #include "Path.hpp"
+#include <stdint.h>
 
 namespace FileSystem {
 

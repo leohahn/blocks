@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 static constexpr const size_t kStringInitialCapacity = 8;
 static constexpr const float kStringGrowthFactor = 1.5f;
@@ -49,7 +50,7 @@ struct String
         // copy the contents as well
         if (data) {
             allocator->Deallocate(data);
-        }
+        } 
         data = (char*)allocator->Allocate(str.len + 1);
         assert(data);
         memcpy(data, str.data, str.len);
@@ -86,7 +87,7 @@ struct String
     void Resize()
     {
         // Need to allocate more memory
-        size_t new_cap = cap * kStringGrowthFactor;
+        size_t new_cap = (size_t)(cap * kStringGrowthFactor);
         char* new_data = (char*)allocator->Allocate(new_cap);
         assert(new_data);
         memcpy(new_data, data, len);
@@ -117,6 +118,18 @@ struct String
     {
         assert(index_offset < str.len);
         Append(str.data + index_offset, str.len - index_offset);
+    }
+
+    void Append(const char* begin, const char* end)
+    {
+        assert((size_t)begin < (size_t)end);
+        Append(begin, (size_t)(end - begin));
+    }
+
+    void Append(const uint8_t* begin, const uint8_t* end)
+    {
+        assert((size_t)begin < (size_t)end);
+        Append((const char*)begin, (size_t)(end - begin));
     }
 
     void Append(const char* str, size_t str_len)
@@ -183,4 +196,15 @@ inline bool
 operator==(const StringView& lhs, const String& rhs)
 {
     return rhs == lhs;
+}
+
+namespace std
+{
+    template<> struct hash<String>
+    {
+        size_t operator()(const String& s) const noexcept
+        {
+            return std::hash<const char*>{}(s.data);
+        }
+    };
 }

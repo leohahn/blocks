@@ -5,6 +5,12 @@
 #include "Collections/StringView.hpp"
 #include <assert.h>
 
+#if _WIN32
+#define PATH_SEP '\\'
+#else
+#define PATH_SEP '/'
+#endif
+
 struct Path
 {
     Allocator* allocator;
@@ -98,11 +104,11 @@ public:
             return;
         }
         
-        if (data[len-1] != '/') {
-            data[len++] = '/';
+        if (data[len-1] != PATH_SEP) {
+            data[len++] = PATH_SEP;
         }
         
-        if (str_data[0] == '/') {
+        if (str_data[0] == PATH_SEP) {
             memcpy(data + len, str_data + 1, str_len - 1);
             len += str_len - 1;
         } else {
@@ -117,7 +123,7 @@ public:
     void Resize(size_t desired_cap)
     {
         const float factor = 1.5f;
-        size_t new_cap = MAX(cap * factor, desired_cap);
+        size_t new_cap = (size_t)MAX(cap * factor, desired_cap);
         char* buf = (char*)allocator->Allocate(new_cap);
         assert(buf);
 

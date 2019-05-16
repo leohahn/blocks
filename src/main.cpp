@@ -11,6 +11,7 @@
 #include "Program.hpp"
 #include "Renderer.hpp"
 #include "ResourceManager.hpp"
+#include "ResourceFile.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
 #include "TriangleMesh.hpp"
@@ -283,8 +284,12 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 //
 
 int
-main()
+main(int argc, char** argv)
 {
+	// unused args
+	(void)argc;
+	(void)argv;
+
     // Instantiate a new program with preallocated memory
     Program program = InitProgram(MEGABYTES(128), SCREEN_WIDTH, SCREEN_HEIGHT);
 
@@ -443,4 +448,5 @@ main()
     resource_manager.Destroy();
     resource_manager_allocator.Clear();
     TerminateProgram(&program);
+	return 0;
 }
