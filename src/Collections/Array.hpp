@@ -21,6 +21,57 @@ struct Array
         , data(nullptr)
     {}
 
+    // Copy semantics
+    Array(const Array& arr)
+        : allocator(nullptr)
+        , len(0)
+        , cap(0)
+        , data(nullptr)
+    {
+        *this = arr;
+    }
+
+    Array& operator=(const Array& arr)
+    {
+        if (data) {
+            allocator->Deallocate(data);
+        }
+        allocator = arr.allocator;
+        len = arr.len;
+        cap = arr.cap;
+        data = (T*)allocator->Allocate(arr.cap * sizeof(T));
+
+        assert(data && "copy should not fail");
+        memcpy(data, arr.data, sizeof(T) * arr.len);
+        return *this;
+    }
+
+    // Move semantics
+    Array(Array&& arr)
+        : allocator(nullptr)
+        , len(0)
+        , cap(0)
+        , data(nullptr)
+    {
+        *this = std::move(arr);
+    }
+
+    Array& operator=(Array&& arr)
+    {
+        if (data) {
+            allocator->Deallocate(data);
+        }
+        allocator = arr.allocator;
+        data = arr.data;
+        len = arr.len;
+        cap = arr.cap;
+        arr.allocator = nullptr;
+        arr.data = nullptr;
+        arr.len = 0;
+        arr.cap = 0;
+        return *this;
+    }
+
     ~Array()
     {
         assert(data == nullptr && "array should be destroyed");
@@ -48,7 +99,7 @@ struct Array
 
         if (len == cap) {
             // Resize array
-            size_t new_cap = cap * 1.5f;
+            size_t new_cap = (size_t)(cap * 1.5f);
             size_t size = new_cap * sizeof(T);
             T* new_data = (T*)allocator->Allocate(size);
             assert(new_data);
@@ -58,8 +109,8 @@ struct Array
             cap = new_cap;
         }
 
-        new (data + len) T(); // create default instance of T
-        data[len++] = std::move(el);
+        new (data + len) T(el); // create default instance of T
+        ++len;
     }
 
     int IndexOf(T el)
