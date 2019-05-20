@@ -80,6 +80,11 @@ struct ResourceFile
 		TokenType type;
 		String str;
 
+		Token(TokenType type, String&& str)
+			: type(type)
+			, str(std::move(str))
+		{}
+
 		Token(TokenType type, const String& str)
 			: type(type)
 			, str(str)
@@ -91,7 +96,10 @@ struct ResourceFile
 		{}
 	};
 
-	ResourceFile(Allocator* allocator, Allocator* scratch_allocator, const char* filepath);
+	ResourceFile(Allocator* allocator, Allocator* scratch_allocator);
+
+    void Create(const char* filepath);
+    void Destroy();
 
 	inline bool Has(const String& key)
 	{

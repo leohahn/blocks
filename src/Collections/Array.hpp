@@ -109,7 +109,7 @@ struct Array
             cap = new_cap;
         }
 
-        new (data + len) T(el); // create default instance of T
+        new (data + len) T(std::move(el)); // create default instance of T
         ++len;
     }
 

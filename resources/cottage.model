@@ -1,0 +1,4 @@
+diffuse_texture = cottage_textures/cottage_diffuse.png;
+normal_texture = cottage_textures/cottage_normal.png;
+obj_file = cottage_obj.obj;
+mtl_file = cottage_mtl.obj;

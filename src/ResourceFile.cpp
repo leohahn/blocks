@@ -12,13 +12,32 @@
 
 #define HASH_MAP_FIXED_SIZE 32
 
-ResourceFile::ResourceFile(Allocator* allocator, Allocator* scratch_allocator, const char* filepath)
+ResourceFile::ResourceFile(Allocator* allocator, Allocator* scratch_allocator)
     : _allocator(allocator)
     , _scratch_allocator(scratch_allocator)
     , filepath(allocator)
     , _entries(allocator, HASH_MAP_FIXED_SIZE)
 {
+}
+
+void
+ResourceFile::Create(const char* filepath)
+{
+    auto resources_path = FileSystem::GetResourcesPath(_scratch_allocator);
+    this->filepath.Push(resources_path);
+    this->filepath.Push(filepath);
+    _entries.Create();
+    resources_path.Destroy();
     Parse();
+}
+
+void 
+ResourceFile::Destroy()
+{
+    filepath.Destroy();
+    _entries.Destroy();
+    _allocator = nullptr;
+    _scratch_allocator = nullptr;
 }
 
 static inline uint8_t *
@@ -129,7 +148,6 @@ ResourceFile::Tokenize()
     }
 
     assert(it == end_it + 1);
-    assert(*it == '\0');
 
     _scratch_allocator->Deallocate(filedata);
     return tokens;
@@ -158,9 +176,10 @@ ResourceFile::Parse()
     for (size_t t = 0; t < tokens.len;) {
         if (tokens[t].type == TokenType_Identifier &&
             tokens[t + 1].type == TokenType_Equals) {
-            auto key = tokens[t].str;
+            String key = std::move(tokens[t].str);
             if (Has(key)) {
                 LOG_ERROR("File already has the key %s", key.data);
+                tokens.Destroy();
                 return;
             }
 
@@ -193,10 +212,12 @@ ResourceFile::Parse()
                             t += 2;
                         } else {
                             LOG_ERROR("Invalid array.");
+                            tokens.Destroy();
                             return;
                         }
                     } else {
                         LOG_ERROR("Invalid array.");
+                        tokens.Destroy();
                         return;
                     }
                 }
@@ -215,12 +236,16 @@ ResourceFile::Parse()
                 t += 4; // four tokens were recognized
             } else {
                 LOG_ERROR("Wrong syntax on value.");
+                tokens.Destroy();
                 return;
             }
         } else {
             LOG_ERROR("Wrong syntax on file.");
             LOG_ERROR("Expected IDENTIFIER =");
+            tokens.Destroy();
             return;
         }
     }
+
+    tokens.Destroy();
 }

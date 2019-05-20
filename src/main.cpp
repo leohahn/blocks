@@ -352,10 +352,14 @@ main(int argc, char** argv)
     LOG_DEBUG("       width: %d", wall_texture->width);
     LOG_DEBUG("       height: %d", wall_texture->height);
 
-    Model cottage = resource_manager.LoadModel("cottage_obj.obj");
+    //Model cottage = resource_manager.LoadModel("cottage_obj.obj");
 
     LOG_DEBUG("Starting main loop");
     glClearColor(0, 0, 0, 1);
+
+    // Load model file
+    ResourceFile cottage(&program.main_allocator, &temp_allocator);
+    cottage.Create("cottage.model");
 
     while (running) {
         input_system.Update();
@@ -426,9 +430,9 @@ main(int argc, char** argv)
         float floor_scale = 50.0f;
         RenderMesh(floor_mesh, *basic_shader, floor_position, floor_orientation, floor_scale);
 
-        for (size_t i = 1; i < cottage.meshes.len; ++i) {
-            RenderMesh(*cottage.meshes[i], *basic_shader, Vec3::Zero(), Quaternion::Identity(), 1.0f);
-        }
+        //for (size_t i = 1; i < cottage.meshes.len; ++i) {
+            //RenderMesh(*cottage.meshes[i], *basic_shader, Vec3::Zero(), Quaternion::Identity(), 1.0f);
+        //}
 
         SDL_GL_SwapWindow(program.window);
     }

@@ -96,7 +96,6 @@ add_executable(blocks
     src/Collections/String.hpp
     src/Collections/StringView.hpp
     src/Collections/RobinHashMap.hpp
-    src/Collections/RobinHashMap.cpp
 
     src/main.cpp)
 
@@ -105,7 +104,7 @@ target_compile_definitions(blocks PRIVATE _USE_MATH_DEFINES)
 if(APPLE)
     target_sources(blocks PRIVATE src/FileSystem/Apple.cpp)
 elseif(WIN32)
-    target_sources(blocks PRIVATE src/FileSystem/Windows.cpp)
+	#target_sources(blocks PRIVATE src/FileSystem/Windows.cpp)
     target_compile_definitions(blocks PRIVATE _CRT_SECURE_NO_WARNINGS)
 endif()
 

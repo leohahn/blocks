@@ -42,9 +42,9 @@ public:
 	void Create()
 	{
 		// TODO: allocate the data
-		assert(!buckets);
+		assert(!elements);
 		assert(allocator);
-		assert(num_buckets > 0);
+		assert(num_elements == 0);
 		elements = (Element*)allocator->Allocate(cap * sizeof(Element));
         assert(elements);
         for (size_t i = 0; i < cap; ++i) {
@@ -56,8 +56,8 @@ public:
 	{
 		// TODO: implement this piece of code
         for (size_t i = 0; i < num_elements; ++i) {
-            elements[i]->key->~Key();
-            elements[i]->val->~Value();
+            elements[i].key.~Key();
+            elements[i].val.~Value();
         }
         allocator->Deallocate(elements);
         elements = nullptr;
@@ -102,7 +102,7 @@ public:
 
     const Value* Find(const Key& key) const
     {
-        Value* val;
+        Value* val = nullptr;
         if (FindHelper(key, val)) {
             return const_cast<const Value*>(val);
         } else {
@@ -112,7 +112,7 @@ public:
 
     Value* Find(const Key& key)
     {
-        Value* val;
+        Value* val = nullptr;
         if (FindHelper(key, val)) {
             return val;
         } else {
