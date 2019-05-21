@@ -146,7 +146,6 @@ struct String
             data = (char*)allocator->Allocate(str_len + 1);
             assert(data);
             memcpy(data, str, str_len);
-            data[str_len] = 0;
             len = str_len;
             cap = str_len;
         }
@@ -204,7 +203,13 @@ namespace std
     {
         size_t operator()(const String& s) const noexcept
         {
-            return std::hash<const char*>{}(s.data);
+            // http://www.cse.yorku.ca/~oz/hash.html
+            const char* c_str = s.data;
+            size_t h = 5381;
+            int c;
+            while ((c = *c_str++))
+                h = ((h << 5) + h) + c;
+            return h;
         }
     };
 }

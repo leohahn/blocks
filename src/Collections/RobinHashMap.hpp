@@ -1,27 +1,104 @@
 #pragma once
 #include <assert.h>
 #include <stdint.h>
+#include <algorithm>
 #include "Allocator.hpp"
 
 // Currently this hash map does not support rehashing
 template<typename Key, typename Value>
-struct RobinHashMap
+class RobinHashMap
 {
+public:
     // The maximum load allowed on the table before we need to rehash it.
     static constexpr float kMaxLoadFactor = 0.9f;
 
 	struct Element
 	{
+        friend class RobinHashMap;
+        friend class iterator;
 		Key key;
 		Value val;
-		uint32_t hash;
 
 		Element(uint32_t hash, Key&& key, Value&& val)
-			: hash(hash)
-			, key(std::move(key))
+			: key(std::move(key))
 			, val(std::move(val))
+			, _hash(hash)
 		{}
+
+    private:
+		uint32_t _hash;
 	};
+
+    class iterator : public std::iterator<
+        std::random_access_iterator_tag,   // iterator_category
+        Element,                   // value_type
+        std::ptrdiff_t,            // difference_type
+        Element*,               // pointer
+        Element&                       // reference
+        >
+    {
+    public:
+        explicit iterator(Element* element, Element* end_element)
+            : _element(element)
+            , _end_element(end_element)
+        {}
+
+        iterator& operator++()
+        {
+            for (;;) {
+                ++_element;
+                if (_element == _end_element) {
+                    break;
+                }
+
+                if (_element->_hash == 0 ||
+                    (_element->_hash >> 31) != 0) {
+                    continue;
+                } else {
+                    break;
+                }
+            }
+            return *this;
+        }
+        iterator operator++(int) { iterator ret = *this; ++(*this); return ret; }
+
+        bool operator==(iterator other) const { return _element == other._element; }
+        bool operator!=(iterator other) const { return !(*this == other); }
+        reference operator*() const { return *_element; }
+
+    private:
+        Element* _element;
+        Element* _end_element;
+    };
+
+    using const_iterator = const iterator;
+
+    iterator begin()
+    {
+        for (size_t i = 0; i < cap; ++i) {
+            if (IsDeleted(elements[i]._hash) || elements[i]._hash == 0) {
+                continue;
+            } else {
+                return iterator(&elements[i], elements + cap);
+            }
+        }
+        return end();
+    }
+
+    iterator end() { return iterator(elements + cap, elements + cap); }
+
+    const_iterator cbegin() const 
+    {
+        for (size_t i = 0; i < cap; ++i) {
+            if (IsDeleted(elements[i]._hash) || elements[i]._hash == 0) {
+                continue;
+            } else {
+                return iterator(&elements[i], elements + cap);
+            }
+        }
+        return cend();
+    }
+    const_iterator cend() const { return iterator{elements + cap, elements + cap}; }
 
 public:
 	Allocator* allocator;
@@ -48,7 +125,7 @@ public:
 		elements = (Element*)allocator->Allocate(cap * sizeof(Element));
         assert(elements);
         for (size_t i = 0; i < cap; ++i) {
-            elements[i].hash = 0; // All elements are free
+            elements[i]._hash = 0; // All elements are free
         }
 	}
 
@@ -74,7 +151,7 @@ public:
         size_t mask = GetMask();
 
         for (;;) {
-            if (elements[pos].hash == 0) {
+            if (elements[pos]._hash == 0) {
                 // Position is not occupied, therefore we place the element here.
                 EmplaceElement(pos, hash, std::move(key), std::move(value));
                 return;
@@ -82,9 +159,9 @@ public:
 
             // the current postition is occupied, therefore we check if the current pos
             // was probed less than us, and if it is so, we change positions.
-            size_t current_position_probe_dist = GetProbeDistance(elements[pos].hash, pos);
+            size_t current_position_probe_dist = GetProbeDistance(elements[pos]._hash, pos);
             if (current_position_probe_dist < probe_distance) {
-                if (IsDeleted(elements[pos].hash)) {
+                if (IsDeleted(elements[pos]._hash)) {
                     EmplaceElement(pos, hash, std::move(key), std::move(value));
                     return;
                 }
@@ -92,7 +169,7 @@ public:
                 probe_distance = current_position_probe_dist;
                 std::swap(key, elements[pos].key);
                 std::swap(value, elements[pos].val);
-                std::swap(hash, elements[pos].hash);
+                std::swap(hash, elements[pos]._hash);
             }
 
             pos = (pos + 1) % mask;
@@ -102,8 +179,8 @@ public:
 
     const Value* Find(const Key& key) const
     {
-        Value* val = nullptr;
-        if (FindHelper(key, val)) {
+        Value* val;
+        if (FindHelper(key, &val)) {
             return const_cast<const Value*>(val);
         } else {
             return nullptr;
@@ -112,8 +189,8 @@ public:
 
     Value* Find(const Key& key)
     {
-        Value* val = nullptr;
-        if (FindHelper(key, val)) {
+        Value* val;
+        if (FindHelper(key, &val)) {
             return val;
         } else {
             return nullptr;
@@ -121,7 +198,7 @@ public:
     }
 
 private:
-    bool FindHelper(const Key& key, Value* out_val) const
+    bool FindHelper(const Key& key, Value** out_val) const
     {
         const size_t mask = GetMask();
         const uint32_t hash = HashKey(key);
@@ -130,12 +207,14 @@ private:
 
         for (;;)
         {
-            if (elements[pos].hash == 0) {
-                return nullptr;
-            } else if (probe_distance > GetProbeDistance(elements[pos].hash, pos)) {
-                return nullptr;
-            } else if (elements[pos].hash == hash && elements[pos].key == key) {
-                return &elements[pos].val;
+            if (elements[pos]._hash == 0) {
+                *out_val = nullptr;
+                return false;
+            } else if (probe_distance > GetProbeDistance(elements[pos]._hash, pos)) {
+                return false;
+            } else if (elements[pos]._hash == hash && elements[pos].key == key) {
+                *out_val = &elements[pos].val;
+                return true;
             }
 
             pos = (pos + 1) % mask;
@@ -146,6 +225,7 @@ private:
     void EmplaceElement(size_t desired_pos, uint32_t hash, Key&& key, Value&& value)
     {
         new (elements + desired_pos) Element(hash, std::move(key), std::move(value));
+        ++num_elements;
     }
 
     size_t GetMask() const
@@ -168,10 +248,11 @@ private:
         return (hash >> 31) != 0;
     }
 
-    static uint32_t HashKey(const Key& key)
+    static size_t HashKey(const Key& key)
     {
         std::hash<Key> hasher;
-        uint32_t h = (uint32_t)hasher(key);
+        size_t untruncated_hash = hasher(key);
+        uint32_t h = static_cast<uint32_t>(untruncated_hash);
 
         h &= 0x7fffffff; // clear MSB (use for deleted marking)
         h |= (h == 0); // hash 0 is used for unused element

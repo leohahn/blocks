@@ -113,6 +113,10 @@ struct ResourceFile
 		return ptr;
 	}
 
+    RobinHashMap<String, Val*>& GetEntries() { return _entries; }
+    const RobinHashMap<String, Val*>& GetEntries() const { return _entries; }
+
+public:
 	Path filepath;
 	bool is_file_correct = true;
 

@@ -17,13 +17,18 @@ LogLevel GetLogLevel();
 void SetLogLevel(LogLevel level);
 const char* GetLogTag(LogLevel level);
 const char* PrettyTime();
+void WindowsDebugPrint(const char* func, int line, const char* fmt, ...);
 
 #define _FILE strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 
 #define LOG_FMT             "%s | %-7s | %-15s | %s:%d | "
 #define LOG_ARGS(LOG_TAG)   timenow(), LOG_TAG, _FILE, __FUNCTION__, __LINE__
 
+#if 0
+#define _LOG_PRINT_FUNCTION(fmt, ...) WindowsDebugPrint(__FUNCTION__, __LINE__, fmt, __VA_ARGS__)
+#else
 #define _LOG_PRINT_FUNCTION(fmt, ...) fprintf(stderr, "%s | %-7s | %-15s || " fmt "\n", ## __VA_ARGS__)
+#endif
 #define _LOG_PRINT_FUNCTION_WRAPPER(level, fmt, ...) _LOG_PRINT_FUNCTION(fmt, PrettyTime(), GetLogTag(level), _FILE, ## __VA_ARGS__)
 
 #if BLOCKS_DEBUG

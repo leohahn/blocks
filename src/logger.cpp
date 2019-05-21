@@ -3,6 +3,24 @@
 
 static LogLevel g_log_level = LogLevel_Debug;
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+void
+WindowsDebugPrint(const char* func, int line, const char* fmt, ...)
+{
+    // Fomat the string, maybe with vsprintf, log it, etc.
+    va_list args;
+    va_start(args, fmt);
+
+    char buf[512];
+    vsprintf(buf, fmt, args);
+    OutputDebugString(buf);
+
+    va_end(args);
+}
+#endif
+
 LogLevel
 GetLogLevel()
 {
