@@ -51,9 +51,6 @@ struct TriangleMesh
 
     void Destroy()
     {
-        name.Destroy();
-        full_path.Destroy();
-        source_file_path.Destroy();
         vertices.Destroy();
         uvs.Destroy();
         colors.Destroy();

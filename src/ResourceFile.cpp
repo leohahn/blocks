@@ -35,9 +35,6 @@ void
 ResourceFile::Destroy()
 {
     filepath.Destroy();
-    for (auto& entry : _entries) {
-        entry.key.Destroy();
-    }
     _entries.Destroy();
     _allocator = nullptr;
     _scratch_allocator = nullptr;

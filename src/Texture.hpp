@@ -31,7 +31,6 @@ public:
 
     void Destroy()
     {
-        name.Destroy();
         glDeleteTextures(1, &handle);
     }
     

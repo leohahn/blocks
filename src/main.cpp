@@ -363,18 +363,10 @@ main(int argc, char** argv)
     assert(cottage.is_file_correct);
 
     LOG_INFO("Printing resource file info");
-    String diffuse_texture(&temp_allocator);
-    diffuse_texture.Append("diffuse_texture");
-    String normal_texture(&temp_allocator);
-    normal_texture.Append("normal_texture");
-    String obj_file(&temp_allocator);
-    obj_file.Append("obj_file");
-    String mtl_file(&temp_allocator);
-    mtl_file.Append("mtl_file");
-    LOG_INFO("Has diffuse_texture %d", cottage.GetEntries().Find(diffuse_texture) != nullptr);
-    LOG_INFO("Has normal_texture %d", cottage.GetEntries().Find(normal_texture) != nullptr);
-    LOG_INFO("Has obj_file %d", cottage.GetEntries().Find(obj_file) != nullptr);
-    LOG_INFO("Has mtl_file %d", cottage.GetEntries().Find(mtl_file) != nullptr);
+    LOG_INFO("Has diffuse_texture %d", cottage.GetEntries().Find(String(&temp_allocator, "diffuse_texture")) != nullptr);
+    LOG_INFO("Has normal_texture %d", cottage.GetEntries().Find(String(&temp_allocator, "normal_texture")) != nullptr);
+    LOG_INFO("Has obj_file %d", cottage.GetEntries().Find(String(&temp_allocator, "obj_file")) != nullptr);
+    LOG_INFO("Has mtl_file %d", cottage.GetEntries().Find(String(&temp_allocator, "mtl_file")) != nullptr);
 
     for (const auto& el : cottage.GetEntries()) {
         LOG_INFO("Key %s", el.key.data);

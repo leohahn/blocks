@@ -28,6 +28,15 @@ struct String
         , data(nullptr)
     {}
 
+    String(Allocator* allocator, const char* contents)
+        : allocator(allocator)
+        , cap(0)
+        , len(0)
+        , data(nullptr)
+    {
+        Append(contents);
+    }
+
     String(const String& str)
         : String(nullptr)
     {
@@ -62,7 +71,7 @@ struct String
     String& operator=(String&& str)
     {
         assert(this != &str);
-        Destroy();
+        this->~String();
         ShallowCopyFields(str);
         str.allocator = nullptr;
         str.data = nullptr;
@@ -71,9 +80,7 @@ struct String
         return *this;
     }
 
-    ~String() { assert(data == nullptr && "string should be freed"); }
-
-    void Destroy()
+    ~String()
     {
         if (data) {
             allocator->Deallocate(data);

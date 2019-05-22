@@ -26,7 +26,6 @@ public:
 
     void Destroy()
     {
-        name.Destroy();
         glDeleteProgram(program);
         program = 0;
     }
