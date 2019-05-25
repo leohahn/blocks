@@ -5,11 +5,12 @@
 #include "Collections/StringView.hpp"
 #include "Defines.hpp"
 #include "glad/glad.h"
+#include "Sid.hpp"
 #include <stdint.h>
 
 struct Texture
 {
-    String name;
+    Sid name;
     uint32_t handle;
 
     int32_t width;
@@ -22,7 +23,11 @@ public:
     {}
 
     Texture(Allocator* allocator)
-        : name(allocator)
+        : Texture(allocator, Sid())
+    {}
+
+    Texture(Allocator* allocator, Sid name)
+        : name(std::move(name))
         , handle(0)
         , width(0)
         , height(0)

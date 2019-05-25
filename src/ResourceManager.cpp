@@ -4,37 +4,41 @@
 #include "Logger.hpp"
 #include "OpenGL.hpp"
 #include "Path.hpp"
+#include "ResourceFile.hpp"
 #include "glad/glad.h"
 #include "stb_image.h"
 
 static Texture* LoadTextureFromFile(Allocator* allocator,
                                     Allocator* scratch_allocator,
-                                    const StringView& texture_file);
+                                    const Sid& texture_sid);
 
 void
 ResourceManager::Create()
 {
     resources_path = FileSystem::GetResourcesPath(allocator);
+    shaders.Create();
+    textures.Create();
+    meshes.Create();
 }
 
 void
 ResourceManager::Destroy()
 {
-    for (size_t i = 0; i < meshes.len; ++i) {
-        meshes[i]->Destroy();
-        allocator->Delete(meshes[i]);
+    for (auto& el : meshes) {
+        el.val->Destroy();
+        allocator->Delete(el.val);
     }
     meshes.Destroy();
 
-    for (size_t i = 0; i < textures.len; ++i) {
-        textures[i]->Destroy();
-        allocator->Delete(textures[i]);
+    for (auto& el : textures) {
+        el.val->Destroy();
+        allocator->Delete(el.val);
     }
     textures.Destroy();
 
-    for (size_t i = 0; i < shaders.len; ++i) {
-        shaders[i]->Destroy();
-        allocator->Delete(shaders[i]);
+    for (auto& el : shaders) {
+        el.val->Destroy();
+        allocator->Delete(el.val);
     }
     shaders.Destroy();
 
@@ -45,38 +49,40 @@ ResourceManager::Destroy()
 }
 
 Model
-ResourceManager::LoadModel(const StringView& model_file)
+ResourceManager::LoadModel(const Sid& model_file)
 {
-    LOG_INFO("Loading mesh %s", model_file.data);
+    LOG_INFO("Loading model %s", model_file.Str());
 
     Path full_path(scratch_allocator);
     full_path.Push(resources_path);
-    full_path.Push(model_file);
+    full_path.Push(model_file.Str());
+
+    ResourceFile model_res(allocator, scratch_allocator);
+    model_res.Create(model_file);
 
 	return Model(allocator);
 }
 
 void
-ResourceManager::LoadTexture(const StringView& texture_file)
+ResourceManager::LoadTexture(const Sid& texture_sid)
 {
-    assert(texture_file.data[texture_file.len] == 0);
-    Texture* new_texture = LoadTextureFromFile(allocator, scratch_allocator, texture_file);
-    textures.PushBack(new_texture);
+    Texture* new_texture = LoadTextureFromFile(allocator, scratch_allocator, texture_sid);
+    textures.Add(texture_sid, new_texture);
 }
 
 void
-ResourceManager::LoadShader(const StringView& shader_file)
+ResourceManager::LoadShader(const Sid& shader_sid)
 {
     Path full_path(scratch_allocator);
     full_path.Push(resources_path);
     full_path.Push("shaders");
-    full_path.Push(shader_file);
+    full_path.Push(shader_sid.Str());
 
-    LOG_DEBUG("Making shader program for %s\n", shader_file.data);
+    LOG_DEBUG("Making shader program for %s\n", shader_sid.Str());
 
     Shader* shader = allocator->New<Shader>(allocator);
     assert(shader);
-    shader->name.Append(shader_file);
+    shader->name.Append(shader_sid.Str());
 
     GLuint vertex_shader = 0, fragment_shader = 0;
     GLchar info[512] = {};
@@ -157,14 +163,14 @@ ResourceManager::LoadShader(const StringView& shader_file)
     goto ok;
     
 error_cleanup:
-    LOG_ERROR("Failed to load shader %s", shader_file.data);
+    LOG_ERROR("Failed to load shader %s", shader_sid.Str());
     allocator->Delete(shader);
 
 ok:
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
     full_path.Destroy();
-    shaders.PushBack(shader);
+    shaders.Add(shader_sid, shader);
 }
 
 
@@ -175,7 +181,7 @@ ok:
 static Texture*
 LoadTextureFromFile(Allocator* allocator,
                     Allocator* scratch_allocator,
-                    const StringView& texture_file)
+                    const Sid& texture_sid)
 {
     assert(allocator);
     assert(scratch_allocator);
@@ -184,10 +190,9 @@ LoadTextureFromFile(Allocator* allocator,
 
     Path full_asset_path(scratch_allocator);
     full_asset_path.Push(resources_path);
-    full_asset_path.Push(texture_file);
+    full_asset_path.Push(texture_sid.Str());
 
-    Texture* texture = allocator->New<Texture>(allocator);
-    texture->name.Append(texture_file);
+    Texture* texture = allocator->New<Texture>(allocator, texture_sid);
 
     size_t texture_buffer_size;
     uint8_t* texture_buffer =

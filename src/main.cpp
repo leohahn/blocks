@@ -309,8 +309,8 @@ main(int argc, char** argv)
     //
     LOG_DEBUG("Loading shaders\n");
 
-    resource_manager.LoadShader("basic.glsl");
-    Shader* basic_shader = resource_manager.GetShader("basic.glsl");
+    resource_manager.LoadShader(SID("basic.glsl"));
+    Shader* basic_shader = resource_manager.GetShader(SID("basic.glsl"));
     assert(basic_shader && basic_shader->IsValid() && "program should be valid");
     SetLocationsForShader(basic_shader);
 
@@ -345,10 +345,10 @@ main(int argc, char** argv)
     // LinearAllocator texture_catalog_allocator(
     //     "texture_catalog", program.main_allocator.Allocate(MEGABYTES(10)), MEGABYTES(10));
     // TextureCatalog texture_catalog(&texture_catalog_allocator, &temp_allocator);
-    resource_manager.LoadTexture("wall.jpg");
+    resource_manager.LoadTexture(SID("wall.jpg"));
 
-    Texture* wall_texture = resource_manager.GetTexture("wall.jpg");
-    LOG_DEBUG("Loaded texture named: %s", wall_texture->name.data);
+    Texture* wall_texture = resource_manager.GetTexture(SID("wall.jpg"));
+    LOG_DEBUG("Loaded texture named: %s", wall_texture->name.Str());
     LOG_DEBUG("       width: %d", wall_texture->width);
     LOG_DEBUG("       height: %d", wall_texture->height);
 
@@ -359,7 +359,7 @@ main(int argc, char** argv)
 
     // Load model file
     ResourceFile cottage(&program.main_allocator, &temp_allocator);
-    cottage.Create("cottage.model");
+    cottage.Create(SID("cottage.model"));
     assert(cottage.is_file_correct);
 
     LOG_INFO("Printing resource file info");

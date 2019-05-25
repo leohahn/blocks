@@ -21,11 +21,11 @@ ResourceFile::ResourceFile(Allocator* allocator, Allocator* scratch_allocator)
 }
 
 void
-ResourceFile::Create(const char* filepath)
+ResourceFile::Create(const Sid& file_sid)
 {
     auto resources_path = FileSystem::GetResourcesPath(_scratch_allocator);
     this->filepath.Push(resources_path);
-    this->filepath.Push(filepath);
+    this->filepath.Push(file_sid.Str());
     _entries.Create();
     resources_path.Destroy();
     Parse();

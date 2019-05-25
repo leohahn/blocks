@@ -57,6 +57,7 @@ add_executable(blocks
     src/ResourceManager.cpp
     src/ResourceFile.hpp
     src/ResourceFile.cpp
+    src/Sid.hpp
 
     # Memory
     src/Memory.hpp

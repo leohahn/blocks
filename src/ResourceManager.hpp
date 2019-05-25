@@ -8,6 +8,7 @@
 #include "Shader.hpp"
 #include "Texture.hpp"
 #include "TriangleMesh.hpp"
+#include "Sid.hpp"
 
 struct Model
 {
@@ -37,45 +38,43 @@ struct ResourceManager
 {
     Allocator* allocator;
     Allocator* scratch_allocator;
-    Array<TriangleMesh*> meshes;
-    Array<Texture*> textures;
-    Array<Shader*> shaders;
+    //Array<TriangleMesh*> meshes;
+    //Array<Texture*> textures;
+    //Array<Shader*> shaders;
     Path resources_path;
 
+    RobinHashMap<Sid, Texture*> textures;
+    RobinHashMap<Sid, Shader*> shaders;
+    RobinHashMap<Sid, TriangleMesh*> meshes;
+
 public:
+    static constexpr int kNumMeshes = 32;
+    static constexpr int kNumTextures = 32;
+    static constexpr int kNumShaders = 32;
+
     ResourceManager(Allocator* allocator, Allocator* scratch_allocator)
         : allocator(allocator)
         , scratch_allocator(scratch_allocator)
-        , meshes(allocator)
-        , textures(allocator)
-        , shaders(allocator)
+        , meshes(allocator, kNumMeshes)
+        , textures(allocator, kNumTextures)
+        , shaders(allocator, kNumShaders)
         , resources_path(allocator)
     {}
 
     void Create();
     void Destroy();
 
-    void LoadTexture(const StringView& texture_file);
-    Texture* GetTexture(const StringView& texture_file)
+    void LoadTexture(const Sid& texture_file);
+    Texture* GetTexture(const Sid& texture_file)
     {
-        for (size_t i = 0; i < textures.len; ++i) {
-            if (textures[i]->name == texture_file) {
-                return textures[i];
-            }
-        }
-        return nullptr;
+        return *textures.Find(texture_file);
     }
 
-    Model LoadModel(const StringView& model_file);
-    void LoadShader(const StringView& shader_file);
-    Shader* GetShader(const StringView& shader_file)
+    Model LoadModel(const Sid& model_file);
+    void LoadShader(const Sid& shader_file);
+    Shader* GetShader(const Sid& shader_file)
     {
-        for (size_t i = 0; i < shaders.len; ++i) {
-            if (shaders[i]->name == shader_file) {
-                return shaders[i];
-            }
-        }
-        return nullptr;
+        return *shaders.Find(shader_file);
     }
 
     DISABLE_OBJECT_COPY_AND_MOVE(ResourceManager);

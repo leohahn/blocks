@@ -5,6 +5,7 @@
 #include "Collections/String.hpp"
 #include "Collections/Array.hpp"
 #include "Path.hpp"
+#include "Sid.hpp"
 
 #define RESOURCE_TOKENS \
         RT(TokenType_Invalid = 0, "Invalid"),             \
@@ -98,7 +99,7 @@ struct ResourceFile
 
 	ResourceFile(Allocator* allocator, Allocator* scratch_allocator);
 
-    void Create(const char* filepath);
+    void Create(const Sid& sid);
     void Destroy();
 
 	inline bool Has(const String& key)

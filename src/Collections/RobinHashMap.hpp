@@ -141,7 +141,7 @@ public:
         allocator = nullptr;
 	}
 
-    void Add(Key&& key, Value&& value)
+    void Add(Key key, Value value)
     {
         // TODO: eventually implement rehashing
         assert(num_elements < max_num_elements_allowed);
@@ -248,7 +248,7 @@ private:
         return (hash >> 31) != 0;
     }
 
-    static size_t HashKey(const Key& key)
+    static uint32_t HashKey(const Key& key)
     {
         std::hash<Key> hasher;
         size_t untruncated_hash = hasher(key);
