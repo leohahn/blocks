@@ -109,7 +109,12 @@ elseif(WIN32)
     target_compile_definitions(blocks PRIVATE _CRT_SECURE_NO_WARNINGS)
 endif()
 
-target_compile_options(blocks PRIVATE -fno-rtti -fno-exceptions)
+if(WIN32)
+    target_compile_options(blocks PRIVATE /EHsc- /GR-)
+    target_compile_definitions(blocks PRIVATE _HAS_EXCEPTIONS=0)
+else()
+    target_compile_options(blocks PRIVATE -fno-rtti -fno-exceptions)
+endif()
 
 set_target_properties(blocks PROPERTIES CXX_STANDARD 14)
 

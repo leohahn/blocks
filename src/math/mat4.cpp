@@ -99,7 +99,7 @@ Mat4::LookAt(const Vec3& eye, const Vec3& forward, const Vec3& right, const Vec3
 Mat4
 Mat4::Perspective(float fovy, float aspect_ratio, float near, float far)
 {
-    float scale = tan(fovy * 0.5 * M_PI / 180) * near; 
+    float scale = tan(fovy * 0.5f * M_PI / 180) * near; 
     float right = aspect_ratio * scale;
     float left = -right; 
     float top = scale;
