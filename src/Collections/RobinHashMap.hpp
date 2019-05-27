@@ -116,6 +116,14 @@ public:
         , max_num_elements_allowed((size_t)(kMaxLoadFactor * cap))
 	{}
 
+    ~RobinHashMap()
+    {
+        assert(allocator == nullptr);
+        assert(elements == nullptr);
+        assert(num_elements == 0);
+        assert(cap == 0);
+    }
+
 	void Create()
 	{
 		// TODO: allocate the data
@@ -139,6 +147,8 @@ public:
         allocator->Deallocate(elements);
         elements = nullptr;
         allocator = nullptr;
+        cap = 0;
+        num_elements = 0;
 	}
 
     void Add(Key key, Value value)

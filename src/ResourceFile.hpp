@@ -99,12 +99,24 @@ struct ResourceFile
 
 	ResourceFile(Allocator* allocator, Allocator* scratch_allocator);
 
+    ~ResourceFile()
+    {
+        assert(_allocator == nullptr);
+        assert(_scratch_allocator == nullptr);
+    }
+
     void Create(const Sid& sid);
     void Destroy();
 
 	inline bool Has(const String& key)
 	{
         return _entries.Find(key) != nullptr;
+	}
+
+	inline bool Has(const StringView& key)
+	{
+        String wrapper(_scratch_allocator, key.data);
+        return _entries.Find(std::move(wrapper)) != nullptr;
 	}
 
 	template<typename T> const T* Get(const String& key)

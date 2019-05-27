@@ -29,10 +29,13 @@ RenderMesh(const TriangleMesh& mesh,
     const Mat4 object_to_world_matrix = model_matrix * orientation.ToMat4();
     OpenGL::SetUniformMatrixForCurrentShader(shader.model_location, object_to_world_matrix);
 
-    glDrawElements(GL_TRIANGLES,
-                    mesh.indices.len,
-                    GL_UNSIGNED_INT,
-                    reinterpret_cast<const void*>(0));
+    for (size_t i = 0; i < mesh.sub_meshes.len; ++i) {
+        // TODO: bind material properties for each submesh here
+        glDrawElements(GL_TRIANGLES,
+                       mesh.sub_meshes[i].num_indices,
+                       GL_UNSIGNED_INT,
+                       reinterpret_cast<const void*>(mesh.sub_meshes[i].start_index));
+    }
 
     glBindVertexArray(0);
 }

@@ -109,6 +109,12 @@ SetupPlane(Allocator* allocator, Allocator* scratch_allocator)
                  GL_STATIC_DRAW);
 
     buffer.Destroy();
+
+    SubMesh submesh = {};
+    submesh.start_index = 0;
+    submesh.num_indices = mesh.indices.len;
+    mesh.sub_meshes.PushBack(std::move(submesh));
+
     return mesh;
 }
 
@@ -249,6 +255,12 @@ SetupCube(Allocator* allocator, Allocator* scratch_allocator)
                  GL_STATIC_DRAW);
 
     buffer.Destroy();
+
+    SubMesh submesh = {};
+    submesh.start_index = 0;
+    submesh.num_indices = mesh.indices.len;
+    mesh.sub_meshes.PushBack(std::move(submesh));
+
     return mesh;
 }
 
@@ -261,26 +273,8 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 
 //
 // What needs to be done
-//  [*DONE*] - Mat4 implementation
-//           - LookAt
-//           - Perspective
-//           - Orthogonal
-//  [*DONE*] - Draw the same triangle but with correct world space
-//  [*DONE*] - Make a camera that moves sideways compared to the triangle
-//  [DONE] - Turn camera around
-//            - Quaternions?
-//            - Euler angles?
-//  [DONE] - Draw a cube
-//  [DONE] - Make an FPS camera
-//  [DONE] - Load a texture
-//  [DONE] - Load from relative paths instead of absolute ones
-//  [DONE] - Keep textures accessible throughout the program's lifetime
-//  [DONE] - Abstract cube into a triangle mesh
-//  [DONE] - Render the cube triangle mesh
-//  [DONE] - Render the floor
-//  [DONE] - Rotate the floor to be in the correct position
-//  [TODO] - Use a fixed top-down camera
-//  [TODO] - Move the top-down camera
+// TODO: use row major matrices instead of the current column major,
+// since they are friendlier to read in code.
 //
 
 int
@@ -352,25 +346,10 @@ main(int argc, char** argv)
     LOG_DEBUG("       width: %d", wall_texture->width);
     LOG_DEBUG("       height: %d", wall_texture->height);
 
-    //Model cottage = resource_manager.LoadModel("cottage_obj.obj");
+    Model cottage = resource_manager.LoadModel(SID("cottage.model"));
 
     LOG_DEBUG("Starting main loop");
     glClearColor(0, 0, 0, 1);
-
-    // Load model file
-    ResourceFile cottage(&program.main_allocator, &temp_allocator);
-    cottage.Create(SID("cottage.model"));
-    assert(cottage.is_file_correct);
-
-    LOG_INFO("Printing resource file info");
-    LOG_INFO("Has diffuse_texture %d", cottage.GetEntries().Find(String(&temp_allocator, "diffuse_texture")) != nullptr);
-    LOG_INFO("Has normal_texture %d", cottage.GetEntries().Find(String(&temp_allocator, "normal_texture")) != nullptr);
-    LOG_INFO("Has obj_file %d", cottage.GetEntries().Find(String(&temp_allocator, "obj_file")) != nullptr);
-    LOG_INFO("Has mtl_file %d", cottage.GetEntries().Find(String(&temp_allocator, "mtl_file")) != nullptr);
-
-    for (const auto& el : cottage.GetEntries()) {
-        LOG_INFO("Key %s", el.key.data);
-    }
 
     // iterate over the resource file
 

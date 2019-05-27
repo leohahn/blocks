@@ -8,6 +8,12 @@
 #include "glad/glad.h"
 #include "stb_image.h"
 
+// Keys related to loading models
+static constexpr const char* kDiffuseTextureKey = "diffuse_texture";
+static constexpr const char* kNormalTextureKey = "normal_texture";
+static constexpr const char* kObjFileKey = "obj_file";
+static constexpr const char* kMtlFileKey = "mtl_file";
+
 static Texture* LoadTextureFromFile(Allocator* allocator,
                                     Allocator* scratch_allocator,
                                     const Sid& texture_sid);
@@ -60,7 +66,17 @@ ResourceManager::LoadModel(const Sid& model_file)
     ResourceFile model_res(allocator, scratch_allocator);
     model_res.Create(model_file);
 
-	return Model(allocator);
+    assert(model_res.Has(kDiffuseTextureKey));
+    assert(model_res.Has(kNormalTextureKey));
+    assert(model_res.Has(kObjFileKey));
+    assert(model_res.Has(kMtlFileKey));
+
+    Model model(allocator);
+    
+    // first we read the obj file into an array of meshes.
+   
+    model_res.Destroy();
+    return model;
 }
 
 void
