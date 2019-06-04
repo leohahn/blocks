@@ -2,7 +2,50 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <stdint.h>
 #include "Math/Float.hpp"
+
+struct Vec3i
+{
+    union 
+    {
+        struct
+        {
+            int32_t x;
+            int32_t y;
+            int32_t z;
+        };
+        struct
+        {
+            int32_t i;
+            int32_t j;
+            int32_t k;
+        };
+    };
+
+    Vec3i() = default;
+
+    Vec3i(int32_t x, int32_t y, int32_t z)
+        : x(x), y(y), z(z)
+    {}
+
+    void operator-=(const Vec3i& vec)
+    {
+        x -= vec.x; y -= vec.y; z -= vec.z;
+    }
+
+    void operator+=(const Vec3i& vec)
+    {
+        x += vec.x; y += vec.y; z += vec.z;
+    }
+
+    Vec3i operator-() const
+    {
+        return Vec3i(-x, -y, -z);
+    }
+
+    void Negate() { x = -x; y = -y; z = -z; }
+};
 
 struct Vec3
 {

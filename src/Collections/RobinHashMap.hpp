@@ -140,9 +140,11 @@ public:
 	void Destroy()
 	{
 		// TODO: implement this piece of code
-        for (size_t i = 0; i < num_elements; ++i) {
-            elements[i].key.~Key();
-            elements[i].val.~Value();
+        for (size_t i = 0; i < cap; ++i) {
+            if (elements[i]._hash != 0 && !IsDeleted(elements[i]._hash)) {
+                elements[i].key.~Key();
+                elements[i].val.~Value();
+            }
         }
         allocator->Deallocate(elements);
         elements = nullptr;

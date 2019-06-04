@@ -63,7 +63,7 @@ ResourceManager::LoadModel(const Sid& model_file)
     full_path.Push(resources_path);
     full_path.Push(model_file.Str());
 
-    ResourceFile model_res(allocator, scratch_allocator);
+    ResourceFile model_res(scratch_allocator, scratch_allocator);
     model_res.Create(model_file);
 
     assert(model_res.Has(kDiffuseTextureKey));
@@ -72,9 +72,127 @@ ResourceManager::LoadModel(const Sid& model_file)
     assert(model_res.Has(kMtlFileKey));
 
     Model model(allocator);
-    
+
     // first we read the obj file into an array of meshes.
-   
+    const auto* obj_file_name = model_res.Get<ResourceFile::StringVal>(kObjFileKey);
+    Path obj_file_path(scratch_allocator);
+    obj_file_path.Push(resources_path);
+    obj_file_path.Push(obj_file_name->str.data);
+
+    FILE* obj_file = fopen(obj_file_path.data, "rb");
+    assert(obj_file);
+
+    char line[256];
+    char strbuf[128];
+
+    TriangleMesh* mesh = allocator->New<TriangleMesh>(allocator);
+
+    // face is vertex, texture and normal indices
+    Array<Vec3> temp_vertices(scratch_allocator);
+    Array<Vec2> temp_uvs(scratch_allocator);
+    Array<Vec3> temp_normals(scratch_allocator);
+
+    while (fgets(line, sizeof(line), obj_file) != nullptr) {
+        Vec3 vec;
+        int32_t v1, v2, v3, t1, t2, t3, n1, n2, n3;
+
+        if (sscanf(line, "# %s", strbuf) == 1) {
+            // comment line, just ignore
+        } else if (sscanf(line, "o %s", strbuf) == 1) {
+            // object, ignore for the moment
+        } else if (sscanf(line, "s %s", strbuf) == 1) {
+            // surface, ignore
+        } else if (sscanf(line, "v %f %f %f", &vec.x, &vec.y, &vec.z) == 3) {
+            temp_vertices.PushBack(vec);
+        } else if (sscanf(line, "vn %f %f %f", &vec.x, &vec.y, &vec.z) == 3) {
+            //temp_normals.PushBack(vec);
+        } else if (sscanf(line, "f %d//%d %d//%d %d//%d", &v1, &n1, &v2, &n2, &v3, &n3) == 6) {
+            // Push a new vertex v1
+            mesh->vertices.PushBack(temp_vertices[v1 - 1]);
+            //mesh->normals.PushBack(temp_normals[n1 - 1]);
+            mesh->uvs.PushBack(Vec2::Zero());
+            mesh->indices.PushBack(mesh->vertices.len - 1);
+            // Push a new vertex v2
+            mesh->vertices.PushBack(temp_vertices[v2 - 1]);
+            //mesh->normals.PushBack(temp_normals[n2 - 1]);
+            mesh->uvs.PushBack(Vec2::Zero());
+            mesh->indices.PushBack(mesh->vertices.len - 1);
+            // Push a new vertex v3
+            mesh->vertices.PushBack(temp_vertices[v3 - 1]);
+            //mesh->normals.PushBack(temp_normals[n3 - 1]);
+            mesh->uvs.PushBack(Vec2::Zero());
+            mesh->indices.PushBack(mesh->vertices.len - 1);
+        } else if (sscanf(line, "vt %f %f", &vec.x, &vec.y) == 2) {
+            temp_uvs.PushBack(Vec2(vec.x, vec.y));
+        } else if (sscanf(line, "usemtl %s", strbuf) == 1) {
+            // ignore
+        } else if (sscanf(line, "mtllib %s", strbuf) == 1) {
+            // ignore
+        } else if (sscanf(line, "f %d/%d/%d %d/%d/%d %d/%d/%d",
+                   &v1, &t1, &n1, &v2, &t2, &n2, &v3, &t3, &n3) == 9) {
+            // Push a new vertex v1
+            mesh->vertices.PushBack(temp_vertices[v1 - 1]);
+            //mesh->normals.PushBack(temp_normals[n1 - 1]);
+            mesh->uvs.PushBack(temp_uvs[t1 - 1]);
+            mesh->indices.PushBack(mesh->vertices.len - 1);
+            // Push a new vertex v2
+            mesh->vertices.PushBack(temp_vertices[v2 - 1]);
+            //mesh->normals.PushBack(temp_normals[n2 - 1]);
+            mesh->uvs.PushBack(temp_uvs[t2 - 1]);
+            mesh->indices.PushBack(mesh->vertices.len - 1);
+            // Push a new vertex v3
+            mesh->vertices.PushBack(temp_vertices[v3 - 1]);
+            //mesh->normals.PushBack(temp_normals[n3 - 1]);
+            mesh->uvs.PushBack(temp_uvs[t3 - 1]);
+            mesh->indices.PushBack(mesh->vertices.len - 1);
+        } else {
+            LOG_ERROR("Unrecognized obj line: %s", line);
+            assert(false);
+        }
+    }
+
+    LOG_INFO("The number of faces is: %d", mesh->indices.len / 3);
+
+    temp_vertices.Destroy();
+    temp_uvs.Destroy();
+    temp_normals.Destroy();
+    fclose(obj_file);
+
+    // Build the buffer that is going to be uploaded to the GPU.
+    Array<OpenGL::Vertex_PT> buffer(scratch_allocator);
+    for (size_t i = 0; i < mesh->vertices.len; ++i) {
+        buffer.PushBack(OpenGL::Vertex_PT(mesh->vertices[i], mesh->uvs[i]));
+    }
+
+    glGenVertexArrays(1, &mesh->vao);
+    glBindVertexArray(mesh->vao);
+
+    // create the vbo and ebo
+    glGenBuffers(1, &mesh->vbo);
+    glGenBuffers(1, &mesh->ebo);
+
+    // bind vbo
+    glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+    glBufferData(
+        GL_ARRAY_BUFFER, sizeof(OpenGL::Vertex_PT) * buffer.len, buffer.data, GL_STATIC_DRAW);
+
+    // bind ebo
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 mesh->indices.len * sizeof(uint32_t),
+                 mesh->indices.data,
+                 GL_STATIC_DRAW);
+
+    OpenGL::SetVertexFormat_PT();
+
+    buffer.Destroy();
+
+    SubMesh submesh = {};
+    submesh.start_index = 0;
+    submesh.num_indices = mesh->indices.len;
+    mesh->sub_meshes.PushBack(std::move(submesh));
+
+    model.meshes.PushBack(mesh);
     model_res.Destroy();
     return model;
 }

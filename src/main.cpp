@@ -346,7 +346,7 @@ main(int argc, char** argv)
     LOG_DEBUG("       width: %d", wall_texture->width);
     LOG_DEBUG("       height: %d", wall_texture->height);
 
-    Model cottage = resource_manager.LoadModel(SID("cottage.model"));
+    Model nanosuit = resource_manager.LoadModel(SID("nanosuit.model"));
 
     LOG_DEBUG("Starting main loop");
     glClearColor(0, 0, 0, 1);
@@ -426,6 +426,10 @@ main(int argc, char** argv)
             //RenderMesh(*cottage.meshes[i], *basic_shader, Vec3::Zero(), Quaternion::Identity(), 1.0f);
         //}
 
+        Vec3 nanosuit_position(0, 0, 0);
+        Quaternion nanosuit_orientation = Quaternion::Identity();
+        RenderMesh(*nanosuit.meshes[0], *basic_shader, nanosuit_position, nanosuit_orientation, 1.0f);
+
         SDL_GL_SwapWindow(program.window);
     }
 
@@ -436,7 +440,7 @@ main(int argc, char** argv)
     // TODO: remove this
     // wall_texture.name.Destroy();
     
-    cottage.Destroy();
+    nanosuit.Destroy();
 
     floor_mesh.Destroy();
     cube_mesh.Destroy();

@@ -42,7 +42,7 @@ InitProgram(size_t memory_amount, int32_t window_width, int32_t window_height)
     }
 
     glViewport(0, 0, window_width, window_height);
-    glEnable(GL_CULL_FACE);
+    //glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 
     return program;

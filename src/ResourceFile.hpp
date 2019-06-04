@@ -121,9 +121,23 @@ struct ResourceFile
 
 	template<typename T> const T* Get(const String& key)
 	{
-		auto ptr = dynamic_cast<T*>(_entries.Find(key));
-		assert(ptr != nullptr);
-		return ptr;
+        Val** it = _entries.Find(key);
+        if (it) {
+            // TODO: usign dynamic_cast here means that we cannot compile the 
+            // code without rtti. Consider in the future a alternative implementation without
+            // rtti.
+            auto ptr = dynamic_cast<T*>(*it);
+            assert(ptr != nullptr);
+            return ptr;
+        } else {
+            return nullptr;
+        }
+	}
+
+	template<typename T> const T* Get(const StringView& key)
+	{
+        String wrapper(_scratch_allocator, key.data);
+		return Get<T>(std::move(wrapper));
 	}
 
     RobinHashMap<String, Val*>& GetEntries() { return _entries; }

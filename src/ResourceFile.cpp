@@ -184,7 +184,7 @@ ResourceFile::Parse()
             }
 
             if (tokens[t + 2].type == TokenType_Identifier && tokens[t + 3].type == TokenType_Semicolon) {
-                auto val = tokens[t + 2].str;
+                String val = std::move(tokens[t + 2].str);
 
                 // logger.log("adding entry ", key);
                 // logger.log("value ", val);
