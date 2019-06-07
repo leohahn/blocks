@@ -58,6 +58,9 @@ add_executable(blocks
     src/ResourceFile.hpp
     src/ResourceFile.cpp
     src/Sid.hpp
+    src/Sid.cpp
+    src/Material.hpp
+    src/Material.cpp
 
     # Memory
     src/Memory.hpp

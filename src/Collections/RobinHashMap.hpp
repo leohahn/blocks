@@ -192,7 +192,7 @@ public:
     const Value* Find(const Key& key) const
     {
         Value* val;
-        if (FindHelper(key, val)) {
+        if (FindHelper(key, &val)) {
             return const_cast<const Value*>(val);
         } else {
             return nullptr;

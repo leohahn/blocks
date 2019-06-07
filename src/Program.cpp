@@ -3,16 +3,16 @@
 #include "FileSystem.hpp"
 #include "Logger.hpp"
 #include "glad/glad.h"
+#include "Sid.hpp"
 
-Program
-InitProgram(size_t memory_amount, int32_t window_width, int32_t window_height)
+void
+InitProgram(Program* program, size_t memory_amount, int32_t window_width, int32_t window_height)
 {
-    Program program = {};
-    program.memory = Memory(memory_amount);
-    program.memory.Create();
-    program.main_allocator = LinearAllocator("main", program.memory);
-    program.window_width = window_width;
-    program.window_height = window_height;
+    program->memory = Memory(memory_amount);
+    program->memory.Create();
+    program->main_allocator = LinearAllocator("main", program->memory);
+    program->window_width = window_width;
+    program->window_height = window_height;
 
     LOG_INFO("Initializing SDL");
 
@@ -31,9 +31,9 @@ InitProgram(size_t memory_amount, int32_t window_width, int32_t window_height)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, true);
 
-    program.window =
+    program->window =
         SDL_CreateWindow("Blocks", 0, 0, window_width, window_height, SDL_WINDOW_OPENGL);
-    program.gl_context = SDL_GL_CreateContext(program.window);
+    program->gl_context = SDL_GL_CreateContext(program->window);
 
     LOG_INFO("Initializing glad");
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
@@ -42,16 +42,18 @@ InitProgram(size_t memory_amount, int32_t window_width, int32_t window_height)
     }
 
     glViewport(0, 0, window_width, window_height);
-    //glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
 
-    return program;
+    // Initialize Sid database
+    SidDatabase::Initialize(&program->main_allocator);
 }
 
 void
 TerminateProgram(Program* program)
 {
     assert(program);
+    SidDatabase::Terminate();
     program->main_allocator.Clear();
     program->memory.Destroy();
     SDL_GL_DeleteContext(program->gl_context);

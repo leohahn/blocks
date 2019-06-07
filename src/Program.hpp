@@ -24,6 +24,6 @@ struct Program
     SDL_GLContext gl_context;
 };
 
-Program InitProgram(size_t memory_amount, int32_t window_width, int32_t window_height);
+void InitProgram(Program* program, size_t memory_amount, int32_t window_width, int32_t window_height);
 
 void TerminateProgram(Program* program);

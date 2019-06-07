@@ -273,6 +273,7 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 
 //
 // What needs to be done
+// TODO: finish rendering the nanosuit with the materials specified in the mtl file.
 // TODO: use row major matrices instead of the current column major,
 // since they are friendlier to read in code.
 //
@@ -285,7 +286,8 @@ main(int argc, char** argv)
 	(void)argv;
 
     // Instantiate a new program with preallocated memory
-    Program program = InitProgram(MEGABYTES(128), SCREEN_WIDTH, SCREEN_HEIGHT);
+    Program program;
+    InitProgram(&program, MEGABYTES(128), SCREEN_WIDTH, SCREEN_HEIGHT);
 
     MallocAllocator temp_allocator("temporary_allocator");
     
@@ -342,7 +344,7 @@ main(int argc, char** argv)
     resource_manager.LoadTexture(SID("wall.jpg"));
 
     Texture* wall_texture = resource_manager.GetTexture(SID("wall.jpg"));
-    LOG_DEBUG("Loaded texture named: %s", wall_texture->name.Str());
+    LOG_DEBUG("Loaded texture named: %s", wall_texture->name.GetStr());
     LOG_DEBUG("       width: %d", wall_texture->width);
     LOG_DEBUG("       height: %d", wall_texture->height);
 

@@ -25,7 +25,7 @@ ResourceFile::Create(const Sid& file_sid)
 {
     auto resources_path = FileSystem::GetResourcesPath(_scratch_allocator);
     this->filepath.Push(resources_path);
-    this->filepath.Push(file_sid.Str());
+    this->filepath.Push(file_sid.GetStr());
     _entries.Create();
     resources_path.Destroy();
     Parse();

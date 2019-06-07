@@ -57,11 +57,11 @@ ResourceManager::Destroy()
 Model
 ResourceManager::LoadModel(const Sid& model_file)
 {
-    LOG_INFO("Loading model %s", model_file.Str());
+    LOG_INFO("Loading model %s", model_file.GetStr());
 
     Path full_path(scratch_allocator);
     full_path.Push(resources_path);
-    full_path.Push(model_file.Str());
+    full_path.Push(model_file.GetStr());
 
     ResourceFile model_res(scratch_allocator, scratch_allocator);
     model_res.Create(model_file);
@@ -125,7 +125,7 @@ ResourceManager::LoadModel(const Sid& model_file)
         } else if (sscanf(line, "vt %f %f", &vec.x, &vec.y) == 2) {
             temp_uvs.PushBack(Vec2(vec.x, vec.y));
         } else if (sscanf(line, "usemtl %s", strbuf) == 1) {
-            // ignore
+            // specifies the current material
         } else if (sscanf(line, "mtllib %s", strbuf) == 1) {
             // ignore
         } else if (sscanf(line, "f %d/%d/%d %d/%d/%d %d/%d/%d",
@@ -210,13 +210,13 @@ ResourceManager::LoadShader(const Sid& shader_sid)
     Path full_path(scratch_allocator);
     full_path.Push(resources_path);
     full_path.Push("shaders");
-    full_path.Push(shader_sid.Str());
+    full_path.Push(shader_sid.GetStr());
 
-    LOG_DEBUG("Making shader program for %s\n", shader_sid.Str());
+    LOG_DEBUG("Making shader program for %s\n", shader_sid.GetStr());
 
     Shader* shader = allocator->New<Shader>(allocator);
     assert(shader);
-    shader->name.Append(shader_sid.Str());
+    shader->name.Append(shader_sid.GetStr());
 
     GLuint vertex_shader = 0, fragment_shader = 0;
     GLchar info[512] = {};
@@ -297,7 +297,7 @@ ResourceManager::LoadShader(const Sid& shader_sid)
     goto ok;
     
 error_cleanup:
-    LOG_ERROR("Failed to load shader %s", shader_sid.Str());
+    LOG_ERROR("Failed to load shader %s", shader_sid.GetStr());
     allocator->Delete(shader);
 
 ok:
@@ -324,7 +324,7 @@ LoadTextureFromFile(Allocator* allocator,
 
     Path full_asset_path(scratch_allocator);
     full_asset_path.Push(resources_path);
-    full_asset_path.Push(texture_sid.Str());
+    full_asset_path.Push(texture_sid.GetStr());
 
     Texture* texture = allocator->New<Texture>(allocator, texture_sid);
 
@@ -378,4 +378,15 @@ cleanup_texture_buffer:
 
     texture->loaded = true;
     return texture;
+}
+
+void
+ResourceManager::LoadMaterialsFromMtlFile(const Path& filepath)
+{
+    assert(filepath.data && filepath.len > 0);
+
+    LOG_DEBUG("Loading materials from %s", filepath.data);
+
+    size_t filesize;
+    uint8_t* filedata = FileSystem::LoadFileToMemory(scratch_allocator, filepath, &filesize);
 }

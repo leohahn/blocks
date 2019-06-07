@@ -174,6 +174,11 @@ struct String
         }
         return memcmp(data, str.data, len) == 0;
     }
+
+    bool operator!=(const String& str)
+    {
+        return !operator==(str);
+    }
     
     bool IsEmpty() const { return len == 0; }
 
@@ -202,6 +207,18 @@ inline bool
 operator==(const StringView& lhs, const String& rhs)
 {
     return rhs == lhs;
+}
+
+inline bool
+operator!=(const String& lhs, const StringView& rhs)
+{
+    return !(lhs == rhs);
+}
+
+inline bool
+operator!=(const StringView& lhs, const String& rhs)
+{
+    return !(lhs == rhs);
 }
 
 namespace std

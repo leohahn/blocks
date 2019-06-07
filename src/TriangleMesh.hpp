@@ -6,11 +6,28 @@
 #include "Math/Vec3.hpp"
 #include "Math/Vec4.hpp"
 #include "Texture.hpp"
+#include "Sid.hpp"
+
+// This enumeration specifies how a material should be rendered.
+enum class IlluminationModel
+{
+    Color = 0,
+    Diffuse = 1,
+    DiffuseAndSpecular = 2,
+};
 
 struct Material
 {
-    // TODO: figure out important stuff to put here.
-    float diffure_color;
+    Sid name;
+    IlluminationModel illumination_model;
+
+    Vec3 diffuse_color;
+    Vec3 ambient_color;
+    Vec3 specular_color;
+    float shininess;
+    Texture* diffuse_map;
+    Texture* normal_map;
+    Texture* specular_map;
 };
 
 struct SubMesh

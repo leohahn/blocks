@@ -10,7 +10,12 @@
 class LinearAllocator : public Allocator
 {
 public:
-    LinearAllocator() = default;
+    LinearAllocator()
+        : _bytes_allocated(0)
+        , _size(0)
+        , _mem(nullptr)
+        , _name(nullptr)
+    {}
 
     LinearAllocator(const char* name, Memory mem)
         : LinearAllocator(name, mem.ptr, mem.size)
@@ -31,6 +36,27 @@ public:
         assert(_mem && "should be instantiated with memory");
         assert(_size > 0 && "allocator should have allocated bytes");
         assert(_name && "allocator should have a name");
+    }
+
+    LinearAllocator(LinearAllocator&& a)
+        : LinearAllocator()
+    {
+        *this = std::move(a);
+    }
+
+    // Move assignment
+    LinearAllocator& operator=(LinearAllocator&& a)
+    {
+        assert(_bytes_allocated == 0);
+        _mem = a._mem;
+        _size = a._size;
+        _name = a._name;
+        _bytes_allocated = a._bytes_allocated;
+        a._mem = nullptr;
+        a._size = 0;
+        a._name = nullptr;
+        a._bytes_allocated = 0;
+        return *this;
     }
 
     void* Allocate(size_t size) override
