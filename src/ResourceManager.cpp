@@ -13,6 +13,7 @@ static constexpr const char* kDiffuseTextureKey = "diffuse_texture";
 static constexpr const char* kNormalTextureKey = "normal_texture";
 static constexpr const char* kObjFileKey = "obj_file";
 static constexpr const char* kMtlFileKey = "mtl_file";
+static constexpr const char* kRootFolderKey = "root_folder";
 
 static Texture* LoadTextureFromFile(Allocator* allocator,
                                     Allocator* scratch_allocator,
@@ -70,8 +71,76 @@ ResourceManager::LoadModel(const Sid& model_file)
     assert(model_res.Has(kNormalTextureKey));
     assert(model_res.Has(kObjFileKey));
     assert(model_res.Has(kMtlFileKey));
+    assert(model_res.Has(kRootFolderKey));
+
+    // get the root folder
+    const auto* root_folder = model_res.Get<ResourceFile::StringVal>(kRootFolderKey);
+
+    // temporary buffer for reading the files
+    char line[256];
+    char strbuf[128];
 
     Model model(allocator);
+
+    // read all of the materials from the mtl file
+    const auto* mtl_file_name = model_res.Get<ResourceFile::StringVal>(kMtlFileKey);
+    Path mtl_file_path(scratch_allocator);
+    mtl_file_path.Push(resources_path);
+    mtl_file_path.Push(mtl_file_name->str.data);
+
+    FILE* mtl_file = fopen(mtl_file_path.data, "rb");
+    assert(mtl_file);
+
+    Material current_material;
+
+    RobinHashMap<Sid, Material> materials(scratch_allocator, 16);
+    while (fgets(line, sizeof(line), mtl_file) != nullptr) {
+        float val;
+        int illum_model;
+        Vec3 color;
+
+        if (sscanf(line, "# %s", strbuf) == 1) {
+            // ignore
+        } else if (sscanf(line, "newmtl %s", strbuf) == 1) {
+            // new material
+            current_material.name = SID(strbuf);
+        } else if (sscanf(line, "Ns %f", &val) == 1) {
+            current_material.shininess = val;
+        } else if (sscanf(line, "Ka %f %f %f", &color.x, &color.y, &color.z) == 3) {
+            current_material.ambient_color = color;
+        } else if (sscanf(line, "Kd %f %f %f", &color.x, &color.y, &color.z) == 3) {
+            current_material.diffuse_color = color;
+        } else if (sscanf(line, "Ks %f %f %f", &color.x, &color.y, &color.z) == 3) {
+            current_material.specular_color = color;
+        } else if (sscanf(line, "Ni %f", &val) == 1) {
+            // index of refraction, ignore...
+        } else if (sscanf(line, "d %f", &val) == 1) {
+            // dissolve factor, for transparent objects, ignore...
+        } else if (sscanf(line, "illum %d", &illum_model) == 1) {
+            assert(illum_model >= static_cast<int>(IlluminationModel::Color));
+            assert(illum_model <= static_cast<int>(IlluminationModel::DiffuseAndSpecular));
+            current_material.illumination_model = static_cast<IlluminationModel>(illum_model);
+        } else if (sscanf(line, "map_Kd %s", strbuf) == 1) {
+            // diffuse mapping. read diffuse texture from the resources folder
+            String texture_path(scratch_allocator);
+            texture_path.Append(root_folder->str.data);
+            texture_path.Append("/");
+            texture_path.Append(strbuf);
+
+            Sid texture_sid = SID(texture_path.data);
+            LoadTexture(texture_sid);
+        } else if (sscanf(line, "map_Bump %s", strbuf) == 1) {
+            // normal mapping
+            // TODO
+        } else if (sscanf(line, "map_Ks %s", strbuf) == 1) {
+            // specular mapping
+            // TODO
+        } else {
+            LOG_ERROR("Failed to parse line: %s", line);
+        }
+    }
+
+    // Finished reading mtl file, now start reading the obj file
 
     // first we read the obj file into an array of meshes.
     const auto* obj_file_name = model_res.Get<ResourceFile::StringVal>(kObjFileKey);
@@ -81,9 +150,6 @@ ResourceManager::LoadModel(const Sid& model_file)
 
     FILE* obj_file = fopen(obj_file_path.data, "rb");
     assert(obj_file);
-
-    char line[256];
-    char strbuf[128];
 
     TriangleMesh* mesh = allocator->New<TriangleMesh>(allocator);
 
@@ -194,12 +260,14 @@ ResourceManager::LoadModel(const Sid& model_file)
 
     model.meshes.PushBack(mesh);
     model_res.Destroy();
+    materials.Destroy();
     return model;
 }
 
 void
 ResourceManager::LoadTexture(const Sid& texture_sid)
 {
+    LOG_INFO("Loading texture for SID %s", texture_sid.GetStr());
     Texture* new_texture = LoadTextureFromFile(allocator, scratch_allocator, texture_sid);
     textures.Add(texture_sid, new_texture);
 }
@@ -354,20 +422,26 @@ LoadTextureFromFile(Allocator* allocator,
         goto cleanup_texture_buffer;
     }
 
-    glGenTextures(1, &texture->handle);
-    glBindTexture(GL_TEXTURE_2D, texture->handle);
+    //
+    // FIXME: the state of opnegl is probably incorrect here, since multiple texstures
+    // will be in conflict with one another.
+    //if (texture->name.GetHash() == 7573085998336324) {
+    if (1) {
+        glGenTextures(1, &texture->handle);
+        glBindTexture(GL_TEXTURE_2D, texture->handle);
 
-    glTexParameteri(GL_TEXTURE_2D,
-                    GL_TEXTURE_WRAP_S,
-                    GL_REPEAT); // set texture wrapping to GL_REPEAT (default wrapping method)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // set texture filtering parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D,
+                        GL_TEXTURE_WRAP_S,
+                        GL_REPEAT); // set texture wrapping to GL_REPEAT (default wrapping method)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        // set texture filtering parameters
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glTexImage2D(
-        GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
+        glTexImage2D(
+            GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
 
     free(data);
 

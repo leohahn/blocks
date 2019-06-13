@@ -1,4 +1,5 @@
 diffuse_texture = cottage_textures/cottage_diffuse.png;
 normal_texture = cottage_textures/cottage_normal.png;
 obj_file = nanosuit/nanosuit.obj;
-mtl_file = cottage_mtl.obj;
+mtl_file = nanosuit/nanosuit.mtl;
+root_folder = nanosuit;
