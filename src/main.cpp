@@ -29,7 +29,7 @@
 #define SCREEN_HEIGHT 600
 
 static TriangleMesh
-SetupPlane(Allocator* allocator, Allocator* scratch_allocator)
+SetupPlane(Allocator* allocator, Allocator* scratch_allocator, Texture* diffuse_texture)
 {
     // clang-format off
     static const uint32_t indices[] =
@@ -113,6 +113,7 @@ SetupPlane(Allocator* allocator, Allocator* scratch_allocator)
     SubMesh submesh = {};
     submesh.start_index = 0;
     submesh.num_indices = mesh.indices.len;
+    submesh.material.diffuse_map = diffuse_texture;
     mesh.sub_meshes.PushBack(std::move(submesh));
 
     return mesh;
@@ -120,7 +121,7 @@ SetupPlane(Allocator* allocator, Allocator* scratch_allocator)
 
 // TODO: receive a texture catalog
 static TriangleMesh
-SetupCube(Allocator* allocator, Allocator* scratch_allocator)
+SetupCube(Allocator* allocator, Allocator* scratch_allocator, Texture* diffuse_texture)
 {
     // clang-format off
     static const uint32_t indices[] =
@@ -259,6 +260,7 @@ SetupCube(Allocator* allocator, Allocator* scratch_allocator)
     SubMesh submesh = {};
     submesh.start_index = 0;
     submesh.num_indices = mesh.indices.len;
+    submesh.material.diffuse_map = diffuse_texture;
     mesh.sub_meshes.PushBack(std::move(submesh));
 
     return mesh;
@@ -323,10 +325,6 @@ main(int argc, char** argv)
     PlayerInput player_input;
     player_input.RegisterInputs(&input_system, &program.main_allocator);
 
-    // DEBUG meshes for testing
-    TriangleMesh floor_mesh = SetupPlane(&program.main_allocator, &temp_allocator);
-    TriangleMesh cube_mesh = SetupCube(&program.main_allocator, &temp_allocator);
-
     Camera camera(Vec3(0, 0, 5), Vec3(0, 0, -1));
 
     glUseProgram(basic_shader->program);
@@ -347,6 +345,11 @@ main(int argc, char** argv)
     LOG_DEBUG("Loaded texture named: %s", wall_texture->name.GetStr());
     LOG_DEBUG("       width: %d", wall_texture->width);
     LOG_DEBUG("       height: %d", wall_texture->height);
+
+    // DEBUG meshes for testing
+    TriangleMesh floor_mesh = SetupPlane(&program.main_allocator, &temp_allocator, wall_texture);
+    TriangleMesh cube_mesh = SetupCube(&program.main_allocator, &temp_allocator, wall_texture);
+
 
     Model nanosuit = resource_manager.LoadModel(SID("nanosuit.model"));
 

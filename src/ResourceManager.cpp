@@ -426,22 +426,21 @@ LoadTextureFromFile(Allocator* allocator,
     // FIXME: the state of opnegl is probably incorrect here, since multiple texstures
     // will be in conflict with one another.
     //if (texture->name.GetHash() == 7573085998336324) {
-    if (1) {
-        glGenTextures(1, &texture->handle);
-        glBindTexture(GL_TEXTURE_2D, texture->handle);
+    glGenTextures(1, &texture->handle);
+    glBindTexture(GL_TEXTURE_2D, texture->handle);
 
-        glTexParameteri(GL_TEXTURE_2D,
-                        GL_TEXTURE_WRAP_S,
-                        GL_REPEAT); // set texture wrapping to GL_REPEAT (default wrapping method)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        // set texture filtering parameters
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,
+                    GL_TEXTURE_WRAP_S,
+                    GL_REPEAT); // set texture wrapping to GL_REPEAT (default wrapping method)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // set texture filtering parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        glTexImage2D(
-            GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
+    glTexImage2D(
+        GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     free(data);
 
