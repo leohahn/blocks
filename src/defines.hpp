@@ -59,3 +59,8 @@
     Type(Type&& t) = delete
 
 #define DISABLE_OBJECT_COPY_AND_MOVE(Type) DISABLE_OBJECT_COPY(Type); DISABLE_OBJECT_MOVE(Type)
+
+#ifdef _DEBUG
+struct ResourceManager;
+extern ResourceManager* g_debug_resource_manager;
+#endif

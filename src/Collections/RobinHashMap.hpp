@@ -164,6 +164,8 @@ public:
         size_t probe_distance = 0;
         size_t mask = GetMask();
 
+        assert(pos < cap);
+
         for (;;) {
             if (elements[pos]._hash == 0) {
                 // Position is not occupied, therefore we place the element here.

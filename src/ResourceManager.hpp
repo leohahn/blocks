@@ -49,16 +49,19 @@ struct ResourceManager
     RobinHashMap<Sid, Texture*> textures;
     RobinHashMap<Sid, Shader*> shaders;
     RobinHashMap<Sid, TriangleMesh*> meshes;
+    RobinHashMap<Sid, Material*> materials;
 
 public:
     static constexpr int kNumMeshes = 32;
     static constexpr int kNumTextures = 32;
     static constexpr int kNumShaders = 32;
+    static constexpr int kNumMaterials = 32;
 
     ResourceManager(Allocator* allocator, Allocator* scratch_allocator)
         : allocator(allocator)
         , scratch_allocator(scratch_allocator)
         , meshes(allocator, kNumMeshes)
+        , materials(allocator, kNumMaterials)
         , textures(allocator, kNumTextures)
         , shaders(allocator, kNumShaders)
         , resources_path(allocator)
@@ -71,6 +74,11 @@ public:
     Texture* GetTexture(const Sid& texture_file)
     {
         return *textures.Find(texture_file);
+    }
+
+    Material* GetMaterial(const Sid& material_name)
+    {
+        return *materials.Find(material_name);
     }
 
     Model LoadModel(const Sid& model_file);

@@ -21,13 +21,13 @@ struct Material
     Sid name;
     IlluminationModel illumination_model;
 
-    Vec3 diffuse_color;
-    Vec3 ambient_color;
-    Vec3 specular_color;
-    float shininess;
-    Texture* diffuse_map;
-    Texture* normal_map;
-    Texture* specular_map;
+    Vec3 diffuse_color = Vec3::Zero();
+    Vec3 ambient_color = Vec3::Zero();
+    Vec3 specular_color = Vec3::Zero();
+    float shininess = 0.0f;
+    Texture* diffuse_map = nullptr;
+    Texture* normal_map = nullptr;
+    Texture* specular_map = nullptr;
 };
 
 struct SubMesh
@@ -35,7 +35,7 @@ struct SubMesh
     // Rendering information
     int32_t start_index;
     size_t num_indices;
-    Material material;
+    Material* material;
 
     // Placement information
     Vec3 local_position;

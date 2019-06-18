@@ -26,16 +26,23 @@ ResourceManager::Create()
     shaders.Create();
     textures.Create();
     meshes.Create();
+    materials.Create();
 }
 
 void
 ResourceManager::Destroy()
 {
+    assert(materials.allocator != nullptr);
     for (auto& el : meshes) {
         el.val->Destroy();
         allocator->Delete(el.val);
     }
     meshes.Destroy();
+
+    for (auto& el : materials) {
+        allocator->Delete(el.val);
+    }
+    materials.Destroy();
 
     for (auto& el : textures) {
         el.val->Destroy();
@@ -91,9 +98,8 @@ ResourceManager::LoadModel(const Sid& model_file)
     FILE* mtl_file = fopen(mtl_file_path.data, "rb");
     assert(mtl_file);
 
-    Material current_material;
+    Material* current_material = nullptr;
 
-    RobinHashMap<Sid, Material> materials(scratch_allocator, 16);
     while (fgets(line, sizeof(line), mtl_file) != nullptr) {
         float val;
         int illum_model;
@@ -103,24 +109,41 @@ ResourceManager::LoadModel(const Sid& model_file)
             // ignore
         } else if (sscanf(line, "newmtl %s", strbuf) == 1) {
             // new material
-            current_material.name = SID(strbuf);
+            Sid material_name = SID(strbuf);
+
+            Material* new_material = allocator->New<Material>();
+            new_material->name = material_name;
+            materials.Add(material_name, new_material);
+
+            // FIXME: This is potentially dangerous, since if the hash table is rehashed the pointer
+            // will be invalid.
+            current_material = new_material;
+            assert(current_material);
         } else if (sscanf(line, "Ns %f", &val) == 1) {
-            current_material.shininess = val;
+            assert(current_material);
+            current_material->shininess = val;
         } else if (sscanf(line, "Ka %f %f %f", &color.x, &color.y, &color.z) == 3) {
-            current_material.ambient_color = color;
+            assert(current_material);
+            current_material->ambient_color = color;
         } else if (sscanf(line, "Kd %f %f %f", &color.x, &color.y, &color.z) == 3) {
-            current_material.diffuse_color = color;
+            assert(current_material);
+            current_material->diffuse_color = color;
         } else if (sscanf(line, "Ks %f %f %f", &color.x, &color.y, &color.z) == 3) {
-            current_material.specular_color = color;
+            assert(current_material);
+            current_material->specular_color = color;
         } else if (sscanf(line, "Ni %f", &val) == 1) {
+            assert(current_material);
             // index of refraction, ignore...
         } else if (sscanf(line, "d %f", &val) == 1) {
+            assert(current_material);
             // dissolve factor, for transparent objects, ignore...
         } else if (sscanf(line, "illum %d", &illum_model) == 1) {
+            assert(current_material);
             assert(illum_model >= static_cast<int>(IlluminationModel::Color));
             assert(illum_model <= static_cast<int>(IlluminationModel::DiffuseAndSpecular));
-            current_material.illumination_model = static_cast<IlluminationModel>(illum_model);
+            current_material->illumination_model = static_cast<IlluminationModel>(illum_model);
         } else if (sscanf(line, "map_Kd %s", strbuf) == 1) {
+            assert(current_material);
             // diffuse mapping. read diffuse texture from the resources folder
             String texture_path(scratch_allocator);
             texture_path.Append(root_folder->str.data);
@@ -129,10 +152,15 @@ ResourceManager::LoadModel(const Sid& model_file)
 
             Sid texture_sid = SID(texture_path.data);
             LoadTexture(texture_sid);
+
+            current_material->diffuse_map = GetTexture(texture_sid);
+            assert(current_material->diffuse_map);
         } else if (sscanf(line, "map_Bump %s", strbuf) == 1) {
+            assert(current_material);
             // normal mapping
             // TODO
         } else if (sscanf(line, "map_Ks %s", strbuf) == 1) {
+            assert(current_material);
             // specular mapping
             // TODO
         } else {
@@ -158,6 +186,8 @@ ResourceManager::LoadModel(const Sid& model_file)
     Array<Vec2> temp_uvs(scratch_allocator);
     Array<Vec3> temp_normals(scratch_allocator);
 
+    SubMesh current_submesh = {};
+
     while (fgets(line, sizeof(line), obj_file) != nullptr) {
         Vec3 vec;
         int32_t v1, v2, v3, t1, t2, t3, n1, n2, n3;
@@ -173,6 +203,8 @@ ResourceManager::LoadModel(const Sid& model_file)
         } else if (sscanf(line, "vn %f %f %f", &vec.x, &vec.y, &vec.z) == 3) {
             //temp_normals.PushBack(vec);
         } else if (sscanf(line, "f %d//%d %d//%d %d//%d", &v1, &n1, &v2, &n2, &v3, &n3) == 6) {
+            current_submesh.num_indices += 3;
+
             // Push a new vertex v1
             mesh->vertices.PushBack(temp_vertices[v1 - 1]);
             //mesh->normals.PushBack(temp_normals[n1 - 1]);
@@ -191,11 +223,25 @@ ResourceManager::LoadModel(const Sid& model_file)
         } else if (sscanf(line, "vt %f %f", &vec.x, &vec.y) == 2) {
             temp_uvs.PushBack(Vec2(vec.x, vec.y));
         } else if (sscanf(line, "usemtl %s", strbuf) == 1) {
+            if (current_submesh.num_indices > 0) {
+                mesh->sub_meshes.PushBack(current_submesh);
+            }
+
             // specifies the current material
+            Sid material_name = SID(strbuf);
+            Material* mat = GetMaterial(material_name);
+            assert(mat);
+            assert((current_submesh.start_index + current_submesh.num_indices) == mesh->indices.len);
+
+            current_submesh.start_index = current_submesh.start_index + current_submesh.num_indices;
+            current_submesh.num_indices = 0;
+            current_submesh.material = mat;
         } else if (sscanf(line, "mtllib %s", strbuf) == 1) {
             // ignore
         } else if (sscanf(line, "f %d/%d/%d %d/%d/%d %d/%d/%d",
-                   &v1, &t1, &n1, &v2, &t2, &n2, &v3, &t3, &n3) == 9) {
+            &v1, &t1, &n1, &v2, &t2, &n2, &v3, &t3, &n3) == 9) {
+            current_submesh.num_indices += 3;
+
             // Push a new vertex v1
             mesh->vertices.PushBack(temp_vertices[v1 - 1]);
             //mesh->normals.PushBack(temp_normals[n1 - 1]);
@@ -215,6 +261,10 @@ ResourceManager::LoadModel(const Sid& model_file)
             LOG_ERROR("Unrecognized obj line: %s", line);
             assert(false);
         }
+    }
+
+    if (current_submesh.num_indices > 0) {
+        mesh->sub_meshes.PushBack(current_submesh);
     }
 
     LOG_INFO("The number of faces is: %d", mesh->indices.len / 3);
@@ -253,14 +303,13 @@ ResourceManager::LoadModel(const Sid& model_file)
 
     buffer.Destroy();
 
-    SubMesh submesh = {};
-    submesh.start_index = 0;
-    submesh.num_indices = mesh->indices.len;
-    mesh->sub_meshes.PushBack(std::move(submesh));
+    //SubMesh submesh = {};
+    //submesh.start_index = 0;
+    //submesh.num_indices = mesh->indices.len;
+    //mesh->sub_meshes.PushBack(std::move(submesh));
 
     model.meshes.PushBack(mesh);
     model_res.Destroy();
-    materials.Destroy();
     return model;
 }
 

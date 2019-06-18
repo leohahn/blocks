@@ -96,7 +96,12 @@ public:
     {
         assert(g_debug_sid_database);
         g_debug_sid_database->AddHash(hash, str);
+#ifdef _DEBUG
+        _str = GetStr();
+#endif
     }
+
+    bool IsEmpty() const { return _hash == 0; }
 
     const char* GetStr() const
     {
@@ -117,6 +122,9 @@ public:
 
 private:
     uint64_t _hash;
+#ifdef _DEBUG
+    const char* _str;
+#endif
 };
 
 namespace std

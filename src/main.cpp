@@ -29,7 +29,7 @@
 #define SCREEN_HEIGHT 600
 
 static TriangleMesh
-SetupPlane(Allocator* allocator, Allocator* scratch_allocator, Texture* diffuse_texture)
+SetupPlane(Allocator* allocator, Allocator* scratch_allocator, Material* material)
 {
     // clang-format off
     static const uint32_t indices[] =
@@ -113,7 +113,7 @@ SetupPlane(Allocator* allocator, Allocator* scratch_allocator, Texture* diffuse_
     SubMesh submesh = {};
     submesh.start_index = 0;
     submesh.num_indices = mesh.indices.len;
-    submesh.material.diffuse_map = diffuse_texture;
+    submesh.material = material;
     mesh.sub_meshes.PushBack(std::move(submesh));
 
     return mesh;
@@ -121,7 +121,7 @@ SetupPlane(Allocator* allocator, Allocator* scratch_allocator, Texture* diffuse_
 
 // TODO: receive a texture catalog
 static TriangleMesh
-SetupCube(Allocator* allocator, Allocator* scratch_allocator, Texture* diffuse_texture)
+SetupCube(Allocator* allocator, Allocator* scratch_allocator, Material* material)
 {
     // clang-format off
     static const uint32_t indices[] =
@@ -260,7 +260,7 @@ SetupCube(Allocator* allocator, Allocator* scratch_allocator, Texture* diffuse_t
     SubMesh submesh = {};
     submesh.start_index = 0;
     submesh.num_indices = mesh.indices.len;
-    submesh.material.diffuse_map = diffuse_texture;
+    submesh.material = material;
     mesh.sub_meshes.PushBack(std::move(submesh));
 
     return mesh;
@@ -279,6 +279,8 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 // TODO: use row major matrices instead of the current column major,
 // since they are friendlier to read in code.
 //
+
+ResourceManager* g_debug_resource_manager = nullptr;
 
 int
 main(int argc, char** argv)
@@ -301,6 +303,10 @@ main(int argc, char** argv)
     );
     ResourceManager resource_manager(&resource_manager_allocator, &temp_allocator);
     resource_manager.Create();
+
+#ifdef _DEBUG
+    g_debug_resource_manager = &resource_manager;
+#endif
 
     //
     // Load shaders
@@ -346,9 +352,19 @@ main(int argc, char** argv)
     LOG_DEBUG("       width: %d", wall_texture->width);
     LOG_DEBUG("       height: %d", wall_texture->height);
 
+    // HACK: load this material from a file instead of doing it like this
+    {
+        Material* material = resource_manager.allocator->New<Material>();
+        material->name = SID("wall");
+        material->diffuse_map = wall_texture;
+        resource_manager.materials.Add(material->name, material);
+    }
+
     // DEBUG meshes for testing
-    TriangleMesh floor_mesh = SetupPlane(&program.main_allocator, &temp_allocator, wall_texture);
-    TriangleMesh cube_mesh = SetupCube(&program.main_allocator, &temp_allocator, wall_texture);
+    Material* wall_material = resource_manager.GetMaterial(SID("wall"));
+    assert(wall_material);
+    TriangleMesh floor_mesh = SetupPlane(&program.main_allocator, &temp_allocator, wall_material);
+    TriangleMesh cube_mesh = SetupCube(&program.main_allocator, &temp_allocator, wall_material);
 
 
     Model nanosuit = resource_manager.LoadModel(SID("nanosuit.model"));
@@ -433,6 +449,7 @@ main(int argc, char** argv)
 
         Vec3 nanosuit_position(0, 0, 0);
         Quaternion nanosuit_orientation = Quaternion::Identity();
+        assert(nanosuit.meshes.len == 1);
         RenderMesh(*nanosuit.meshes[0], *basic_shader, nanosuit_position, nanosuit_orientation, 1.0f);
 
         SDL_GL_SwapWindow(program.window);

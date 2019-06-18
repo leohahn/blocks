@@ -2,6 +2,7 @@
 
 #include "glad/glad.h"
 #include "OpenGL.hpp"
+#include "ResourceManager.hpp"
 
 void
 RenderMesh(const TriangleMesh& mesh,
@@ -32,16 +33,18 @@ RenderMesh(const TriangleMesh& mesh,
     OpenGL::SetUniformMatrixForCurrentShader(shader.model_location, object_to_world_matrix);
 
     for (size_t i = 0; i < mesh.sub_meshes.len; ++i) {
-        if (mesh.sub_meshes[i].material.diffuse_map) {
+        Material* material = mesh.sub_meshes[i].material;
+        //Material* material = g_debug_resource_manager->GetMaterial(SID("wall"));
+        if (material->diffuse_map) {
             glActiveTexture(GL_TEXTURE0 + 0);
-            glBindTexture(GL_TEXTURE_2D, mesh.sub_meshes[i].material.diffuse_map->handle);
+            glBindTexture(GL_TEXTURE_2D, material->diffuse_map->handle);
         }
 
         // TODO: bind material properties for each submesh here
         glDrawElements(GL_TRIANGLES,
                        mesh.sub_meshes[i].num_indices,
                        GL_UNSIGNED_INT,
-                       reinterpret_cast<const void*>(mesh.sub_meshes[i].start_index));
+                       reinterpret_cast<const void*>(mesh.sub_meshes[i].start_index * sizeof(uint32_t)));
     }
 
     glBindVertexArray(0);
