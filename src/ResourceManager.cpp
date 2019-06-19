@@ -7,6 +7,7 @@
 #include "ResourceFile.hpp"
 #include "glad/glad.h"
 #include "stb_image.h"
+#include "Utils.hpp"
 
 // Keys related to loading models
 static constexpr const char* kDiffuseTextureKey = "diffuse_texture";
@@ -448,20 +449,21 @@ LoadTextureFromFile(Allocator* allocator,
     size_t texture_buffer_size;
     uint8_t* texture_buffer =
         FileSystem::LoadFileToMemory(allocator, full_asset_path, &texture_buffer_size);
-    int texture_width, texture_height, texture_channel_count;
-
     assert(texture_buffer);
 
     // memory was read, now load it into an opengl buffer
 
     // tell stb_image.h to flip loaded texture's on the y-axis.
     stbi_set_flip_vertically_on_load(true);
+
+    int texture_width, texture_height, texture_channel_count;
     uint8_t* data = stbi_load_from_memory(texture_buffer,
                                           (int)texture_buffer_size,
                                           &texture_width,
                                           &texture_height,
                                           &texture_channel_count,
                                           0);
+
 
     texture->width = texture_width;
     texture->height = texture_height;
@@ -486,8 +488,17 @@ LoadTextureFromFile(Allocator* allocator,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glTexImage2D(
-        GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    if (Utils::StringEndsWith(texture_sid.GetStr(), ".jpg")) {
+        glTexImage2D(
+            GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    } else if (Utils::StringEndsWith(texture_sid.GetStr(), ".png")) {
+        glTexImage2D(
+            GL_TEXTURE_2D, 0, GL_RGBA, texture_width, texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    } else {
+        LOG_ERROR("Unknown file extension %s", texture_sid.GetStr());
+        assert(false);
+    }
+
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
 

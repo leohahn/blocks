@@ -10,4 +10,6 @@ char* GetPrettySize(size_t size);
 
 bool ParseInt32(const char* str, int32_t* res);
 
+bool StringEndsWith(const char* str, const char* ending);
+
 }

@@ -46,4 +46,24 @@ Utils::ParseInt32(const char* str, int32_t* res)
     return true;
 }
 
+bool
+Utils::StringEndsWith(const char* str, const char* ending)
+{
+    assert(str);
+    assert(ending);
 
+    const size_t str_len = strlen(str);
+    const size_t ending_len = strlen(ending);
+
+    if (ending_len > str_len) {
+        return true;
+    }
+
+    for (int32_t i = ending_len - 1, j = str_len - 1; i >= 0; --j, --i) {
+        if (str[j] != ending[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
