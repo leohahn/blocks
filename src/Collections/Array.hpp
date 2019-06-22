@@ -74,18 +74,9 @@ struct Array
 
     ~Array()
     {
-        assert(data == nullptr && "array should be destroyed");
-    }
-
-    void Destroy()
-    {
         if (data) {
             allocator->Deallocate(data);
-            data = nullptr;
         }
-        allocator = nullptr;
-        len = 0;
-        cap = 0;
     }
 
     void PushBack(T el)

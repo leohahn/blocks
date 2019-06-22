@@ -35,7 +35,6 @@ ResourceManager::Destroy()
 {
     assert(materials.allocator != nullptr);
     for (auto& el : meshes) {
-        el.val->Destroy();
         allocator->Delete(el.val);
     }
     meshes.Destroy();
@@ -268,11 +267,8 @@ ResourceManager::LoadModel(const Sid& model_file)
         mesh->sub_meshes.PushBack(current_submesh);
     }
 
-    LOG_INFO("The number of faces is: %d", mesh->indices.len / 3);
+    LOG_INFO("The number of faces is: %zu", mesh->indices.len / 3);
 
-    temp_vertices.Destroy();
-    temp_uvs.Destroy();
-    temp_normals.Destroy();
     fclose(obj_file);
 
     // Build the buffer that is going to be uploaded to the GPU.
@@ -301,8 +297,6 @@ ResourceManager::LoadModel(const Sid& model_file)
                  GL_STATIC_DRAW);
 
     OpenGL::SetVertexFormat_PT();
-
-    buffer.Destroy();
 
     //SubMesh submesh = {};
     //submesh.start_index = 0;

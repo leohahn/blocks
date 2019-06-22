@@ -73,15 +73,5 @@ struct TriangleMesh
         , vbo(0)
         , ebo(0)
     {}
-
-    void Destroy()
-    {
-        vertices.Destroy();
-        uvs.Destroy();
-        colors.Destroy();
-        normals.Destroy();
-        indices.Destroy();
-        sub_meshes.Destroy();
-    }
 };
 

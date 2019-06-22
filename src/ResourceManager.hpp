@@ -27,13 +27,6 @@ public:
     
     Model(Model&& model) = default;
 
-    void Destroy()
-    {
-        // The model does not own the triangle meshes, therefore it does not
-        // destroy them.
-        meshes.Destroy();
-    }
-    
     DISABLE_OBJECT_COPY(Model);
 };
 

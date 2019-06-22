@@ -30,9 +30,6 @@ InputSystem::Create(Allocator* allocator)
 void
 InputSystem::Destroy()
 {
-    for (int i = 0; i < kKeyboardEventMax; ++i) {
-        _keyboard_map[i].Destroy();
-    }
 }
 
 KeyboardEvent*

@@ -179,7 +179,6 @@ ResourceFile::Parse()
             String key = std::move(tokens[t].str);
             if (Has(key)) {
                 LOG_ERROR("File already has the key %s", key.data);
-                tokens.Destroy();
                 return;
             }
 
@@ -212,12 +211,10 @@ ResourceFile::Parse()
                             t += 2;
                         } else {
                             LOG_ERROR("Invalid array.");
-                            tokens.Destroy();
                             return;
                         }
                     } else {
                         LOG_ERROR("Invalid array.");
-                        tokens.Destroy();
                         return;
                     }
                 }
@@ -236,16 +233,12 @@ ResourceFile::Parse()
                 t += 4; // four tokens were recognized
             } else {
                 LOG_ERROR("Wrong syntax on value.");
-                tokens.Destroy();
                 return;
             }
         } else {
             LOG_ERROR("Wrong syntax on file.");
             LOG_ERROR("Expected IDENTIFIER =");
-            tokens.Destroy();
             return;
         }
     }
-
-    tokens.Destroy();
 }

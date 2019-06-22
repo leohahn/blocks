@@ -108,8 +108,6 @@ SetupPlane(Allocator* allocator, Allocator* scratch_allocator, Material* materia
                  mesh.indices.data,
                  GL_STATIC_DRAW);
 
-    buffer.Destroy();
-
     SubMesh submesh = {};
     submesh.start_index = 0;
     submesh.num_indices = mesh.indices.len;
@@ -254,8 +252,6 @@ SetupCube(Allocator* allocator, Allocator* scratch_allocator, Material* material
                  mesh.indices.len * sizeof(uint32_t),
                  mesh.indices.data,
                  GL_STATIC_DRAW);
-
-    buffer.Destroy();
 
     SubMesh submesh = {};
     submesh.start_index = 0;
@@ -462,10 +458,6 @@ main(int argc, char** argv)
     // TODO: remove this
     // wall_texture.name.Destroy();
     
-    nanosuit.Destroy();
-
-    floor_mesh.Destroy();
-    cube_mesh.Destroy();
     input_system.Destroy();
     resource_manager.Destroy();
     resource_manager_allocator.Clear();
