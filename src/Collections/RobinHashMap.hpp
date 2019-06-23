@@ -64,7 +64,7 @@ public:
 
         bool operator==(iterator other) const { return _element == other._element; }
         bool operator!=(iterator other) const { return !(*this == other); }
-        reference operator*() const { return *_element; }
+        Element& operator*() const { return *_element; }
 
     private:
         Element* _element;
