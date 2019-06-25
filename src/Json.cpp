@@ -48,7 +48,7 @@ struct Token
     {}
 };
 
-static Array<Token> Tokenize(const char* str, size_t str_size, const char** err_str);
+static Array<Token> Tokenize(Allocator* allocator, const char* str, size_t str_size, const char** err_str);
 
 void
 Json::Document::Parse(const char* json_str)
