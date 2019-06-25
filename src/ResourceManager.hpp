@@ -60,6 +60,10 @@ public:
         , resources_path(allocator)
     {}
 
+    ResourceManager(ResourceManager&& other) = default;
+
+    ResourceManager& operator=(ResourceManager&& other) = default;
+
     void Create();
     void Destroy();
 
@@ -81,7 +85,7 @@ public:
         return *shaders.Find(shader_file);
     }
 
-    DISABLE_OBJECT_COPY_AND_MOVE(ResourceManager);
+    DISABLE_OBJECT_COPY(ResourceManager);
 
 private:
     void LoadMaterialsFromMtlFile(const Path& filepath);

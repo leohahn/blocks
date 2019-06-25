@@ -17,15 +17,13 @@ public:
         , _name(nullptr)
     {}
 
-    LinearAllocator(const char* name, Memory mem)
+    LinearAllocator(const char* name, const Memory& mem)
         : LinearAllocator(name, mem.ptr, mem.size)
     {}
 
-    LinearAllocator(const char* name, Memory mem, size_t size)
+    LinearAllocator(const char* name, const Memory& mem, size_t size)
         : LinearAllocator(name, mem.ptr, MIN(size, mem.size))
     {}
-
-    ~LinearAllocator() { assert(_bytes_allocated == 0); }
 
     LinearAllocator(const char* name, void* mem, size_t size)
         : _mem(mem)

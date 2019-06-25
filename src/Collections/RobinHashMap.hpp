@@ -116,12 +116,40 @@ public:
         , max_num_elements_allowed((size_t)(kMaxLoadFactor * cap))
 	{}
 
+	RobinHashMap()
+		: RobinHashMap(nullptr, 0)
+	{}
+
+    RobinHashMap(RobinHashMap&& other)
+    {
+        *this = std::move(other);
+    }
+
+    RobinHashMap& operator=(RobinHashMap&& other)
+    {
+        allocator = other.allocator;
+        elements = other.elements;
+        cap = other.cap;
+        num_elements = other.num_elements;
+        max_num_elements_allowed = other.max_num_elements_allowed;
+        other.allocator = nullptr;
+        other.elements = nullptr;
+        other.cap = 0;
+        other.num_elements = 0;
+        other.max_num_elements_allowed = 0;
+    }
+
     ~RobinHashMap()
     {
-        assert(allocator == nullptr);
-        assert(elements == nullptr);
-        assert(num_elements == 0);
-        assert(cap == 0);
+        if (elements) {
+            for (size_t i = 0; i < cap; ++i) {
+                if (elements[i]._hash != 0 && !IsDeleted(elements[i]._hash)) {
+                    elements[i].key.~Key();
+                    elements[i].val.~Value();
+                }
+            }
+            allocator->Deallocate(elements);
+        }
     }
 
 	void Create()
@@ -135,24 +163,6 @@ public:
         for (size_t i = 0; i < cap; ++i) {
             elements[i]._hash = 0; // All elements are free
         }
-	}
-
-	void Destroy()
-	{
-		// TODO: implement this piece of code
-        if (elements) {
-            for (size_t i = 0; i < cap; ++i) {
-                if (elements[i]._hash != 0 && !IsDeleted(elements[i]._hash)) {
-                    elements[i].key.~Key();
-                    elements[i].val.~Value();
-                }
-            }
-        }
-        allocator->Deallocate(elements);
-        elements = nullptr;
-        allocator = nullptr;
-        cap = 0;
-        num_elements = 0;
 	}
 
     void Add(Key key, Value value)

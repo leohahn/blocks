@@ -16,15 +16,28 @@ struct Memory
     Memory(size_t size)
         : ptr(nullptr)
         , size(size)
-    {}
-
-    void Create()
     {
-        ptr = calloc(1, size);
-        assert(ptr);
+        if (size > 0) {
+            ptr = calloc(1, size);
+            assert(ptr);
+        }
     }
 
-    void Destroy()
+    Memory(Memory&& other)
+    {
+        *this = std::move(other);
+    }
+
+    Memory& operator=(Memory&& other)
+    {
+        ptr = other.ptr;
+        size = other.size;
+        other.ptr = nullptr;
+        other.size = 0;
+        return *this;
+    }
+
+    ~Memory()
     {
         free(ptr);
         ptr = nullptr;

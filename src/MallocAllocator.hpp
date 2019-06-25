@@ -6,6 +6,10 @@
 class MallocAllocator : public Allocator
 {
 public:
+    MallocAllocator()
+        : MallocAllocator("")
+    {}
+
     MallocAllocator(const char* name)
         : _bytes_water_mark(0)
         , _name(name)

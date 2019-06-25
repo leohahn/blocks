@@ -46,7 +46,6 @@ public:
 
     void Destroy()
     {
-        _strings.Destroy();
         allocator = nullptr;
     }
 

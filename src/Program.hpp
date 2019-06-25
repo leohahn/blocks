@@ -2,7 +2,9 @@
 
 #include "Path.hpp"
 #include "LinearAllocator.hpp"
+#include "MallocAllocator.hpp"
 #include "Memory.hpp"
+#include "ResourceManager.hpp"
 #include <SDL.h>
 
 enum class ProgramState
@@ -17,11 +19,14 @@ struct Program
     ProgramState state;
     Memory memory;
     LinearAllocator main_allocator;
+    MallocAllocator temp_allocator;
     bool running = true;
     SDL_Window* window = nullptr;
     int32_t window_width;
     int32_t window_height;
     SDL_GLContext gl_context;
+    LinearAllocator resource_manager_allocator;
+    ResourceManager* resource_manager;
 };
 
 void InitProgram(Program* program, size_t memory_amount, int32_t window_width, int32_t window_height);

@@ -9,6 +9,11 @@ struct StringView
     size_t len;
 
 public:
+    StringView()
+        : data(nullptr)
+        , len(0)
+    {}
+
     StringView(const char* str)
         : data(str)
         , len(strlen(str))

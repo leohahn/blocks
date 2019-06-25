@@ -8,11 +8,22 @@
 void
 InitProgram(Program* program, size_t memory_amount, int32_t window_width, int32_t window_height)
 {
+    const size_t resource_manager_designated_memory = MEGABYTES(10);
+    
     program->memory = Memory(memory_amount);
-    program->memory.Create();
     program->main_allocator = LinearAllocator("main", program->memory);
+    program->temp_allocator = MallocAllocator("temporary_allocator");
     program->window_width = window_width;
     program->window_height = window_height;
+    program->running = true;
+
+    program->resource_manager_allocator = LinearAllocator(
+        "resource_manager",
+        program->main_allocator.Allocate(resource_manager_designated_memory),
+        resource_manager_designated_memory
+    );
+    program->resource_manager = program->main_allocator.New<ResourceManager>(&program->resource_manager_allocator, &program->temp_allocator);
+    program->resource_manager->Create();
 
     LOG_INFO("Initializing SDL");
 
@@ -54,9 +65,9 @@ TerminateProgram(Program* program)
 {
     assert(program);
     SidDatabase::Terminate();
-    program->main_allocator.Clear();
-    program->memory.Destroy();
     SDL_GL_DeleteContext(program->gl_context);
     SDL_DestroyWindow(program->window);
+    program->resource_manager->Destroy();
+    program->main_allocator.Delete<ResourceManager>(program->resource_manager);
     SDL_Quit();
 }

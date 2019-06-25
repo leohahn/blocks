@@ -61,6 +61,8 @@ add_executable(blocks
     src/Sid.cpp
     src/Material.hpp
     src/Material.cpp
+    src/Json.hpp
+    src/Json.cpp
 
     # Memory
     src/Memory.hpp

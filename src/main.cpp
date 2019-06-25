@@ -276,7 +276,7 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 // since they are friendlier to read in code.
 //
 
-ResourceManager* g_debug_resource_manager = nullptr;
+//ResourceManager* g_debug_resource_manager = nullptr;
 
 int
 main(int argc, char** argv)
@@ -289,19 +289,8 @@ main(int argc, char** argv)
     Program program;
     InitProgram(&program, MEGABYTES(128), SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    MallocAllocator temp_allocator("temporary_allocator");
-    
-    const size_t resource_manager_designated_memory = MEGABYTES(10);
-    LinearAllocator resource_manager_allocator(
-        "resource_manager",
-        program.main_allocator.Allocate(resource_manager_designated_memory),
-        resource_manager_designated_memory
-    );
-    ResourceManager resource_manager(&resource_manager_allocator, &temp_allocator);
-    resource_manager.Create();
-
 #ifdef _DEBUG
-    g_debug_resource_manager = &resource_manager;
+    //g_debug_resource_manager = &resource_manager;
 #endif
 
     //
@@ -309,8 +298,8 @@ main(int argc, char** argv)
     //
     LOG_DEBUG("Loading shaders\n");
 
-    resource_manager.LoadShader(SID("basic.glsl"));
-    Shader* basic_shader = resource_manager.GetShader(SID("basic.glsl"));
+    program.resource_manager->LoadShader(SID("basic.glsl"));
+    Shader* basic_shader = program.resource_manager->GetShader(SID("basic.glsl"));
     assert(basic_shader && basic_shader->IsValid() && "program should be valid");
     SetLocationsForShader(basic_shader);
 
@@ -341,29 +330,29 @@ main(int argc, char** argv)
     // LinearAllocator texture_catalog_allocator(
     //     "texture_catalog", program.main_allocator.Allocate(MEGABYTES(10)), MEGABYTES(10));
     // TextureCatalog texture_catalog(&texture_catalog_allocator, &temp_allocator);
-    resource_manager.LoadTexture(SID("wall.jpg"));
+    program.resource_manager->LoadTexture(SID("wall.jpg"));
 
-    Texture* wall_texture = resource_manager.GetTexture(SID("wall.jpg"));
+    Texture* wall_texture = program.resource_manager->GetTexture(SID("wall.jpg"));
     LOG_DEBUG("Loaded texture named: %s", wall_texture->name.GetStr());
     LOG_DEBUG("       width: %d", wall_texture->width);
     LOG_DEBUG("       height: %d", wall_texture->height);
 
     // HACK: load this material from a file instead of doing it like this
     {
-        Material* material = resource_manager.allocator->New<Material>();
+        Material* material = program.resource_manager->allocator->New<Material>();
         material->name = SID("wall");
         material->diffuse_map = wall_texture;
-        resource_manager.materials.Add(material->name, material);
+        program.resource_manager->materials.Add(material->name, material);
     }
 
     // DEBUG meshes for testing
-    Material* wall_material = resource_manager.GetMaterial(SID("wall"));
+    Material* wall_material = program.resource_manager->GetMaterial(SID("wall"));
     assert(wall_material);
-    TriangleMesh floor_mesh = SetupPlane(&program.main_allocator, &temp_allocator, wall_material);
-    TriangleMesh cube_mesh = SetupCube(&program.main_allocator, &temp_allocator, wall_material);
+    TriangleMesh floor_mesh = SetupPlane(&program.main_allocator, &program.temp_allocator, wall_material);
+    TriangleMesh cube_mesh = SetupCube(&program.main_allocator, &program.temp_allocator, wall_material);
 
 
-    Model nanosuit = resource_manager.LoadModel(SID("nanosuit.model"));
+    Model nanosuit = program.resource_manager->LoadModel(SID("nanosuit.model"));
 
     LOG_DEBUG("Starting main loop");
     glClearColor(0, 0, 0, 1);
@@ -453,14 +442,12 @@ main(int argc, char** argv)
 
     LOG_INFO("Deallocating main resources");
     LOG_DEBUG("Total memory used by heap allocator: %s",
-              Utils::GetPrettySize(temp_allocator.GetBytesWaterMark()));
+              Utils::GetPrettySize(program.temp_allocator.GetBytesWaterMark()));
 
     // TODO: remove this
     // wall_texture.name.Destroy();
     
     input_system.Destroy();
-    resource_manager.Destroy();
-    resource_manager_allocator.Clear();
     TerminateProgram(&program);
 	return 0;
 }

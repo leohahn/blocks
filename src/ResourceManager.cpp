@@ -37,24 +37,20 @@ ResourceManager::Destroy()
     for (auto& el : meshes) {
         allocator->Delete(el.val);
     }
-    meshes.Destroy();
 
     for (auto& el : materials) {
         allocator->Delete(el.val);
     }
-    materials.Destroy();
 
     for (auto& el : textures) {
         el.val->Destroy();
         allocator->Delete(el.val);
     }
-    textures.Destroy();
 
     for (auto& el : shaders) {
         el.val->Destroy();
         allocator->Delete(el.val);
     }
-    shaders.Destroy();
 
     resources_path.Destroy();
 

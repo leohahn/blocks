@@ -35,51 +35,8 @@ void
 ResourceFile::Destroy()
 {
     filepath.Destroy();
-    _entries.Destroy();
     _allocator = nullptr;
     _scratch_allocator = nullptr;
-}
-
-static inline uint8_t *
-EatWhitespaces(uint8_t* it, const uint8_t* end_it)
-{
-    uint8_t* new_it = it;
-    while (std::isspace(*new_it) && new_it <= end_it) {
-        new_it++;
-    }
-    return new_it;
-}
-
-static inline uint8_t*
-EatUntil(char c, uint8_t* it, const uint8_t* end_it)
-{
-    uint8_t* new_it = it;
-    while (*new_it != c && new_it <= end_it) {
-        new_it++;
-    }
-    return new_it;
-}
-
-template<typename T>
-static inline uint8_t *
-EatUntil(const T &chars, uint8_t *it, const uint8_t *end_it)
-{
-    uint8_t *new_it = it;
-    while (std::find(std::begin(chars), std::end(chars), *new_it) == std::end(chars) &&
-        new_it <= end_it) {
-        new_it++;
-    }
-    return new_it;
-}
-
-static inline uint8_t *
-EatWhile(const std::function<bool(uint8_t)> &predicate, uint8_t *it, const uint8_t *end_it)
-{
-    uint8_t *new_it = it;
-    while (predicate(*new_it) && new_it <= end_it) {
-        new_it++;
-    }
-    return new_it;
 }
 
 Array<ResourceFile::Token>
@@ -95,13 +52,13 @@ ResourceFile::Tokenize()
     const uint8_t *end_it = (uint8_t*)filedata + filesize - 1;
 
     while (it <= end_it) {
-        it = EatWhitespaces(it, end_it);
+        it = Utils::EatWhitespaces(it, end_it);
 
         if (*it == '#') {
-            it = EatUntil('\n', it, end_it);
+            it = Utils::EatUntil('\n', it, end_it);
         } else if (std::isalpha(*it)) {
             std::array<char, 6> chars{ {' ', '=', ';', ',', ']', '\n'} };
-            uint8_t *last_it = EatUntil(chars, it, end_it);
+            uint8_t *last_it = Utils::EatUntil(chars, it, end_it);
 
             String token_str(_scratch_allocator);
             token_str.Append(it, last_it);
@@ -112,7 +69,7 @@ ResourceFile::Tokenize()
             it = last_it;
         } else if (std::isdigit(*it)) {
             // parse until the last number
-            uint8_t *last_it = EatWhile(static_cast<int(*)(int)>(std::isdigit), it, end_it);
+            uint8_t *last_it = Utils::EatWhile(static_cast<int(*)(int)>(std::isdigit), it, end_it);
 
             if (*last_it == '.') {
                 // TODO: parse float.
