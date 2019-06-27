@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <functional>
 #include <cctype>
+#include <algorithm>
 
 namespace Utils
 {
