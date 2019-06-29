@@ -36,6 +36,15 @@ struct String
     {
         Append(contents);
     }
+    
+    String(Allocator* allocator, const StringView& contents)
+        : allocator(allocator)
+        , cap(0)
+        , len(0)
+        , data(nullptr)
+    {
+        Append(contents);
+    }
 
     String(const String& str)
         : String(nullptr)

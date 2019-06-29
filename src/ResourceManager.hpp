@@ -86,7 +86,4 @@ public:
     }
 
     DISABLE_OBJECT_COPY(ResourceManager);
-
-private:
-    void LoadMaterialsFromMtlFile(const Path& filepath);
 };

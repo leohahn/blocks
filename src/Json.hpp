@@ -10,7 +10,8 @@ namespace Json {
 
 enum class Type
 {
-    Number,
+    Integer = 0,
+    Real,
     String,
     Object,
     Boolean,
@@ -24,44 +25,36 @@ struct Val
     union TypeValues
     {
         String string;
-        int64_t number;
+        int64_t integer;
+        double real;
         Array<Val> array;
         RobinHashMap<String, Val> object;
         bool boolean;
 
-        TypeValues(): number(0) {}
+        TypeValues(): integer(0) {}
         ~TypeValues() {}
     } values;
-
+    
     Val(Allocator* allocator, const char* str)
-        : Val(allocator, Type::String)
+        : type(Type::String)
     {
-        values.string.Append(str);
+        values.string = String(allocator, str);
     }
-
-    Val(Allocator* allocator, Type type)
-        : type(type)
+    
+    Val()
+        : type(Type::Null)
+    {}
+    
+    Val(double real)
+        : type(Type::Real)
     {
-        switch (type) {
-            case Type::Number:
-                values.number = 0;
-                break;
-            case Type::String:
-                values.string = String(allocator, "");
-                break;
-            case Type::Object:
-                values.object = RobinHashMap<String, Val>(allocator, 4);
-                break;
-            case Type::Boolean:
-                values.boolean = false;
-                break;
-            case Type::Array:
-                values.array = Array<Val>(allocator);
-                break;
-            default:
-                // ignore
-                break;
-        }
+        values.real = real;
+    }
+    
+    Val(int64_t integer)
+        : type(Type::Integer)
+    {
+        values.integer = integer;
     }
 
     ~Val()
@@ -93,8 +86,11 @@ struct Val
         type = other.type;
 
         switch (other.type) {
-            case Type::Number:
-                values.number = other.values.number;
+            case Type::Integer:
+                values.integer = other.values.integer;
+                break;
+            case Type::Real:
+                values.real = other.values.real;
                 break;
             case Type::String:
                 values.string = std::move(other.values.string);
@@ -107,6 +103,9 @@ struct Val
                 break;
             case Type::Array:
                 values.array = std::move(other.values.array);
+                break;
+            case Type::Null:
+                // do nothing
                 break;
         }
 
@@ -123,10 +122,11 @@ struct Document
 
     Document(Allocator* allocator)
         : allocator(allocator)
-        , root_val(allocator, Type::Null)
+        , root_val()
     {}
 
     void Parse(const char* json_str);
+    void Parse(uint8_t* data, size_t size);
     bool HasParseErrors() const { return !parse_error.IsEmpty(); }
     const char* GetErrorStr() const { return parse_error.data; }
 };

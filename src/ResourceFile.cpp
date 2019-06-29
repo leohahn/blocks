@@ -15,10 +15,9 @@
 ResourceFile::ResourceFile(Allocator* allocator, Allocator* scratch_allocator)
     : _allocator(allocator)
     , _scratch_allocator(scratch_allocator)
-    , filepath(allocator)
     , _entries(allocator, HASH_MAP_FIXED_SIZE)
-{
-}
+    , filepath(allocator)
+{}
 
 void
 ResourceFile::Create(const Sid& file_sid)
@@ -27,14 +26,12 @@ ResourceFile::Create(const Sid& file_sid)
     this->filepath.Push(resources_path);
     this->filepath.Push(file_sid.GetStr());
     _entries.Create();
-    resources_path.Destroy();
     Parse();
 }
 
 void 
 ResourceFile::Destroy()
 {
-    filepath.Destroy();
     _allocator = nullptr;
     _scratch_allocator = nullptr;
 }
@@ -48,7 +45,7 @@ ResourceFile::Tokenize()
     uint8_t* filedata = FileSystem::LoadFileToMemory(_scratch_allocator, filepath, &filesize);
     assert(filedata && filesize > 0);
 
-    uint8_t *it = (uint8_t*)filedata;
+    const uint8_t *it = (uint8_t*)filedata;
     const uint8_t *end_it = (uint8_t*)filedata + filesize - 1;
 
     while (it <= end_it) {
@@ -58,7 +55,7 @@ ResourceFile::Tokenize()
             it = Utils::EatUntil('\n', it, end_it);
         } else if (std::isalpha(*it)) {
             std::array<char, 6> chars{ {' ', '=', ';', ',', ']', '\n'} };
-            uint8_t *last_it = Utils::EatUntil(chars, it, end_it);
+            const uint8_t *last_it = Utils::EatUntil(chars, it, end_it);
 
             String token_str(_scratch_allocator);
             token_str.Append(it, last_it);
@@ -69,7 +66,7 @@ ResourceFile::Tokenize()
             it = last_it;
         } else if (std::isdigit(*it)) {
             // parse until the last number
-            uint8_t *last_it = Utils::EatWhile(static_cast<int(*)(int)>(std::isdigit), it, end_it);
+            const uint8_t *last_it = Utils::EatWhile(static_cast<int(*)(int)>(std::isdigit), it, end_it);
 
             if (*last_it == '.') {
                 // TODO: parse float.

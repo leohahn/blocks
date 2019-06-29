@@ -42,6 +42,13 @@ public:
         *this = std::move(other_path);
     }
     
+    ~Path()
+    {
+        if (data) {
+            allocator->Deallocate(data);
+        }
+    }
+    
     Path& operator=(Path&& other_path)
     {
         allocator = other_path.allocator;
@@ -58,15 +65,6 @@ public:
         return *this;
     }
     
-    void Destroy()
-    {
-        if (data) {
-            allocator->Deallocate(data);
-            data = nullptr;
-        }
-        allocator = nullptr;
-    }
-
     void Push(const Path& other_path)
     {
         Push(other_path.data, other_path.len);

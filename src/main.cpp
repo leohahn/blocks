@@ -1,26 +1,23 @@
-#include "Allocator.hpp"
 #include "Camera.hpp"
-#include "Defines.hpp"
 #include "FileSystem.hpp"
 #include "InputSystem.hpp"
-#include "Logger.hpp"
 #include "MallocAllocator.hpp"
-#include "Math.hpp"
 #include "OpenGL.hpp"
 #include "PlayerInput.hpp"
 #include "Program.hpp"
 #include "Renderer.hpp"
 #include "ResourceManager.hpp"
 #include "ResourceFile.hpp"
-#include "Shader.hpp"
 #include "Texture.hpp"
 #include "TriangleMesh.hpp"
+#include "Math.hpp"
 #include "Utils.hpp"
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include <assert.h>
 #include <glad/glad.h>
 #include <stdio.h>
+#include "Json.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -290,7 +287,7 @@ main(int argc, char** argv)
     InitProgram(&program, MEGABYTES(128), SCREEN_WIDTH, SCREEN_HEIGHT);
 
 #ifdef _DEBUG
-    //g_debug_resource_manager = &resource_manager;
+//    g_debug_resource_manager = &resource_manager;
 #endif
 
     //
@@ -351,13 +348,29 @@ main(int argc, char** argv)
     TriangleMesh floor_mesh = SetupPlane(&program.main_allocator, &program.temp_allocator, wall_material);
     TriangleMesh cube_mesh = SetupCube(&program.main_allocator, &program.temp_allocator, wall_material);
 
-
     Model nanosuit = program.resource_manager->LoadModel(SID("nanosuit.model"));
 
     LOG_DEBUG("Starting main loop");
     glClearColor(0, 0, 0, 1);
+    
+    {
+        auto path = FileSystem::GetResourcesPath(&program.temp_allocator);
+        path.Push("Alpine_chalet.gltf");
 
-    // iterate over the resource file
+        size_t size;
+        uint8_t* data = FileSystem::LoadFileToMemory(&program.temp_allocator, path, &size);
+        assert(data);
+        program.temp_allocator.Deallocate(data);
+
+        Json::Document doc(&program.temp_allocator);
+        doc.Parse(data, size);
+        if (doc.HasParseErrors()) {
+            LOG_ERROR("JSON HAS PARSE ERRORS: %s", doc.GetErrorStr());
+        } else {
+            LOG_INFO("PARSE SUCCESSUFUFUFUUFUF");
+            LOG_INFO("TYPE IS %d", doc.root_val.type);
+        }
+    }
 
     while (running) {
         input_system.Update();

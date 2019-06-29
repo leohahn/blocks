@@ -52,8 +52,6 @@ ResourceManager::Destroy()
         allocator->Delete(el.val);
     }
 
-    resources_path.Destroy();
-
     allocator = nullptr;
     scratch_allocator = nullptr;
 }
@@ -411,7 +409,6 @@ error_cleanup:
 ok:
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
-    full_path.Destroy();
     shaders.Add(shader_sid, shader);
 }
 
@@ -496,20 +493,7 @@ LoadTextureFromFile(Allocator* allocator,
 
 cleanup_texture_buffer:
     allocator->Deallocate(texture_buffer);
-    full_asset_path.Destroy();
-    resources_path.Destroy();
 
     texture->loaded = true;
     return texture;
-}
-
-void
-ResourceManager::LoadMaterialsFromMtlFile(const Path& filepath)
-{
-    assert(filepath.data && filepath.len > 0);
-
-    LOG_DEBUG("Loading materials from %s", filepath.data);
-
-    size_t filesize;
-    uint8_t* filedata = FileSystem::LoadFileToMemory(scratch_allocator, filepath, &filesize);
 }

@@ -143,15 +143,15 @@ struct ResourceFile
     RobinHashMap<String, Val*>& GetEntries() { return _entries; }
     const RobinHashMap<String, Val*>& GetEntries() const { return _entries; }
 
-public:
-	Path filepath;
-	bool is_file_correct = true;
+	void Parse();
+	Array<Token> Tokenize();
 
 private:
     Allocator* _allocator;
     Allocator* _scratch_allocator;
-	RobinHashMap<String, Val*> _entries;
+    RobinHashMap<String, Val*> _entries;
 
-	void Parse();
-	Array<Token> Tokenize();
+public:
+    Path filepath;
+    bool is_file_correct = true;
 };

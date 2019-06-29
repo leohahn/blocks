@@ -80,14 +80,14 @@ add_executable(blocks
     src/Path.cpp
 
     # Math
-    src/math/Vec2.hpp
-    src/math/Vec3.hpp
-    src/math/Vec4.hpp
-    src/math/Mat4.hpp
-    src/math/Mat4.cpp
-    src/math/Float.hpp
-    src/math/Quaternion.hpp
-    src/math/Quaternion.cpp
+    src/Math/Vec2.hpp
+    src/Math/Vec3.hpp
+    src/Math/Vec4.hpp
+    src/Math/Mat4.hpp
+    src/Math/Mat4.cpp
+    src/Math/Float.hpp
+    src/Math/Quaternion.hpp
+    src/Math/Quaternion.cpp
 
     # Rendering
     src/Renderer.hpp

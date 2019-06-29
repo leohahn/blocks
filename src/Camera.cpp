@@ -2,8 +2,8 @@
 
 Camera::Camera(Vec3 position, Vec3 front)
     : position(position)
-    , up_world(0, 1, 0)
     , front(0, Math::Normalize(front))
+    , up_world(0, 1, 0)
 {
     UpdateUpAndRightVectors();
 }
@@ -33,7 +33,12 @@ void
 Camera::Rotate(const Vec3& axis)
 {
     using namespace Math;
+    // HACK, TODO: remove this GAMBETA
+#if OS_APPLE
+    float rotation_speed = 0.070f;
+#else
     float rotation_speed = 0.001f;
+#endif
 
     front = Quaternion::Rotate(front, rotation_speed, Quaternion(0, axis));
 
