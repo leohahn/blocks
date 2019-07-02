@@ -8,7 +8,6 @@ void SidDatabase::Initialize(Allocator* allocator)
 {
     assert(allocator);
     g_debug_sid_database = allocator->New<SidDatabase>(allocator);
-    g_debug_sid_database->Create();
 }
 
 void SidDatabase::Terminate()

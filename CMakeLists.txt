@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.5)
 
 project(blocks)
 
+# Set a default build type if none was specified
+set(default_build_type "Debug")
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
+    set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE STRING "Choose the type of build." FORCE)
+endif()
+
 include(cmake/conan.cmake)
 
 conan_cmake_run(REQUIRES "sdl2/2.0.9@bincrafters/stable"
@@ -115,8 +122,10 @@ elseif(WIN32)
 endif()
 
 if(WIN32)
-	#target_compile_options(blocks PRIVATE /EHsc- /GR-)
-    target_compile_options(blocks PRIVATE /EHsc-)
+    target_compile_options(blocks
+      PRIVATE
+        /EHsc-
+	$<$<CONFIG:Debug>:/Zi>)
     target_compile_definitions(blocks PRIVATE _HAS_EXCEPTIONS=0)
 else()
 	#target_compile_options(blocks PRIVATE -fno-rtti -fno-exceptions)

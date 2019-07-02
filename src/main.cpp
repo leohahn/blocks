@@ -360,7 +360,6 @@ main(int argc, char** argv)
         size_t size;
         uint8_t* data = FileSystem::LoadFileToMemory(&program.temp_allocator, path, &size);
         assert(data);
-        program.temp_allocator.Deallocate(data);
 
         Json::Document doc(&program.temp_allocator);
         doc.Parse(data, size);
@@ -370,6 +369,11 @@ main(int argc, char** argv)
             LOG_INFO("PARSE SUCCESSUFUFUFUUFUF");
             LOG_INFO("TYPE IS %d", doc.root_val.type);
         }
+
+        String pretty = doc.PrettyPrint();
+        LOG_DEBUG("Pretty print json:\n%s", pretty.data);
+
+        program.temp_allocator.Deallocate(data);
     }
 
     while (running) {

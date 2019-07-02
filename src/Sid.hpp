@@ -39,11 +39,6 @@ public:
         assert(allocator == nullptr);
     }
 
-    void Create()
-    {
-        _strings.Create();
-    }
-
     void Destroy()
     {
         allocator = nullptr;

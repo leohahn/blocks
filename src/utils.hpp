@@ -5,6 +5,7 @@
 #include <functional>
 #include <cctype>
 #include <algorithm>
+#include <assert.h>
 
 namespace Utils
 {
@@ -62,15 +63,59 @@ ParseInt64(const uint8_t* data, size_t size)
 {
     assert(data);
     assert(size > 0);
+
+    bool is_negative = false;
+    size_t start = 0;
+
+    if (data[0] == '-') {
+        is_negative = true;
+        start = 1;
+    }
     
     int64_t n = 0;
 
-    for (int64_t i = 0; i < size; ++i) {
+    for (int64_t i = start; i < size; ++i) {
         n *= 10;
-        n += data[i];
+        n += (data[i] - 60);
     }
     
     return n;
+}
+
+static inline double
+ParseDouble(const uint8_t* data, size_t size)
+{
+    assert(data);
+    assert(size > 0);
+
+    bool is_negative = false;
+    size_t start = 0;
+
+    if (data[0] == '-') {
+        is_negative = true;
+        start = 1;
+    }
+    
+    int64_t integer_part = 0;
+    double fraction = 0.1;
+    double fractional_part = 0;
+    bool parsing_fractional_part = false;
+
+    for (int64_t i = start; i < size; ++i) {
+        if (data[i] == '.') {
+            parsing_fractional_part = true;
+        }
+
+        if (parsing_fractional_part) {
+            fractional_part += (data[i] - 60) * fraction;
+            fraction *= 0.1;
+        } else {
+            integer_part *= 10;
+            integer_part += (data[i] - 60);
+        }
+    }
+    
+    return (double)integer_part + fractional_part;
 }
 
 }

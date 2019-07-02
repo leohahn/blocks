@@ -35,4 +35,9 @@ public:
     char Front() const { return data[0]; }
 
     char operator[](size_t index) const { return data[index]; }
+
+    bool operator==(const char* other) const
+    {
+        return strcmp(data, other) == 0;
+    }
 };

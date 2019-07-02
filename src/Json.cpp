@@ -5,19 +5,21 @@
 #include "Utils.hpp"
 #include <cctype>
 #include <array>
+#include <inttypes.h>
 
 #define JSON_TOKENS \
         JT(TokenType_Invalid = 0, "Invalid"),             \
-        JT(TokenType_Identifier, "Identifier"),           \
+        JT(TokenType_String, "String"),           \
         JT(TokenType_Integer, "Integer"),                 \
         JT(TokenType_Real, "Real"),                 \
         JT(TokenType_OpenCurlyBraces, "Open Curly Braces ({)"),    \
         JT(TokenType_CloseCurlyBraces, "Close Curly Braces (})"),  \
         JT(TokenType_OpenBrackets, "Open Brackets ([)"),    \
         JT(TokenType_CloseBrackets, "Close Brackets (])"),  \
-        JT(TokenType_Quotes, "Quotes (\")"), \
         JT(TokenType_Comma, "Comma (,)"), \
-        JT(TokenType_Colon, "Colon (:)"),
+        JT(TokenType_Colon, "Colon (:)"), \
+        JT(TokenType_Boolean, "Boolean (true or false)"), \
+        JT(TokenType_Null, "Null"),
 
 static const char* TokenNames[] =
 {
@@ -50,6 +52,14 @@ struct Token
 };
 
 static Array<Token> Tokenize(Allocator* allocator, const char* str, size_t str_size, const char** err_str);
+static const char* ParseArray(Allocator* allocator,
+                              const Array<Token>& tokens,
+                              size_t* start,
+                              Array<Json::Val>* array);
+static const char* ParseObject(Allocator* allocator,
+                               const Array<Token>& tokens,
+                               size_t* start,
+                               RobinHashMap<String, Json::Val>* obj);
 
 void
 Json::Document::Parse(const char* json_str)
@@ -65,113 +75,220 @@ GetTokensLeft(const Array<Token>& tokens, size_t current)
 }
 
 static const char*
-ParseString(Allocator* allocator, const Array<Token>& tokens, size_t start, size_t* end_it, String* str)
+ParseString(Allocator* allocator, const Array<Token>& tokens, size_t* start, String* str)
 {
     assert(str);
+    assert(start);
     assert(start > 0);
     assert(allocator);
-    
-    size_t num_key_tokens = 4;
-    if (GetTokensLeft(tokens, start) < num_key_tokens) {
-        return "Json object key is incomplete";
+
+    const size_t num_key_tokens = 1;
+    if (GetTokensLeft(tokens, *start) < num_key_tokens) {
+        return "Was expecting a string";
     }
-    
-    if (tokens[start+0].type == TokenType_Quotes &&
-        tokens[start+1].type == TokenType_Identifier &&
-        tokens[start+2].type == TokenType_Quotes &&
-        tokens[start+3].type == TokenType_Colon)
+
+    if (tokens[*start].type == TokenType_String)
     {
-        *end_it = start + 4;
-        String key(allocator, tokens[start+1].str);
+        *str = String(allocator, tokens[*start].str);
+        ++(*start);
+        return nullptr;
     }
     else
     {
-        return "Was expecting a json key";
+        return "Was expecting a json string";
     }
-    
-    return nullptr;
 }
 
 static const char*
-ParseObject(Allocator* allocator, const Array<Token>& tokens, size_t start, size_t* end_it, RobinHashMap<String, Json::Val>* obj)
+ParseObject(Allocator* allocator, const Array<Token>& tokens, size_t* start, RobinHashMap<String, Json::Val>* obj)
 {
-    assert(tokens[start].type == TokenType_OpenCurlyBraces);
-    assert(end_it);
+    assert(start);
     assert(obj);
-    *end_it = start;
     
-    *obj = RobinHashMap<String, Json::Val>(allocator, 32);
-    size_t tokens_left = tokens.len - start;
-    
+    const size_t tokens_left = tokens.len - *start;
     if (tokens_left < 2) {
         return "Invalid json object";
     }
-    
-    if (tokens[start+1].type == TokenType_CloseCurlyBraces) {
-        // Empty array
+
+    if (tokens[*start].type != TokenType_OpenCurlyBraces) {
+        return "object did not start with curly braces";
+    }
+
+    *obj = RobinHashMap<String, Json::Val>(allocator, 32);
+    size_t curr = *start + 1; // advance one, since the current one is an open curly brace
+
+    if (tokens[curr].type == TokenType_CloseCurlyBraces) {
+        ++curr;
+        *start = curr;
         return nullptr;
     }
-    
-    size_t curr = start + 1; // advance one, since the current one is an open curly brace
+
     for (;;) {
         // Now, parse a given key of the object
-        size_t num_key_tokens = 4;
-        if (get_tokens_left(curr) < num_key_tokens) {
-            return "Json object key is incomplete";
+        String key;
+        const char* err_msg = ParseString(allocator, tokens, &curr, &key);
+        if (err_msg) {
+            return err_msg;
         }
-        
-        if (tokens[curr+0].type == TokenType_Quotes &&
-            tokens[curr+1].type == TokenType_Identifier &&
-            tokens[curr+2].type == TokenType_Quotes &&
-            tokens[curr+3].type == TokenType_Colon)
-        {
-            // A key was found
-            curr += 4;
-            String key(allocator, tokens[curr+1].str);
 
-            // Now parse the value
-            if (tokens[curr+0].type == TokenType_Quotes &&
-                tokens[curr+1].type == TokenType_Identifier &&
-                tokens[curr+2].type == TokenType_Quotes &&
-                tokens[curr+3].type == TokenType_Colon)
-            {
-                
-            }
+        // Now a colon should be here
+        if (tokens[curr].type != TokenType_Colon) {
+            return "Expecting a colon after key in object";
         }
-        else
-        {
-            return "Was expecting key on JSON object";
+        ++curr;
+
+        // Now, parse the key value
+        switch (tokens[curr].type) {
+            case TokenType_Boolean: {
+                Json::Val boolean((tokens[curr].str == "true") ? true : false);
+                (*obj).Add(std::move(key), std::move(boolean));
+                ++curr;
+            } break;
+            case TokenType_Null: {
+                (*obj).Add(std::move(key), Json::Val());
+                ++curr;
+            } break;
+            case TokenType_Integer: {
+                int64_t val = Utils::ParseInt64((const uint8_t*)tokens[curr].str.data, tokens[curr].str.len);
+                (*obj).Add(std::move(key), Json::Val(val));
+                ++curr;
+            } break;
+            case TokenType_Real: {
+                double val = Utils::ParseDouble((const uint8_t*)tokens[curr].str.data, tokens[curr].str.len);
+                (*obj).Add(std::move(key), Json::Val(val));
+                ++curr;
+            } break;
+            case TokenType_OpenCurlyBraces: {
+                RobinHashMap<String, Json::Val> inner_obj;
+                const char* err_msg = ParseObject(allocator, tokens, &curr, &inner_obj);
+                if (err_msg) {
+                    return err_msg;
+                }
+                (*obj).Add(std::move(key), Json::Val(std::move(inner_obj)));
+            } break;
+            case TokenType_OpenBrackets: {
+                Array<Json::Val> inner_array;
+                const char* err_msg = ParseArray(allocator, tokens, &curr, &inner_array);
+                if (err_msg) {
+                    return err_msg;
+                }
+                (*obj).Add(std::move(key), Json::Val(std::move(inner_array)));
+            } break;
+            case TokenType_String: {
+                String string_val;
+                const char* err_msg = ParseString(allocator, tokens, &curr, &string_val);
+                if (err_msg) {
+                    return err_msg;
+                }
+                (*obj).Add(std::move(key), Json::Val(std::move(string_val)));
+            } break;
+            default: {
+                LOG_ERROR("Was not expecting token %s inside object", tokens[curr].str.data);
+            } break;
+        }
+
+        if (tokens[curr].type == TokenType_Comma) {
+            // a comma was found, more items to parse
+            ++curr;
+        } else if (tokens[curr].type != TokenType_CloseCurlyBraces) {
+            return "Was expecting a comma after a value inside object or a closing curly brace";
+        } else {
+            ++curr;
+            break;
         }
     }
 
+    *start = curr;
     return nullptr;
 }
 
 static const char*
-ParseArray(Allocator* allocator, const Array<Token>& tokens, size_t start, size_t* end_it, Array<Json::Val>* array)
+ParseArray(Allocator* allocator, const Array<Token>& tokens, size_t* start, Array<Json::Val>* array)
 {
-    assert(tokens[start].type == TokenType_OpenBrackets);
-    assert(end_it);
+    assert(start);
     assert(array);
-    *end_it = start;
     
-    *array = Array<Json::Val>(allocator);
-    size_t tokens_left = tokens.len - start;
-    
+    const size_t tokens_left = tokens.len - *start;
     if (tokens_left < 2) {
         return "Invalid json array";
     }
-    
-    if (tokens[start+1].type == TokenType_CloseBrackets) {
-        // Empty array
+
+    if (tokens[*start].type != TokenType_OpenBrackets) {
+        return "array did not start with open bracket";
+    }
+
+    *array = Array<Json::Val>(allocator);
+    size_t curr = *start + 1; // advance one, since the current one is an open bracket
+
+    if (tokens[curr].type == TokenType_CloseBrackets) {
+        ++curr;
+        *start = curr;
         return nullptr;
     }
-    
-    if (tokens[start+1].type == TokenType_Integer) {
-        int64_t n = Utils::ParseInt64((const uint8_t*)tokens[start+1].str.data, tokens[start+1].str.len);
-        (*array).PushBack(Json::Val(n));
+
+    for (;;) {
+        // Now, parse a value of the array
+        switch (tokens[curr].type) {
+            case TokenType_Boolean: {
+                Json::Val boolean((tokens[curr].str == "true") ? true : false);
+                (*array).PushBack(std::move(boolean));
+                ++curr;
+            } break;
+            case TokenType_Null: {
+                (*array).PushBack(Json::Val());
+                ++curr;
+            } break;
+            case TokenType_Integer: {
+                int64_t val = Utils::ParseInt64((const uint8_t*)tokens[curr].str.data, tokens[curr].str.len);
+                (*array).PushBack(Json::Val(val));
+                ++curr;
+            } break;
+            case TokenType_Real: {
+                double val = Utils::ParseDouble((const uint8_t*)tokens[curr].str.data, tokens[curr].str.len);
+                (*array).PushBack(Json::Val(val));
+                ++curr;
+            } break;
+            case TokenType_OpenCurlyBraces: {
+                RobinHashMap<String, Json::Val> inner_obj;
+                const char* err_msg = ParseObject(allocator, tokens, &curr, &inner_obj);
+                if (err_msg) {
+                    return err_msg;
+                }
+                (*array).PushBack(Json::Val(std::move(inner_obj)));
+            } break;
+            case TokenType_OpenBrackets: {
+                Array<Json::Val> inner_array;
+                const char* err_msg = ParseArray(allocator, tokens, &curr, &inner_array);
+                if (err_msg) {
+                    return err_msg;
+                }
+                (*array).PushBack(Json::Val(std::move(inner_array)));
+            } break;
+            case TokenType_String: {
+                String string_val;
+                const char* err_msg = ParseString(allocator, tokens, &curr, &string_val);
+                if (err_msg) {
+                    return err_msg;
+                }
+                (*array).PushBack(Json::Val(std::move(string_val)));
+            } break;
+            default: {
+                LOG_ERROR("Was not expecting token %s inside object", tokens[curr].str.data);
+            } break;
+        }
+
+        if (tokens[curr].type == TokenType_Comma) {
+            // a comma was found, there are more items to parse
+            ++curr;
+        } else if (tokens[curr].type != TokenType_CloseBrackets) {
+            return "Was expecting a comma after a value inside array";
+        } else {
+            ++curr;
+            break;
+        }
     }
-    
+
+    *start = curr;
     return nullptr;
 }
 
@@ -190,35 +307,42 @@ Json::Document::Parse(uint8_t* data, size_t size)
     LOG_DEBUG("There are %zu tokens", tokens.len);
 
     if (err_str) {
-        parse_error = String(allocator, err_str);
+        this->parse_error = String(allocator, err_str);
         return;
     }
     
     if (tokens.len < 2) {
-        parse_error = String(allocator, "Invalid JSON string");
+        this->parse_error = String(allocator, "Invalid JSON string");
         return;
     }
     
-//    auto loops_left = [](size_t t, const Array<Token>& tokens) -> int32_t {
-//        return (int32_t)tokens.len - 1 - (int32_t)t;
-//    };
-    
-    Val root_val;
-    
     if (tokens[0].type == TokenType_OpenBrackets) {
         // Parse an array
-        size_t end_it;
+        size_t it = 0;
         Array<Val> array;
-        const char* err_str = ParseArray(allocator, tokens, 0, &end_it, &array);
+        const char* err_str = ParseArray(allocator, tokens, &it, &array);
         if (err_str) {
-            parse_error = String(allocator, err_str);
+            this->parse_error = String(allocator, err_str);
         } else {
-            assert(end_it == tokens.len);
+            assert(it == tokens.len);
             root_val.type = Type::Array;
             root_val.values.array = std::move(array);
         }
     } else if (tokens[0].type == TokenType_OpenCurlyBraces) {
-        // TODO: parse object
+        // Parse an object
+        size_t it = 0;
+        RobinHashMap<String, Val> obj;
+        const char* err_str = ParseObject(allocator, tokens, &it, &obj);
+        if (err_str) {
+            this->parse_error = String(allocator, err_str);
+        } else {
+            assert(it == tokens.len);
+            root_val.type = Type::Object;
+            root_val.values.object = std::move(obj);
+        }
+    } else {
+        // invalid root json value
+        this->parse_error = String(allocator, "Json document did not start with an object or array");
     }
 }
 
@@ -264,9 +388,16 @@ Tokenize(Allocator* allocator, const char* str, size_t str_size, const char** er
             tokens.PushBack(tk);
             ++it;
         } else if (*it == '"') {
-            Token tk(TokenType_Quotes);
-            tokens.PushBack(tk);
             ++it;
+            const uint8_t *last_it = Utils::EatUntil('"' , it, end_it);
+            ++last_it;
+            if (last_it > end_it) {
+                *err_str = "string does not end with a double quote";
+                return tokens;
+            }
+            Token tk(TokenType_String, it, (size_t)(last_it - 1 - it));
+            tokens.PushBack(std::move(tk));
+            it = last_it;
         } else if (std::isdigit(*it) || *it == '-') {
             // parse until the last number
             if (*it == '-') {
@@ -286,18 +417,27 @@ Tokenize(Allocator* allocator, const char* str, size_t str_size, const char** er
             tokens.PushBack(std::move(tk));
             it = last_it;
         } else {
-            // this else here should be a string
-            std::array<char, 2> vals{ ',', '"' };
-            const uint8_t *last_it = Utils::EatUntil(vals, it, end_it);
+            // if this branch is executed it means either a boolean or a null
+            const uint8_t *last_it = Utils::EatUntil(',', it, end_it);
 
             if (last_it > end_it) {
-                *err_str = "string was not finished by another double quote";
+                *err_str = "value was not ended by a double quote or a comma";
                 return tokens;
             }
 
             assert(last_it - it != 0);
 
-            Token tk(TokenType_Identifier, it, (size_t)(last_it - it));
+            Token tk(TokenType_Null, it, (size_t)(last_it - it));
+
+            if (tk.str == "null") {
+                tk.type = TokenType_Null;
+            } else if (tk.str == "true" || tk.str == "false") {
+                tk.type = TokenType_Boolean;
+            } else {
+                LOG_ERROR("Invalid json identifier: %.*s", (int)tk.str.len, tk.str.data);
+                *err_str = "Invalid identifier";
+            }
+
             tokens.PushBack(std::move(tk));
 
             it = last_it;
@@ -307,4 +447,141 @@ Tokenize(Allocator* allocator, const char* str, size_t str_size, const char** er
     assert(it == end_it + 1);
     *err_str = nullptr;
     return tokens;
+}
+
+//-----------------------------------------
+// Pretty printing
+//-----------------------------------------
+
+static void PrintObject(String* str, const RobinHashMap<String, Json::Val>& obj, int indent_level);
+static void PrintArray(String* str, const Array<Json::Val>& array, int indent_level);
+static void PrintVal(String* str, const Json::Val& val, int indent_level);
+
+static void
+PrintIndent(String* str, int indent_level)
+{
+    assert(str);
+    for (int i = 0; i < indent_level; ++i) {
+        str->Append(' ');
+    }
+}
+
+
+static void
+PrintBoolean(String* str, bool b)
+{
+    assert(str);
+    if (b) {
+        str->Append("true");
+    } else {
+        str->Append("false");
+    }
+}
+
+static void
+PrintString(String* str, const String& str_to_print)
+{
+    assert(str);
+    str->Append('"');
+    str->Append(str_to_print);
+    str->Append('"');
+}
+
+static void
+PrintReal(String* str, double real)
+{
+    assert(str);
+    char buf[32];
+    sprintf(buf, "%f", real);
+    str->Append(buf);
+}
+
+static void
+PrintInteger(String* str, int64_t integer)
+{
+    assert(str);
+    char buf[32];
+    sprintf(buf, "%" PRId64, integer);
+    str->Append(buf);
+}
+
+static void
+PrintObject(String* str, const RobinHashMap<String, Json::Val>& obj, int indent_level)
+{
+    assert(str);
+    str->Append("{\n");
+    for (RobinHashMap<String, Json::Val>::iterator it = obj.begin(); it != obj.end(); it++) {
+        PrintIndent(str, indent_level);
+        PrintString(str, (*it).key);
+        str->Append(": ");
+        PrintVal(str, (*it).val, indent_level);
+        if (it + 1 != obj.end()) {
+            str->Append(",\n");
+        } else {
+            str->Append('\n');
+        }
+    }
+    PrintIndent(str, indent_level-2);
+    str->Append("}");
+}
+
+static void
+PrintArray(String* str, const Array<Json::Val>& array, int indent_level)
+{
+    assert(str);
+    str->Append("[\n");
+    for (size_t i = 0; i < array.len; ++i) {
+        PrintIndent(str, indent_level);
+        PrintVal(str, array[i], indent_level);
+        if (i != array.len-1) {
+            str->Append(",\n");
+        } else {
+            str->Append('\n');
+        }
+    }
+    PrintIndent(str, indent_level-2);
+    str->Append("]");
+}
+
+static void
+PrintVal(String* str, const Json::Val& val, int indent_level)
+{
+    switch (val.type) {
+        case Json::Type::Array:
+            PrintArray(str, val.values.array, indent_level + 2);
+            break;
+        case Json::Type::Boolean:
+            PrintBoolean(str, val.values.boolean);
+            break;
+        case Json::Type::Integer:
+            PrintInteger(str, val.values.integer);
+            break;
+        case Json::Type::Null:
+            str->Append("null");
+            break;
+        case Json::Type::Object:
+            PrintObject(str, val.values.object, indent_level + 2);
+            break;
+        case Json::Type::Real:
+            PrintReal(str, val.values.real);
+            break;
+        case Json::Type::String:
+            PrintString(str, val.values.string);
+            break;
+    }
+}
+
+String
+Json::Val::PrettyPrint(Allocator* allocator) const
+{
+    assert(allocator);
+    String str(allocator);
+    PrintVal(&str, *this, 0);
+    return str;
+}
+
+String
+Json::Document::PrettyPrint(Allocator* other_allocator) const
+{
+    return root_val.PrettyPrint(other_allocator ? other_allocator : allocator);
 }

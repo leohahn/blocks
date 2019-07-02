@@ -126,6 +126,8 @@ struct String
         len = new_len;
     }
 
+    void Append(const String& str) { Append(str.data, str.len); }
+
     void Append(const char* str) { Append(str, strlen(str)); }
 
     void Append(const StringView& str) { Append(str.data, str.len); }

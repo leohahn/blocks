@@ -62,6 +62,15 @@ public:
         }
         iterator operator++(int) { iterator ret = *this; ++(*this); return ret; }
 
+        iterator operator+(int n)
+        {
+            iterator ret = *this;
+            for (int i = 0; i < n; ++i) {
+                ++ret;
+            }
+            return ret;
+        }
+
         bool operator==(iterator other) const { return _element == other._element; }
         bool operator!=(iterator other) const { return !(*this == other); }
         Element& operator*() const { return *_element; }
@@ -73,7 +82,7 @@ public:
 
     using const_iterator = const iterator;
 
-    iterator begin()
+    iterator begin() const
     {
         for (size_t i = 0; i < cap; ++i) {
             if (IsDeleted(elements[i]._hash) || elements[i]._hash == 0) {
@@ -85,7 +94,7 @@ public:
         return end();
     }
 
-    iterator end() { return iterator(elements + cap, elements + cap); }
+    iterator end() const { return iterator(elements + cap, elements + cap); }
 
     const_iterator cbegin() const 
     {
@@ -114,7 +123,15 @@ public:
         , cap(cap)
 		, num_elements(0)
         , max_num_elements_allowed((size_t)(kMaxLoadFactor * cap))
-	{}
+	{
+        if (allocator) {
+            elements = (Element*)allocator->Allocate(sizeof(Element) * cap);
+            assert(elements);
+            for (size_t i = 0; i < cap; ++i) {
+                elements[i]._hash = 0; // All elements are free
+            }
+        }
+    }
 
 	RobinHashMap()
 		: RobinHashMap(nullptr, 0)
@@ -137,6 +154,7 @@ public:
         other.cap = 0;
         other.num_elements = 0;
         other.max_num_elements_allowed = 0;
+        return *this;
     }
 
     ~RobinHashMap()
@@ -151,19 +169,6 @@ public:
             allocator->Deallocate(elements);
         }
     }
-
-	void Create()
-	{
-		// TODO: allocate the data
-		assert(!elements);
-		assert(allocator);
-		assert(num_elements == 0);
-		elements = (Element*)allocator->Allocate(cap * sizeof(Element));
-        assert(elements);
-        for (size_t i = 0; i < cap; ++i) {
-            elements[i]._hash = 0; // All elements are free
-        }
-	}
 
     void Add(Key key, Value value)
     {

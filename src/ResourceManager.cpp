@@ -24,10 +24,6 @@ void
 ResourceManager::Create()
 {
     resources_path = FileSystem::GetResourcesPath(allocator);
-    shaders.Create();
-    textures.Create();
-    meshes.Create();
-    materials.Create();
 }
 
 void

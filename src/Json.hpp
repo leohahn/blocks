@@ -22,6 +22,8 @@ enum class Type
 struct Val
 {
     Type type;
+    // ooopd i fif iy sshindhidifhlj
+    // difpjgsoidjfgoij1
     union TypeValues
     {
         String string;
@@ -35,26 +37,48 @@ struct Val
         ~TypeValues() {}
     } values;
     
-    Val(Allocator* allocator, const char* str)
+    Val(String str)
         : type(Type::String)
     {
-        values.string = String(allocator, str);
+        memset(&values, 0, sizeof(TypeValues));
+        values.string = std::move(str);
     }
     
     Val()
         : type(Type::Null)
-    {}
+    {
+    }
     
     Val(double real)
         : type(Type::Real)
     {
         values.real = real;
     }
+
+    Val(bool val)
+        : type(Type::Boolean)
+    {
+        values.boolean = val;
+    }
     
     Val(int64_t integer)
         : type(Type::Integer)
     {
         values.integer = integer;
+    }
+
+    Val(RobinHashMap<String, Val> val)
+        : type(Type::Object)
+    {
+        memset(&values, 0, sizeof(TypeValues));
+        values.object = std::move(val);
+    }
+
+    Val(Array<Val> array)
+        : type(Type::Array)
+    {
+        memset(&values, 0, sizeof(TypeValues));
+        values.array = std::move(array);
     }
 
     ~Val()
@@ -83,6 +107,7 @@ struct Val
 
     Val& operator=(Val&& other)
     {
+        ResetUnion();
         type = other.type;
 
         switch (other.type) {
@@ -112,6 +137,28 @@ struct Val
         other.type = Type::Null;
         return *this;
     }
+
+    String PrettyPrint(Allocator* other_allocator = nullptr) const;
+
+private:
+    void ResetUnion()
+    {
+        switch (type) {
+            case Type::String:
+                values.string.~String();
+                break;
+            case Type::Object:
+                values.object.~RobinHashMap();
+                break;
+            case Type::Array:
+                values.array.~Array();
+                break;
+            default:
+                // do nothing
+                break;
+        }
+        memset(&values, 0, sizeof(TypeValues));
+    }
 };
 
 struct Document
@@ -129,6 +176,7 @@ struct Document
     void Parse(uint8_t* data, size_t size);
     bool HasParseErrors() const { return !parse_error.IsEmpty(); }
     const char* GetErrorStr() const { return parse_error.data; }
+    String PrettyPrint(Allocator* other_allocator = nullptr) const;
 };
 
 }
