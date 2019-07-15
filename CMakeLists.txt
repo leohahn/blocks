@@ -31,21 +31,6 @@ elseif(MSVC)
   file(COPY "resources" DESTINATION "${CMAKE_BINARY_DIR}")
 endif()
 
-#
-# Define Assimp library target
-#
-#if(APPLE AND NOT IOS)
-#set(assimp_dir ${CMAKE_SOURCE_DIR}/deps/assimp/mac)
-#else()
-#message(FATAL_ERROR "Platform not supported yet")
-#endif()
-
-#add_library(assimp STATIC IMPORTED)
-#set_target_properties(assimp
-#PROPERTIES
-#IMPORTED_LOCATION "${assimp_dir}/lib/libassimp.a"
-#INTERFACE_INCLUDE_DIRECTORIES "${assimp_dir}/include")
-
 add_executable(blocks
     deps/glad/src/glad.cpp
     # Core
