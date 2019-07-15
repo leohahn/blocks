@@ -47,7 +47,7 @@ Utils::ParseInt32(const char* str, int32_t* res)
 }
 
 bool
-Utils::StringEndsWith(const char* str, const char* ending)
+StringUtils::EndsWith(const char* str, const char* ending)
 {
     assert(str);
     assert(ending);
@@ -66,4 +66,23 @@ Utils::StringEndsWith(const char* str, const char* ending)
     }
 
     return true;
+}
+
+bool
+StringUtils::FindFromRight(const StringView& str, char c, size_t* out_index)
+{
+    assert(out_index);
+
+    for (size_t i = str.len - 1; i >= 0; --i) {
+        if (str.data[i] == c) {
+            *out_index = i;
+            return true;
+        }
+
+        if (i == 0) {
+            break;
+        }
+    }
+
+    return false;
 }

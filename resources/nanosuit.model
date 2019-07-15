@@ -1,3 +1,4 @@
+type = obj;
 diffuse_texture = cottage_textures/cottage_diffuse.png;
 normal_texture = cottage_textures/cottage_normal.png;
 obj_file = nanosuit/nanosuit.obj;

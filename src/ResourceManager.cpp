@@ -4,17 +4,20 @@
 #include "Logger.hpp"
 #include "OpenGL.hpp"
 #include "Path.hpp"
-#include "ResourceFile.hpp"
 #include "glad/glad.h"
 #include "stb_image.h"
 #include "Utils.hpp"
 
 // Keys related to loading models
-static constexpr const char* kDiffuseTextureKey = "diffuse_texture";
-static constexpr const char* kNormalTextureKey = "normal_texture";
+static constexpr const char* kTypeKey = "type";
+static constexpr const char* kRootFolderKey = "root_folder";
+
+static constexpr const char* kGltfFileKey = "gltf_file";
+
 static constexpr const char* kObjFileKey = "obj_file";
 static constexpr const char* kMtlFileKey = "mtl_file";
-static constexpr const char* kRootFolderKey = "root_folder";
+static constexpr const char* kDiffuseTextureKey = "diffuse_texture";
+static constexpr const char* kNormalTextureKey = "normal_texture";
 
 static Texture* LoadTextureFromFile(Allocator* allocator,
                                     Allocator* scratch_allocator,
@@ -64,11 +67,30 @@ ResourceManager::LoadModel(const Sid& model_file)
     ResourceFile model_res(scratch_allocator, scratch_allocator);
     model_res.Create(model_file);
 
-    assert(model_res.Has(kDiffuseTextureKey));
-    assert(model_res.Has(kNormalTextureKey));
-    assert(model_res.Has(kObjFileKey));
-    assert(model_res.Has(kMtlFileKey));
+    assert(model_res.Has(kTypeKey));
+
+    const auto* type = model_res.Get<ResourceFile::StringVal>(kTypeKey);
+
+    if (type->str == "obj") {
+        Model model = LoadObjModel(model_res);
+        model_res.Destroy();
+        return model;
+    } else if (type->str == "gltf2.0") {
+        Model model = LoadGltfModel(model_res);
+        model_res.Destroy();
+        return model;
+    } else {
+        LOG_ERROR("Unsupported model type: %s", type->str.data);
+        assert(false);
+        return Model(allocator);
+    }
+}
+
+Model
+ResourceManager::LoadObjModel(const ResourceFile& model_res)
+{
     assert(model_res.Has(kRootFolderKey));
+    assert(model_res.Has(kMtlFileKey));
 
     // get the root folder
     const auto* root_folder = model_res.Get<ResourceFile::StringVal>(kRootFolderKey);
@@ -199,17 +221,17 @@ ResourceManager::LoadModel(const Sid& model_file)
             mesh->vertices.PushBack(temp_vertices[v1 - 1]);
             //mesh->normals.PushBack(temp_normals[n1 - 1]);
             mesh->uvs.PushBack(Vec2::Zero());
-            mesh->indices.PushBack(mesh->vertices.len - 1);
+            mesh->indices.PushBack((int32_t)mesh->vertices.len - 1);
             // Push a new vertex v2
             mesh->vertices.PushBack(temp_vertices[v2 - 1]);
             //mesh->normals.PushBack(temp_normals[n2 - 1]);
             mesh->uvs.PushBack(Vec2::Zero());
-            mesh->indices.PushBack(mesh->vertices.len - 1);
+            mesh->indices.PushBack((int32_t)mesh->vertices.len - 1);
             // Push a new vertex v3
             mesh->vertices.PushBack(temp_vertices[v3 - 1]);
             //mesh->normals.PushBack(temp_normals[n3 - 1]);
             mesh->uvs.PushBack(Vec2::Zero());
-            mesh->indices.PushBack(mesh->vertices.len - 1);
+            mesh->indices.PushBack((int32_t)mesh->vertices.len - 1);
         } else if (sscanf(line, "vt %f %f", &vec.x, &vec.y) == 2) {
             temp_uvs.PushBack(Vec2(vec.x, vec.y));
         } else if (sscanf(line, "usemtl %s", strbuf) == 1) {
@@ -223,7 +245,7 @@ ResourceManager::LoadModel(const Sid& model_file)
             assert(mat);
             assert((current_submesh.start_index + current_submesh.num_indices) == mesh->indices.len);
 
-            current_submesh.start_index = current_submesh.start_index + current_submesh.num_indices;
+            current_submesh.start_index = (int32_t)(current_submesh.start_index + current_submesh.num_indices);
             current_submesh.num_indices = 0;
             current_submesh.material = mat;
         } else if (sscanf(line, "mtllib %s", strbuf) == 1) {
@@ -236,17 +258,17 @@ ResourceManager::LoadModel(const Sid& model_file)
             mesh->vertices.PushBack(temp_vertices[v1 - 1]);
             //mesh->normals.PushBack(temp_normals[n1 - 1]);
             mesh->uvs.PushBack(temp_uvs[t1 - 1]);
-            mesh->indices.PushBack(mesh->vertices.len - 1);
+            mesh->indices.PushBack((int32_t)mesh->vertices.len - 1);
             // Push a new vertex v2
             mesh->vertices.PushBack(temp_vertices[v2 - 1]);
             //mesh->normals.PushBack(temp_normals[n2 - 1]);
             mesh->uvs.PushBack(temp_uvs[t2 - 1]);
-            mesh->indices.PushBack(mesh->vertices.len - 1);
+            mesh->indices.PushBack((int32_t)mesh->vertices.len - 1);
             // Push a new vertex v3
             mesh->vertices.PushBack(temp_vertices[v3 - 1]);
             //mesh->normals.PushBack(temp_normals[n3 - 1]);
             mesh->uvs.PushBack(temp_uvs[t3 - 1]);
-            mesh->indices.PushBack(mesh->vertices.len - 1);
+            mesh->indices.PushBack((int32_t)mesh->vertices.len - 1);
         } else {
             LOG_ERROR("Unrecognized obj line: %s", line);
             assert(false);
@@ -294,8 +316,13 @@ ResourceManager::LoadModel(const Sid& model_file)
     //mesh->sub_meshes.PushBack(std::move(submesh));
 
     model.meshes.PushBack(mesh);
-    model_res.Destroy();
     return model;
+}
+
+Model
+ResourceManager::LoadGltfModel(const ResourceFile& res_file)
+{
+    return Model(allocator);
 }
 
 void
@@ -471,10 +498,10 @@ LoadTextureFromFile(Allocator* allocator,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    if (Utils::StringEndsWith(texture_sid.GetStr(), ".jpg")) {
+    if (StringUtils::EndsWith(texture_sid.GetStr(), ".jpg")) {
         glTexImage2D(
             GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    } else if (Utils::StringEndsWith(texture_sid.GetStr(), ".png")) {
+    } else if (StringUtils::EndsWith(texture_sid.GetStr(), ".png")) {
         glTexImage2D(
             GL_TEXTURE_2D, 0, GL_RGBA, texture_width, texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     } else {

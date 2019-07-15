@@ -8,6 +8,7 @@
 #include "Shader.hpp"
 #include "Texture.hpp"
 #include "TriangleMesh.hpp"
+#include "ResourceFile.hpp"
 #include "Sid.hpp"
 
 struct Model
@@ -34,9 +35,6 @@ struct ResourceManager
 {
     Allocator* allocator;
     Allocator* scratch_allocator;
-    //Array<TriangleMesh*> meshes;
-    //Array<Texture*> textures;
-    //Array<Shader*> shaders;
     Path resources_path;
 
     RobinHashMap<Sid, Texture*> textures;
@@ -79,6 +77,10 @@ public:
     }
 
     Model LoadModel(const Sid& model_file);
+
+    Model LoadObjModel(const ResourceFile& res_file);
+    Model LoadGltfModel(const ResourceFile& res_file);
+
     void LoadShader(const Sid& shader_file);
     Shader* GetShader(const Sid& shader_file)
     {

@@ -58,7 +58,9 @@
     Type& operator=(Type&& t) = delete; \
     Type(Type&& t) = delete
 
-#define DISABLE_OBJECT_COPY_AND_MOVE(Type) DISABLE_OBJECT_COPY(Type); DISABLE_OBJECT_MOVE(Type)
+#define DISABLE_OBJECT_COPY_AND_MOVE(Type) \
+    DISABLE_OBJECT_COPY(Type); \
+    DISABLE_OBJECT_MOVE(Type)
 
 #ifdef _DEBUG
 struct ResourceManager;

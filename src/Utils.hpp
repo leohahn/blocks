@@ -6,6 +6,7 @@
 #include <cctype>
 #include <algorithm>
 #include <assert.h>
+#include "Collections/StringView.hpp"
 
 #define FIRST_ASCII_NUMBER 48
 
@@ -15,8 +16,6 @@ namespace Utils
 char* GetPrettySize(size_t size);
 
 bool ParseInt32(const char* str, int32_t* res);
-
-bool StringEndsWith(const char* str, const char* ending);
 
 static inline const uint8_t*
 EatUntil(char c, const uint8_t* it, const uint8_t* end_it)
@@ -67,7 +66,7 @@ ParseInt64(const uint8_t* data, size_t size)
     assert(size > 0);
 
     bool is_negative = false;
-    size_t start = 0;
+    int64_t start = 0;
 
     if (data[0] == '-') {
         is_negative = true;
@@ -76,7 +75,7 @@ ParseInt64(const uint8_t* data, size_t size)
     
     int64_t n = 0;
 
-    for (int64_t i = start; i < size; ++i) {
+    for (int64_t i = start; i < (int64_t)size; ++i) {
         n *= 10;
         n += (int64_t)(data[i] - FIRST_ASCII_NUMBER);
     }
@@ -91,7 +90,7 @@ ParseDouble(const uint8_t* data, size_t size)
     assert(size > 0);
 
     bool is_negative = false;
-    size_t start = 0;
+    int64_t start = 0;
 
     if (data[0] == '-') {
         is_negative = true;
@@ -101,17 +100,17 @@ ParseDouble(const uint8_t* data, size_t size)
     int64_t integer_part = 0;
     int64_t fractional_part = 0;
     bool parsing_fractional_part = false;
-    int num_zeroes_fractional_part = 0;
+    int64_t num_zeroes_fractional_part = 0;
 
     //
     // TODO, FIXME: there is probably a more efficient way of implementing this function.
     //
 
-    for (int64_t i = start; i < size; ++i) {
+    for (int64_t i = start; i < (int64_t)size; ++i) {
         if (data[i] == '.') {
             ++i;
             parsing_fractional_part = true;
-            num_zeroes_fractional_part = size - i;
+            num_zeroes_fractional_part = (int64_t)size - i;
         }
 
         uint8_t curr_number = data[i] - FIRST_ASCII_NUMBER;
@@ -136,4 +135,10 @@ ParseDouble(const uint8_t* data, size_t size)
     return is_negative ? -parsed : parsed;
 }
 
+}
+
+namespace StringUtils
+{
+    bool EndsWith(const char* str, const char* ending);
+    bool FindFromRight(const StringView& str, char c, size_t* out_index);
 }

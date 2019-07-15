@@ -108,25 +108,25 @@ struct ResourceFile
     void Create(const Sid& sid);
     void Destroy();
 
-	inline bool Has(const String& key)
+	inline bool Has(const String& key) const
 	{
         return _entries.Find(key) != nullptr;
 	}
 
-	inline bool Has(const StringView& key)
+	inline bool Has(const StringView& key) const
 	{
         String wrapper(_scratch_allocator, key.data);
         return _entries.Find(std::move(wrapper)) != nullptr;
 	}
 
-	template<typename T> const T* Get(const String& key)
+	template<typename T> const T* Get(const String& key) const
 	{
-        Val** it = _entries.Find(key);
+        const auto* it = _entries.Find(key);
         if (it) {
             // TODO: usign dynamic_cast here means that we cannot compile the 
             // code without rtti. Consider in the future a alternative implementation without
             // rtti.
-            auto ptr = dynamic_cast<T*>(*it);
+            auto ptr = dynamic_cast<const T*>(*it);
             assert(ptr != nullptr);
             return ptr;
         } else {
@@ -134,7 +134,7 @@ struct ResourceFile
         }
 	}
 
-	template<typename T> const T* Get(const StringView& key)
+	template<typename T> const T* Get(const StringView& key) const
 	{
         String wrapper(_scratch_allocator, key.data);
 		return Get<T>(std::move(wrapper));

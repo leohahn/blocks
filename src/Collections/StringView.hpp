@@ -31,6 +31,8 @@ public:
         assert(len > 0);
     }
 
+    bool IsEmpty() const { return len == 0; }
+
     char Back() const { return data[len - 1]; }
 
     char Front() const { return data[0]; }

@@ -133,4 +133,14 @@ public:
         data = buf;
         cap = new_cap;
     }
+
+    StringView GetExtension() const
+    {
+        return Path::GetExtension(data);
+    }
+
+    //
+    // Helper functions
+    //
+    static StringView GetExtension(const char* path);
 };
