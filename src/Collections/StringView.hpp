@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include "Defines.hpp"
 
 struct StringView
 {
@@ -38,6 +39,6 @@ public:
 
     bool operator==(const char* other) const
     {
-        return strcmp(data, other) == 0;
+        return strncmp(data, other, MIN(len, strlen(other))) == 0;
     }
 };
