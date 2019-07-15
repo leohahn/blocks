@@ -400,10 +400,7 @@ Tokenize(Allocator* allocator, const char* str, size_t str_size, const char** er
             it = last_it;
         } else if (std::isdigit(*it) || *it == '-') {
             // parse until the last number
-            if (*it == '-') {
-                ++it;
-            }
-            const uint8_t *last_it = Utils::EatWhile(static_cast<int(*)(int)>(std::isdigit), it, end_it);
+            const uint8_t *last_it = Utils::EatWhile(static_cast<int(*)(int)>(std::isdigit), it + 1, end_it);
 
             bool real = false;
             if (*last_it == '.') {
@@ -465,7 +462,6 @@ PrintIndent(String* str, int indent_level)
         str->Append(' ');
     }
 }
-
 
 static void
 PrintBoolean(String* str, bool b)
