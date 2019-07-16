@@ -86,3 +86,28 @@ StringUtils::FindFromRight(const StringView& str, char c, size_t* out_index)
 
     return false;
 }
+
+StringView
+StringUtils::Trim(const StringView& str)
+{
+    const char* start = str.data;
+    size_t len = str.len;
+
+    while (len > 0 && std::isspace(*start)) {
+        ++start;
+        --len;
+    }
+
+    const char* end = start + len;
+
+    while (len > 0 && std::isspace(*end)) {
+        --end;
+        --len;
+    }
+
+    if (len == 0) {
+        return StringView();
+    } else {
+        return StringView(start, len);
+    }
+}

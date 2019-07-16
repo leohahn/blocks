@@ -24,11 +24,17 @@ public:
     {}
 
     Path(Allocator* allocator)
+        : Path(allocator, StringView())
+    {}
+
+    Path(Allocator* allocator, StringView path)
         : allocator(allocator)
         , data(nullptr)
         , cap(0)
         , len(0)
-    {}
+    {
+        Push(path);
+    }
     
     Path(const Path& other_path) = delete;
     Path& operator=(const Path& other_path) = delete;

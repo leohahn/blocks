@@ -175,7 +175,7 @@ ResourceManager::LoadObjModel(const ResourceFile& model_res)
             assert(current_material);
             // specular mapping
             // TODO
-        } else {
+        } else if (!StringUtils::Trim(line).IsEmpty()) {
             LOG_ERROR("Failed to parse line: %s", line);
         }
     }
@@ -310,11 +310,6 @@ ResourceManager::LoadObjModel(const ResourceFile& model_res)
 
     OpenGL::SetVertexFormat_PT();
 
-    //SubMesh submesh = {};
-    //submesh.start_index = 0;
-    //submesh.num_indices = mesh->indices.len;
-    //mesh->sub_meshes.PushBack(std::move(submesh));
-
     model.meshes.PushBack(mesh);
     return model;
 }
@@ -322,6 +317,19 @@ ResourceManager::LoadObjModel(const ResourceFile& model_res)
 Model
 ResourceManager::LoadGltfModel(const ResourceFile& res_file)
 {
+    auto gltf_file = res_file.Get<ResourceFile::StringVal>(kGltfFileKey);
+    Path gltf_file_path(scratch_allocator, gltf_file->str.data);
+
+    size_t file_size;
+    uint8_t* file_data = FileSystem::LoadFileToMemory(scratch_allocator, gltf_file_path, &file_size);
+    assert(file_data);
+
+    LOG_DEBUG("Loading gltf model: %s", res_file.filepath.data);
+
+    //
+    // TODO: implement gltf model loading
+    //
+
     return Model(allocator);
 }
 

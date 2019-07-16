@@ -110,7 +110,9 @@ if(WIN32)
     target_compile_options(blocks
       PRIVATE
         /EHsc-
-	$<$<CONFIG:Debug>:/Zi>)
+        $<$<CONFIG:Debug>:/MDd>
+        $<$<CONFIG:Release>:/MD>
+        $<$<CONFIG:Debug>:/Zi>)
     target_compile_definitions(blocks PRIVATE _HAS_EXCEPTIONS=0)
 else()
 	#target_compile_options(blocks PRIVATE -fno-rtti -fno-exceptions)

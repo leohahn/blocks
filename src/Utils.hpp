@@ -141,4 +141,5 @@ namespace StringUtils
 {
     bool EndsWith(const char* str, const char* ending);
     bool FindFromRight(const StringView& str, char c, size_t* out_index);
+    StringView Trim(const StringView& str);
 }
