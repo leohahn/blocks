@@ -1,0 +1,2 @@
+type = gltf2.0;
+gltf_file = Alpine_chalet.gltf;

@@ -7,6 +7,7 @@
 #include "glad/glad.h"
 #include "stb_image.h"
 #include "Utils.hpp"
+#include "Importers/GLTF2.hpp"
 
 // Keys related to loading models
 static constexpr const char* kTypeKey = "type";
@@ -318,19 +319,12 @@ Model
 ResourceManager::LoadGltfModel(const ResourceFile& res_file)
 {
     auto gltf_file = res_file.Get<ResourceFile::StringVal>(kGltfFileKey);
-    Path gltf_file_path(scratch_allocator, gltf_file->str.data);
+    Path gltf_file_path = FileSystem::GetResourcesPath(scratch_allocator);
+    gltf_file_path.Push(gltf_file->str.data);
 
-    size_t file_size;
-    uint8_t* file_data = FileSystem::LoadFileToMemory(scratch_allocator, gltf_file_path, &file_size);
-    assert(file_data);
+    Model model = ImportGltf2Model(allocator, scratch_allocator, gltf_file_path);
 
-    LOG_DEBUG("Loading gltf model: %s", res_file.filepath.data);
-
-    //
-    // TODO: implement gltf model loading
-    //
-
-    return Model(allocator);
+    return model;
 }
 
 void

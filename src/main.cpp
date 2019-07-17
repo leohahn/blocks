@@ -350,32 +350,11 @@ main(int argc, char** argv)
 
     Model nanosuit = program.resource_manager->LoadModel(SID("nanosuit.model"));
 
+    Model alpine_chalet = program.resource_manager->LoadModel(SID("Alpine_chalet.model"));
+
     LOG_DEBUG("Starting main loop");
     glClearColor(0, 0, 0, 1);
     
-    {
-        auto path = FileSystem::GetResourcesPath(&program.temp_allocator);
-        path.Push("Alpine_chalet.gltf");
-
-        size_t size;
-        uint8_t* data = FileSystem::LoadFileToMemory(&program.temp_allocator, path, &size);
-        assert(data);
-
-        Json::Document doc(&program.temp_allocator);
-        doc.Parse(data, size);
-        if (doc.HasParseErrors()) {
-            LOG_ERROR("JSON HAS PARSE ERRORS: %s", doc.GetErrorStr());
-        } else {
-            LOG_INFO("PARSE SUCCESSUFUFUFUUFUF");
-            LOG_INFO("TYPE IS %d", doc.root_val.type);
-        }
-
-        String pretty = doc.PrettyPrint();
-        LOG_DEBUG("Pretty print json:\n%s", pretty.data);
-
-        program.temp_allocator.Deallocate(data);
-    }
-
     while (running) {
         input_system.Update();
 

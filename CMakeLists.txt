@@ -55,6 +55,11 @@ add_executable(blocks
     src/Material.cpp
     src/Json.hpp
     src/Json.cpp
+    src/Model.hpp
+
+    # Importers
+    src/Importers/GLTF2.hpp
+    src/Importers/GLTF2.cpp
 
     # Memory
     src/Memory.hpp
