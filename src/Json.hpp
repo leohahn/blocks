@@ -138,6 +138,24 @@ struct Val
         return *this;
     }
 
+    bool IsString() const { return type == Type::String; }
+    const String& AsString() const { return values.string; }
+
+    bool IsObject() const { return type == Type::Object; }
+    const RobinHashMap<String, Val>& AsObject() const { return values.object; }
+
+    bool IsArray() const { return type == Type::Array; }
+    const Array<Val>& AsArray() const { return values.array; }
+
+    bool IsBool() const { return type == Type::Boolean; }
+    bool AsBool() const { return values.boolean; }
+
+    bool IsReal() const { return type == Type::Real; }
+    double AsDouble() const { return values.real; }
+
+    bool IsInteger() const { return type == Type::Integer; }
+    int64_t AsInt64() const { return values.integer; }
+
     String PrettyPrint(Allocator* other_allocator = nullptr) const;
 
 private:
