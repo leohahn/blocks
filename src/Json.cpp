@@ -79,7 +79,7 @@ ParseString(Allocator* allocator, const Array<Token>& tokens, size_t* start, Str
 {
     assert(str);
     assert(start);
-    assert(start > 0);
+    assert(start > (size_t*)0);
     assert(allocator);
 
     const size_t num_key_tokens = 1;
