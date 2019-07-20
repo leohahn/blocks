@@ -1,0 +1,160 @@
+{
+    "asset" : {
+        "generator" : "Khronos glTF Blender I/O v0.9.33",
+        "version" : "2.0"
+    },
+    "scene" : 0,
+    "scenes" : [
+        {
+            "name" : "Scene",
+            "nodes" : [
+                0
+            ]
+        }
+    ],
+    "nodes" : [
+        {
+            "mesh" : 0,
+            "name" : "Alpine chalet",
+            "rotation" : [
+                0,
+                -0.995310366153717,
+                0,
+                0.09673306345939636
+            ],
+            "translation" : [
+                -0.8988960981369019,
+                0,
+                3.207545280456543
+            ]
+        }
+    ],
+    "materials" : [
+        {
+            "doubleSided" : true,
+            "name" : "Alpine chalet",
+            "normalTexture" : {
+                "index" : 0,
+                "texCoord" : 0
+            },
+            "pbrMetallicRoughness" : {
+                "baseColorTexture" : {
+                    "index" : 1,
+                    "texCoord" : 0
+                },
+                "metallicRoughnessTexture" : {
+                    "index" : 2,
+                    "texCoord" : 0
+                }
+            }
+        }
+    ],
+    "meshes" : [
+        {
+            "name" : "Cube",
+            "primitives" : [
+                {
+                    "attributes" : {
+                        "POSITION" : 0,
+                        "NORMAL" : 1,
+                        "TEXCOORD_0" : 2
+                    },
+                    "indices" : 3,
+                    "material" : 0
+                }
+            ]
+        }
+    ],
+    "textures" : [
+        {
+            "source" : 0
+        },
+        {
+            "source" : 1
+        },
+        {
+            "source" : 2
+        }
+    ],
+    "images" : [
+        {
+            "mimeType" : "image/png",
+            "name" : "Normal_map",
+            "uri" : "Normal_map.png"
+        },
+        {
+            "mimeType" : "image/png",
+            "name" : "Diffuse_map",
+            "uri" : "Diffuse_map.png"
+        },
+        {
+            "mimeType" : "image/png",
+            "name" : "Metallic_map-Roughness_map",
+            "uri" : "Metallic_map-Roughness_map.png"
+        }
+    ],
+    "accessors" : [
+        {
+            "bufferView" : 0,
+            "componentType" : 5126,
+            "count" : 3283,
+            "max" : [
+                4.8684773445129395,
+                3.170487403869629,
+                6.386348247528076
+            ],
+            "min" : [
+                -5.137851715087891,
+                -2.167255401611328,
+                -2.848592519760132
+            ],
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 1,
+            "componentType" : 5126,
+            "count" : 3283,
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 2,
+            "componentType" : 5126,
+            "count" : 3283,
+            "type" : "VEC2"
+        },
+        {
+            "bufferView" : 3,
+            "componentType" : 5123,
+            "count" : 5997,
+            "type" : "SCALAR"
+        }
+    ],
+    "bufferViews" : [
+        {
+            "buffer" : 0,
+            "byteLength" : 39396,
+            "byteOffset" : 0
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 39396,
+            "byteOffset" : 39396
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 26264,
+            "byteOffset" : 78792
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 11994,
+            "byteOffset" : 105056
+        }
+    ],
+    "buffers" : [
+        {
+            "byteLength" : 117052,
+            "uri" : "Alpine_chalet.bin"
+        }
+    ]
+}
