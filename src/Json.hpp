@@ -22,8 +22,7 @@ enum class Type
 struct Val
 {
     Type type;
-    // ooopd i fif iy sshindhidifhlj
-    // difpjgsoidjfgoij1
+    
     union TypeValues
     {
         String string;
@@ -102,6 +101,7 @@ struct Val
     // move operators
     Val(Val&& other)
     {
+        memset(&values, 0, sizeof(TypeValues));
         *this = std::move(other);
     }
 
