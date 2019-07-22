@@ -6,6 +6,7 @@
 #include "Memory.hpp"
 #include "ResourceManager.hpp"
 #include <SDL.h>
+#include "Window.hpp"
 
 enum class ProgramState
 {
@@ -21,10 +22,7 @@ struct Program
     LinearAllocator main_allocator;
     MallocAllocator temp_allocator;
     bool running = true;
-    SDL_Window* window = nullptr;
-    int32_t window_width;
-    int32_t window_height;
-    SDL_GLContext gl_context;
+    Window* window;
     LinearAllocator resource_manager_allocator;
     ResourceManager* resource_manager;
 };

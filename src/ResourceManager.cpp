@@ -322,7 +322,7 @@ ResourceManager::LoadGltfModel(const ResourceFile& res_file)
     Path gltf_file_path = FileSystem::GetResourcesPath(scratch_allocator);
     gltf_file_path.Push(gltf_file->str.data);
 
-    Model model = ImportGltf2Model(allocator, scratch_allocator, gltf_file_path);
+    Model model = ImportGltf2Model(allocator, scratch_allocator, gltf_file_path, this);
 
     return model;
 }

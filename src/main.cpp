@@ -433,7 +433,7 @@ main(int argc, char** argv)
         assert(nanosuit.meshes.len == 1);
         RenderMesh(*nanosuit.meshes[0], *basic_shader, nanosuit_position, nanosuit_orientation, 1.0f);
 
-        SDL_GL_SwapWindow(program.window);
+        program.window->SwapBuffers();
     }
 
     LOG_INFO("Deallocating main resources");

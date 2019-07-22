@@ -56,6 +56,8 @@ add_executable(blocks
     src/Json.hpp
     src/Json.cpp
     src/Model.hpp
+    src/Window.hpp
+    src/Window.cpp
 
     # Importers
     src/Importers/GLTF2.hpp

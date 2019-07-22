@@ -5,4 +5,6 @@
 #include "Path.hpp"
 #include "Model.hpp"
 
-Model ImportGltf2Model(Allocator* allocator, Allocator* scratch_allocator, const Path& path);
+struct ResourceManager;
+
+Model ImportGltf2Model(Allocator* allocator, Allocator* scratch_allocator, const Path& path, ResourceManager* resource_manager);

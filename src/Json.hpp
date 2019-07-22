@@ -139,22 +139,40 @@ struct Val
     }
 
     bool IsString() const { return type == Type::String; }
-    const String& AsString() const { return values.string; }
+    const String* AsString() const
+    {
+        return type == Type::String ? &values.string : nullptr;
+    }
 
     bool IsObject() const { return type == Type::Object; }
-    const RobinHashMap<String, Val>& AsObject() const { return values.object; }
+    const RobinHashMap<String, Val>* AsObject() const
+    {
+        return type == Type::Object ? &values.object : nullptr;
+    }
 
     bool IsArray() const { return type == Type::Array; }
-    const Array<Val>& AsArray() const { return values.array; }
+    const Array<Val>* AsArray() const
+    {
+        return type == Type::Array ? &values.array : nullptr;
+    }
 
     bool IsBool() const { return type == Type::Boolean; }
-    bool AsBool() const { return values.boolean; }
+    const bool* AsBool() const
+    {
+        return type == Type::Boolean ? &values.boolean : nullptr;
+    }
 
     bool IsReal() const { return type == Type::Real; }
-    double AsDouble() const { return values.real; }
+    const double* AsDouble() const
+    {
+        return type == Type::Real ? &values.real : nullptr;
+    }
 
     bool IsInteger() const { return type == Type::Integer; }
-    int64_t AsInt64() const { return values.integer; }
+    const int64_t* AsInt64() const
+    {
+        return type == Type::Integer ? &values.integer : nullptr;
+    }
 
     String PrettyPrint(Allocator* other_allocator = nullptr) const;
 
