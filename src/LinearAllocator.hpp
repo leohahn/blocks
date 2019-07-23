@@ -12,8 +12,8 @@ class LinearAllocator : public Allocator
 public:
     LinearAllocator()
         : _bytes_allocated(0)
-        , _size(0)
         , _mem(nullptr)
+        , _size(0)
         , _name(nullptr)
     {}
 

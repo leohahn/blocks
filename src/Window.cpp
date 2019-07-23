@@ -12,8 +12,7 @@ public:
         , _width(opts.width)
         , _height(opts.height)
     {
-        if (SDL_Init(SDL_INIT_VIDEO) < 0)
-        {
+        if (SDL_Init(SDL_INIT_VIDEO) < 0) {
             LOG_ERROR("Failed to init SDL\n");
             exit(1);
         }
@@ -29,8 +28,7 @@ public:
         SDL_GL_MakeCurrent(_raw_window, _gl_context);
         
         LOG_INFO("Initializing glad");
-        if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
-        {
+        if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
             LOG_ERROR("Failed to initialize GLAD\n");
             exit(1);
         }

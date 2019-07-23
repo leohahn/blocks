@@ -32,11 +32,11 @@ public:
     ResourceManager(Allocator* allocator, Allocator* scratch_allocator)
         : allocator(allocator)
         , scratch_allocator(scratch_allocator)
-        , meshes(allocator, kNumMeshes)
-        , materials(allocator, kNumMaterials)
+        , resources_path(allocator)
         , textures(allocator, kNumTextures)
         , shaders(allocator, kNumShaders)
-        , resources_path(allocator)
+        , meshes(allocator, kNumMeshes)
+        , materials(allocator, kNumMaterials)
     {}
 
     ResourceManager(ResourceManager&& other) = default;
@@ -46,7 +46,7 @@ public:
     void Create();
     void Destroy();
 
-    void LoadTexture(const Sid& texture_file);
+    Texture* LoadTexture(const Sid& texture_file);
     Texture* GetTexture(const Sid& texture_file)
     {
         return *textures.Find(texture_file);

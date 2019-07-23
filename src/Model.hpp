@@ -11,9 +11,10 @@ struct Model
     // TODO: transform a model into two different classes:
     // a model and a model instance. A model instance will be a light weight model
     // with orientation, scale, etc.
+    Sid name;
     Array<TriangleMesh*> meshes;
-    Vec3 position;
-    Quaternion orientation;
+    Vec3 translation;
+    Quaternion rotation;
     float scale;
 
 public:

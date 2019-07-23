@@ -46,7 +46,7 @@ struct TriangleMesh
 {
     // TODO: probably need some flags here
     // uint32_t checksum;
-    String name;
+    Sid name;
 
     Array<Vec3> vertices;
     Array<Vec2> uvs;
@@ -62,8 +62,7 @@ struct TriangleMesh
     uint32_t ebo;
     
     TriangleMesh(Allocator* allocator)
-        : name(allocator)
-        , vertices(allocator)
+        : vertices(allocator)
         , uvs(allocator)
         , colors(allocator)
         , normals(allocator)

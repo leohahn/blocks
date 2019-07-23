@@ -327,12 +327,13 @@ ResourceManager::LoadGltfModel(const ResourceFile& res_file)
     return model;
 }
 
-void
+Texture*
 ResourceManager::LoadTexture(const Sid& texture_sid)
 {
     LOG_INFO("Loading texture for SID %s", texture_sid.GetStr());
     Texture* new_texture = LoadTextureFromFile(allocator, scratch_allocator, texture_sid);
     textures.Add(texture_sid, new_texture);
+    return new_texture;
 }
 
 void
@@ -488,7 +489,6 @@ LoadTextureFromFile(Allocator* allocator,
     //
     // FIXME: the state of opnegl is probably incorrect here, since multiple texstures
     // will be in conflict with one another.
-    //if (texture->name.GetHash() == 7573085998336324) {
     glGenTextures(1, &texture->handle);
     glBindTexture(GL_TEXTURE_2D, texture->handle);
 
@@ -510,6 +510,8 @@ LoadTextureFromFile(Allocator* allocator,
         LOG_ERROR("Unknown file extension %s", texture_sid.GetStr());
         assert(false);
     }
+    
+    LOG_DEBUG("  loaded with width=%d and height=%d", texture_width, texture_height);
 
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);

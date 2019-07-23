@@ -55,7 +55,7 @@ SetupPlane(Allocator* allocator, Allocator* scratch_allocator, Material* materia
 
     // clang-format on
     TriangleMesh mesh(allocator);
-    mesh.name.Append("Plane");
+    mesh.name = SID("Plane");
 
     // Fill indices up
     for (size_t i = 0; i < ARRAY_SIZE(indices); ++i) {
@@ -200,7 +200,7 @@ SetupCube(Allocator* allocator, Allocator* scratch_allocator, Material* material
     // clang-format on
 
     TriangleMesh mesh(allocator);
-    mesh.name.Append("Cube");
+    mesh.name = SID("Cube");
 
     // Fill indices up
     for (size_t i = 0; i < ARRAY_SIZE(indices); ++i) {
@@ -324,9 +324,6 @@ main(int argc, char** argv)
     //------------------------------
     // Create the texture catalog and textures
     //------------------------------
-    // LinearAllocator texture_catalog_allocator(
-    //     "texture_catalog", program.main_allocator.Allocate(MEGABYTES(10)), MEGABYTES(10));
-    // TextureCatalog texture_catalog(&texture_catalog_allocator, &temp_allocator);
     program.resource_manager->LoadTexture(SID("wall.jpg"));
 
     Texture* wall_texture = program.resource_manager->GetTexture(SID("wall.jpg"));

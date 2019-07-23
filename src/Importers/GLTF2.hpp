@@ -7,4 +7,4 @@
 
 struct ResourceManager;
 
-Model ImportGltf2Model(Allocator* allocator, Allocator* scratch_allocator, const Path& path, ResourceManager* resource_manager);
+Model ImportGltf2Model(Allocator* allocator, Allocator* scratch_allocator, const Path& path, ResourceManager* resource_manager, int model_index = 0);
