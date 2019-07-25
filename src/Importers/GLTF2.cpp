@@ -14,21 +14,21 @@ struct GltfNode
 
 struct TextureRef
 {
-    int32_t index;
-    int32_t tex_coord;
+    int32_t index = -1;
+    int32_t tex_coord = -1;
 };
 
 struct GltfMaterial
 {
     String name;
-    bool doubleSided;
+    bool double_sided = false;
     TextureRef base_color;
     TextureRef metallic_roughness;
 };
 
 struct GltfTexture
 {
-    int32_t source;
+    int32_t source = -1;
 };
 
 struct GltfImage
@@ -41,8 +41,8 @@ struct GltfImage
 struct GltfPrimitive
 {
     RobinHashMap<String, int32_t> attributes;
-    int32_t indices;
-    int32_t material;
+    int32_t indices = -1;
+    int32_t material = -1;
 };
 
 struct GltfMesh
@@ -53,25 +53,25 @@ struct GltfMesh
 
 struct GltfBuffer
 {
-    int64_t byte_length;
+    int64_t byte_length = -1;
     String uri;
 };
 
 struct GltfBufferView
 {
-    int64_t buffer_index;
-    int64_t byte_length;
-    int64_t byte_offset;
+    int64_t buffer_index = -1;
+    int64_t byte_length = -1;
+    int64_t byte_offset = -1;
 };
 
 struct GltfAccessor
 {
     String type;
-    int64_t buffer_view_index;
-    int64_t component_type;
-    int64_t count;
-    Vec3 max;
-    Vec3 min;
+    int64_t buffer_view_index = -1;
+    int64_t component_type = -1;
+    int64_t count = -1;
+    Vec3 max = Vec3::Zero();
+    Vec3 min = Vec3::Zero();
 };
 
 static bool
@@ -126,6 +126,77 @@ GetTranslation(const Json::Val* translation, Vec3* out)
 }
 
 bool
+GetNodes(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file, Array<GltfNode>* out_nodes)
+{
+    assert(alloc);
+    assert(out_nodes);
+    
+    const Json::Val* nodes_val = gltf_file->Find(String(alloc, "nodes"));
+    if (!nodes_val) {
+        LOG_ERROR("Was expecting a nodes array");
+        return false;
+    }
+    
+    const Array<Json::Val>* nodes = nodes_val->AsArray();
+    if (!nodes) {
+        LOG_ERROR("Was expecting a nodes array");
+        return false;
+    }
+    
+    *out_nodes = Array<GltfNode>(alloc);
+    
+    for (size_t i = 0; i < nodes->len; ++i) {
+        const RobinHashMap<String, Json::Val>* raw_node = (*nodes)[i].AsObject();
+        if (!raw_node) {
+            LOG_ERROR("Was expecting a node object");
+            return false;
+        }
+        
+        const Json::Val* name_val = raw_node->Find(String(alloc, "name"));
+        if (!name_val || !name_val->IsString()) {
+            LOG_ERROR("Was expecting a name property");
+            return false;
+        }
+        
+        const Json::Val* mesh_val = raw_node->Find(String(alloc, "mesh"));
+        if (!mesh_val || !mesh_val->IsInteger()) {
+            LOG_ERROR("Was expecting a mesh property");
+            return false;
+        }
+
+        const Json::Val* rotation_val = raw_node->Find(String(alloc, "rotation"));
+        if (!rotation_val || !rotation_val->IsArray()) {
+            LOG_ERROR("Was expecting a rotation property");
+            return false;
+        }
+
+        const Json::Val* translation_val = raw_node->Find(String(alloc, "translation"));
+        if (!translation_val || !translation_val->IsArray()) {
+            LOG_ERROR("Was expecting a translation property");
+            return false;
+        }
+        
+        GltfNode out_node;
+        out_node.name = String(alloc, name_val->AsString()->View());
+        out_node.mesh = (int32_t)*mesh_val->AsInt64();
+
+        if (!GetTranslation(translation_val, &out_node.translation)) {
+            LOG_ERROR("Failed to parse translation vector in node");
+            return false;
+        }
+
+        if (!GetRotation(rotation_val, &out_node.rotation)) {
+            LOG_ERROR("Failed to parse rotation vector in node");
+            return false;
+        }
+
+        out_nodes->PushBack(std::move(out_node));
+    }
+    
+    return true;
+}
+
+bool
 GetMeshes(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file, Array<GltfMesh>* out_meshes)
 {
     assert(alloc);
@@ -168,9 +239,50 @@ GetMeshes(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file, Ar
         out_mesh.name = String(alloc, name_val->AsString()->View());
         
         for (size_t pi = 0; pi < primitives_val->AsArray()->len; ++pi) {
-            const RobinHashMap<<#typename Key#>, <#typename Value#>>
+            const RobinHashMap<String, Json::Val>* raw_primitive = (*primitives_val->AsArray())[pi].AsObject();
+            if (!raw_primitive) {
+                LOG_ERROR("Was expecting a primitive object");
+                assert(false);
+            }
+
+            const Json::Val* raw_indices = raw_primitive->Find(String(alloc, "indices"));
+            if (!raw_indices || !raw_indices->IsInteger()) {
+                LOG_ERROR("Was expecting a indice property");
+                assert(false);
+            }
+
+            const Json::Val* raw_material = raw_primitive->Find(String(alloc, "material"));
+            if (!raw_material || !raw_material->IsInteger()) {
+                LOG_ERROR("Was expecting a material property");
+                assert(false);
+            }
+
+            const Json::Val* raw_attributes = raw_primitive->Find(String(alloc, "attributes"));
+            if (!raw_attributes || !raw_attributes->IsObject()) {
+                LOG_ERROR("Was expecting an attributes property");
+                assert(false);
+            }
+
 
             GltfPrimitive primitive;
+            primitive.indices = (int32_t)raw_indices->AsInt64();
+            primitive.material = (int32_t)raw_indices->AsInt64();
+            primitive.attributes = RobinHashMap<String, int>(alloc, 16);
+
+            for (const auto& pair : *raw_attributes->AsObject()) {
+                const int64_t* val = pair.val.AsInt64();
+                if (!val) {
+                    LOG_ERROR("Was expecting integer as an attribute");
+                    assert(false);
+                }
+
+                primitive.attributes.Add(
+                    String(alloc, pair.key.View()),
+                    (int32_t)*val
+                );
+            }
+
+            out_mesh.primitives.PushBack(std::move(primitive));
         }
     }
     
@@ -227,69 +339,126 @@ GetBuffers(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file, A
 }
 
 static bool
-GetMaterial(Allocator* alloc, const Json::Val* materials,
-            const Json::Val* mesh_material, ResourceManager* resource_manager, Material* out)
+GetMaterial(Allocator* alloc, const RobinHashMap<String, Json::Val>* raw_material, GltfMaterial* out_material)
 {
-    assert(out);
-
-    if (!materials || !mesh_material) {
-        return false;
-    }
+    assert(alloc);
+    assert(out_material);
+    assert(raw_material);
     
-    const Array<Json::Val>* materials_array = materials->AsArray();
-    const int64_t* mesh_index = mesh_material->AsInt64();
-    
-    if (!mesh_index || !materials_array) {
-        return false;
-    }
-
-    if (materials_array->len < *mesh_index + 1) {
-        return false;
-    }
-    
-    const RobinHashMap<String, Json::Val>* selected_material = (*materials_array)[*mesh_index].AsObject();
-    if (!selected_material) {
-        return false;
-    }
-    
-    const Json::Val* material_name = selected_material->Find(String(alloc, "name"));
+    const Json::Val* material_name = raw_material->Find(String(alloc, "name"));
     if (!material_name || !material_name->AsString()) {
         LOG_ERROR("Was expecting material name");
-        assert(false);
+        return false;
+    }
+
+    const Json::Val* double_sided_val = raw_material->Find(String(alloc, "doubleSided"));
+    if (!double_sided_val || !double_sided_val->AsBool()) {
+        LOG_ERROR("Was expecting a doubleSided property");
+        return false;
     }
     
-    const Json::Val* pbr_params = selected_material->Find(String(alloc, "pbrMetallicRoughness"));
+    const Json::Val* pbr_params = raw_material->Find(String(alloc, "pbrMetallicRoughness"));
     if (!pbr_params || !pbr_params->AsObject()) {
         LOG_ERROR("Was expecting pbr metallic roughness");
-        assert(false);
+        return false;
     }
     
     const Json::Val* base_color_texture = pbr_params->AsObject()->Find(String(alloc, "baseColorTexture"));
     if (!base_color_texture || !base_color_texture->IsObject()) {
-        LOG_ERROR("Expecting baseColorTexture");
-        assert(false);
+        LOG_ERROR("Was expecting baseColorTexture");
+        return false;
+    }
+
+    const Json::Val* metallic_roughness_texture = pbr_params->AsObject()->Find(String(alloc, "metallicRoughnessTexture"));
+    if (!metallic_roughness_texture || !metallic_roughness_texture->IsObject()) {
+        LOG_ERROR("Was expecting metallicRoughnessTexture");
+        return false;
+    }
+
+    const Json::Val* base_color_texture_index = base_color_texture->AsObject()->Find(String(alloc, "index"));
+    if (!base_color_texture_index || !base_color_texture_index->IsInteger()) {
+        LOG_ERROR("Was expecting base texture index");
+        return false;
+    }
+
+    const Json::Val* base_color_texture_tex_coord = base_color_texture->AsObject()->Find(String(alloc, "texCoord"));
+    if (!base_color_texture_tex_coord || !base_color_texture_tex_coord->IsInteger()) {
+        LOG_ERROR("Was expecting base texture texCoord");
+        return false;
+    }
+
+    const Json::Val* metallic_roughness_texture_index = base_color_texture->AsObject()->Find(String(alloc, "index"));
+    if (!metallic_roughness_texture_index || !metallic_roughness_texture_index->IsInteger()) {
+        LOG_ERROR("Was expecting metallic roughness texture index");
+        return false;
+    }
+
+    const Json::Val* metallic_roughness_texture_tex_coord = metallic_roughness_texture->AsObject()->Find(String(alloc, "texCoord"));
+    if (!metallic_roughness_texture_tex_coord || !metallic_roughness_texture_tex_coord->IsInteger()) {
+        LOG_ERROR("Was expecting metallic roughness texture texCoord");
+        return false;
+    }
+
+    GltfMaterial out_mat;
+    out_mat.name = String(alloc, material_name->AsString()->View());
+    out_mat.double_sided = *double_sided_val->AsBool();
+    out_mat.base_color.index = *base_color_texture_index->AsInt64();
+    out_mat.base_color.tex_coord = *base_color_texture_tex_coord->AsInt64();
+    out_mat.metallic_roughness.index = *metallic_roughness_texture_index->AsInt64();
+    out_mat.metallic_roughness.tex_coord = *metallic_roughness_texture_tex_coord->AsInt64();
+
+    *out_material = std::move(out_mat);
+    return true;
+}
+
+static bool
+GetMaterials(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file, Array<GltfMaterial>* out_materials)
+{
+    assert(gltf_file);
+    assert(alloc);
+    assert(out_materials);
+
+    const Json::Val* materials_val = gltf_file->Find(String(alloc, "materials"));
+    if (!materials_val) {
+        LOG_ERROR("Was expecting a materials array");
+        return false;
     }
     
-    const Json::Val* base_color_texture_index = base_color_texture->AsObject()->Find(String(alloc, "index"));
-    const Json::Val* base_color_texture_tex_coord = base_color_texture->AsObject()->Find(String(alloc, "texCoord"));
+    const Array<Json::Val>* materials = materials_val->AsArray();
+    if (!materials) {
+        LOG_ERROR("Was expecting a materials array");
+        return false;
+    }
 
-    Material out_mat;
-    out_mat.name = SID(material_name->AsString()->data);
+    *out_materials = Array<GltfMaterial>(alloc);
+
+    for (size_t mi = 0; mi < materials->len; ++mi) {
+        const RobinHashMap<String, Json::Val>* raw_material = (*materials)[mi].AsObject();
+        if (!raw_material) {
+            LOG_ERROR("Was expecting a material object");
+            return false;
+        }
+
+        GltfMaterial material;
+        if (!GetMaterial(alloc, raw_material, &material)) {
+            LOG_ERROR("Was expecting a material object");
+            return false;
+        }
+
+        out_materials->PushBack(std::move(material));
+    }
     
-    // Load the diffuse map
-
-    *out = std::move(out_mat);
     return true;
 }
 
 Model
-ImportGltf2Model(Allocator* allocator, Allocator* scratch_allocator, const Path& path, ResourceManager* resource_manager, int model_index)
+ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& path, ResourceManager* resource_manager, int model_index)
 {
     size_t size;
     uint8_t* data = FileSystem::LoadFileToMemory(scratch_allocator, path, &size);
     assert(data);
     
-    Model model(allocator);
+    Model model(alloc);
 
     Json::Document doc(scratch_allocator);
     doc.Parse(data, size);
@@ -301,120 +470,53 @@ ImportGltf2Model(Allocator* allocator, Allocator* scratch_allocator, const Path&
     assert(doc.root_val.type == Json::Type::Object);
     
     const RobinHashMap<String, Json::Val>* root = doc.root_val.AsObject();
-    assert(root);
-    
-    // 1. First, we will load a specific node from the GLTF model, and load the dependencies as
-    // necessary.
-    const Json::Val* nodes = root->Find(String(scratch_allocator, "nodes"));
-    if (!nodes || !nodes->IsArray() || nodes->AsArray()->len < model_index + 1) {
-        LOG_ERROR("Expecting nodes array");
-        assert(false);
-    }
-    
-    const Json::Val* materials = root->Find(String(scratch_allocator, "materials"));
-    
-    const RobinHashMap<String, Json::Val>* selected_node = (*nodes->AsArray())[model_index].AsObject();
-    assert(selected_node);
-    
-    const Json::Val* model_name = selected_node->Find(String(scratch_allocator, "name"));
-    if (model_name && model_name->IsString()) {
-        model.name = SID(model_name->AsString()->data);
-    }
-    
-    const Json::Val* model_mesh = selected_node->Find(String(scratch_allocator, "mesh"));
-    assert(model_mesh && model_mesh->IsInteger());
-    
-    int64_t mesh_index = *model_mesh->AsInt64();
-
-    const Json::Val* model_rotation = selected_node->Find(String(scratch_allocator, "rotation"));
-    const Json::Val* model_translation = selected_node->Find(String(scratch_allocator, "translation"));
-    const Json::Val* model_children = selected_node->Find(String(scratch_allocator, "children"));
-    if (model_children) {
-        LOG_ERROR("Model children not supported yet");
-        assert(false);
-    }
-    
-    assert(model_rotation && model_rotation->IsArray());
-    assert(model_translation && model_translation->IsArray());
-
-    if (!GetTranslation(model_translation, &model.translation)) {
-        LOG_ERROR("Failed to get model translation");
-        assert(false);
-    }
-    
-    if (!GetRotation(model_rotation, &model.rotation)) {
-        LOG_ERROR("Failed to get model orientation");
-        assert(false);
-    }
-    
-    // 2. Having parsed everything from the node object, start parsing the mesh.
-    const Json::Val* meshes = root->Find(String(scratch_allocator, "meshes"));
-    if (meshes == nullptr || !meshes->IsArray() || meshes->AsArray()->len < mesh_index + 1) {
-        LOG_ERROR("Expecting a meshes array");
-        assert(false);
-    }
-    
-    const RobinHashMap<String, Json::Val>* selected = (*meshes->AsArray())[mesh_index].AsObject();
-    assert(selected);
-
-    const Json::Val* mesh_name = selected->Find(String(scratch_allocator, "name"));
-    const Json::Val* mesh_primitives = selected->Find(String(scratch_allocator, "primitives"));
-    const Json::Val* mesh_material = selected->Find(String(scratch_allocator, "material"));
-    
-    assert(mesh_material);
-    assert(mesh_name);
-    assert(mesh_primitives);
-    
-    Material material;
-    if (!GetMaterial(scratch_allocator, materials, mesh_material, &material)) {
-        LOG_ERROR("Failed parsing material from GLTF file");
+    if (!root) {
+        LOG_ERROR("Was expecting root to be an object");
         assert(false);
     }
 
-    TriangleMesh mesh(allocator);
+    Array<GltfBuffer> buffers;
+    if (!GetBuffers(alloc, root, &buffers)) {
+        LOG_ERROR("Was expecting a buffers array");
+        assert(false);
+    }
 
-//    for (size_t i = 0; i < images->AsArray()->len; ++i) {
-//        const RobinHashMap<String, Json::Val>* obj = (*images->AsArray())[i].AsObject();
-//        if (!obj) {
-//            LOG_ERROR("Image element in array is not a JSON object");
-//            assert(false);
-//        }
-//
-//        const Json::Val* mime_type = obj->Find(String(scratch_allocator, "mimeType"));
-//        if (!mime_type || !mime_type->IsString()) {
-//            LOG_ERROR("Mime type is invalid");
-//            assert(false);
-//        }
-//
-//        if (*mime_type->AsString() != "image/png") {
-//            LOG_ERROR("Unsupported image format: %s", mime_type->AsString()->data);
-//            assert(false);
-//        }
-//
-//        const Json::Val* name = obj->Find(String(scratch_allocator, "name"));
-//        if (!name || !name->IsString()) {
-//            LOG_ERROR("Name is invalid");
-//            assert(false);
-//        }
-//
-//        const Json::Val* uri = obj->Find(String(scratch_allocator, "uri"));
-//        if (!uri || !uri->IsString()) {
-//            LOG_ERROR("uri type is invalid");
-//            assert(false);
-//        }
-//
-//        LOG_DEBUG("Loading GLTF texture %s at %s", name->AsString()->data, uri->AsString()->data);
-//        Texture* texture = resource_manager->LoadTexture(SID(uri->AsString()->data));
-//        (void)texture;
-//    }
+    Array<GltfMesh> meshes;
+    if (!GetMeshes(alloc, root, &meshes)) {
+        LOG_ERROR("Was expecting a meshes array");
+        assert(false);
+    }
 
-//    const Json::Val* textures = root->Find(String(scratch_allocator, "textures"));
-//    if (textures == nullptr || !textures->IsArray()) {
-//        LOG_ERROR("Expecting a textures array");
-//        assert(false);
-//    }
-    
+    Array<GltfNode> nodes;
+    if (!GetNodes(alloc, root, &nodes)) {
+        LOG_ERROR("Was expecting a nodes array");
+        assert(false);
+    }
+
+    Array<GltfMaterial> materials;
+    if (!GetMaterials(alloc, root, &materials)) {
+        LOG_ERROR("Was expecting a materials array");
+        assert(false);
+    }
+
+    Array<GltfImage> images;
+    if (!GetImages(alloc, root, &images)) {
+        LOG_ERROR("Was expecting an images array");
+        assert(false);
+    }
+
+    Array<GltfAccessor> accessors;
+    if (!GetAccessors(alloc, root, &accessors)) {
+        LOG_ERROR("Was expecting an accessors array");
+        assert(false);
+    }
+
+    Array<GltfBufferView> buffer_views;
+    if (!GetBufferViews(alloc, root, &buffer_views)) {
+        LOG_ERROR("Was expecting a bufferViews array");
+        assert(false);
+    }
 
     scratch_allocator->Deallocate(data);
-    return Model(allocator);
+    return Model(alloc);
 }
