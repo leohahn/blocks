@@ -86,17 +86,23 @@ GetRotation(const Json::Val* rotation, Quaternion* out)
     if (rotation_array->len != 4) {
         return false;
     }
-    
-    const double* x = (*rotation_array)[0].AsDouble();
-    const double* y = (*rotation_array)[1].AsDouble();
-    const double* z = (*rotation_array)[2].AsDouble();
-    const double* w = (*rotation_array)[3].AsDouble();
-    
-    if (!x || !y || !z || !w) {
+
+    double x, y, z, w;
+
+    if (!(*rotation_array)[0].TryConvertNumberToDouble(&x)) {
+        return false;
+    }
+    if (!(*rotation_array)[1].TryConvertNumberToDouble(&y)) {
+        return false;
+    }
+    if (!(*rotation_array)[2].TryConvertNumberToDouble(&z)) {
+        return false;
+    }
+    if (!(*rotation_array)[3].TryConvertNumberToDouble(&w)) {
         return false;
     }
     
-    *out = Quaternion(*x, *y, *z, *w);
+    *out = Quaternion(x, y, z, w);
     return true;
 }
         
@@ -112,16 +118,20 @@ GetVec3(const Json::Val* vec, Vec3* out)
     if (translation_array->len != 3) {
         return false;
     }
-    
-    const double* x = (*translation_array)[0].AsDouble();
-    const double* y = (*translation_array)[1].AsDouble();
-    const double* z = (*translation_array)[2].AsDouble();
-    
-    if (!x || !y || !z) {
+
+    double x, y, z;
+
+    if (!(*translation_array)[0].TryConvertNumberToDouble(&x)) {
+        return false;
+    }
+    if (!(*translation_array)[1].TryConvertNumberToDouble(&y)) {
+        return false;
+    }
+    if (!(*translation_array)[2].TryConvertNumberToDouble(&z)) {
         return false;
     }
 
-    *out = Vec3(*x, *y, *z);
+    *out = Vec3(x, y, z);
     return true;
 }
 
@@ -237,6 +247,7 @@ GetMeshes(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file, Ar
         
         GltfMesh out_mesh;
         out_mesh.name = String(alloc, name_val->AsString()->View());
+        out_mesh.primitives = Array<GltfPrimitive>(alloc);
         
         for (size_t pi = 0; pi < primitives_val->AsArray()->len; ++pi) {
             const RobinHashMap<String, Json::Val>* raw_primitive = (*primitives_val->AsArray())[pi].AsObject();
@@ -265,8 +276,8 @@ GetMeshes(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file, Ar
 
 
             GltfPrimitive primitive;
-            primitive.indices = (int32_t)raw_indices->AsInt64();
-            primitive.material = (int32_t)raw_indices->AsInt64();
+            primitive.indices = (int32_t)*raw_indices->AsInt64();
+            primitive.material = (int32_t)*raw_material->AsInt64();
             primitive.attributes = RobinHashMap<String, int>(alloc, 16);
 
             for (const auto& pair : *raw_attributes->AsObject()) {
@@ -331,7 +342,7 @@ GetBuffers(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file, A
         
         GltfBuffer out_buf;
         out_buf.byte_length = *byte_length_val->AsInt64();
-        out_buf.uri = String(alloc, byte_length_val->AsString()->View());
+        out_buf.uri = String(alloc, uri_val->AsString()->View());
         out_buffers->PushBack(out_buf);
     }
     
@@ -385,13 +396,13 @@ GetAccessors(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file,
         }
 
         const Json::Val* max_val = accessor->Find(String(alloc, "max"));
-        if (!max_val || !max_val->IsArray()) {
+        if (max_val && !max_val->IsArray()) {
             LOG_ERROR("Was expecting a max property");
             return false;
         }
 
         const Json::Val* min_val = accessor->Find(String(alloc, "min"));
-        if (!min_val || !min_val->IsArray()) {
+        if (min_val && !min_val->IsArray()) {
             LOG_ERROR("Was expecting a min property");
             return false;
         }
@@ -408,14 +419,22 @@ GetAccessors(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file,
         out_accessor.count = *count_val->AsInt64();
         out_accessor.type = String(alloc, type_val->AsString()->View());
 
-        if (!GetVec3(max_val, &out_accessor.max)) {
-            LOG_ERROR("Was expecting a max vector");
-            return false;
+        if (max_val) {
+            if (!GetVec3(max_val, &out_accessor.max)) {
+                LOG_ERROR("Was expecting a max vector");
+                return false;
+            }
+        } else {
+            out_accessor.max = Vec3::Zero();
         }
 
-        if (!GetVec3(min_val, &out_accessor.min)) {
-            LOG_ERROR("Was expecting a min vector");
-            return false;
+        if (min_val) {
+            if (!GetVec3(min_val, &out_accessor.min)) {
+                LOG_ERROR("Was expecting a min vector");
+                return false;
+            }
+        } else {
+            out_accessor.min = Vec3::Zero();
         }
 
         out_accessors->PushBack(std::move(out_accessor));
@@ -474,7 +493,7 @@ GetMaterial(Allocator* alloc, const RobinHashMap<String, Json::Val>* raw_materia
         return false;
     }
 
-    const Json::Val* metallic_roughness_texture_index = base_color_texture->AsObject()->Find(String(alloc, "index"));
+    const Json::Val* metallic_roughness_texture_index = metallic_roughness_texture->AsObject()->Find(String(alloc, "index"));
     if (!metallic_roughness_texture_index || !metallic_roughness_texture_index->IsInteger()) {
         LOG_ERROR("Was expecting metallic roughness texture index");
         return false;

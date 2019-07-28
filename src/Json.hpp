@@ -174,6 +174,19 @@ struct Val
         return type == Type::Integer ? &values.integer : nullptr;
     }
 
+    bool TryConvertNumberToDouble(double* out_val) const
+    {
+        if (type == Type::Integer) {
+            *out_val = (double)values.integer;
+            return true;
+        } else if (type == Type::Real) {
+            *out_val = values.real;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     String PrettyPrint(Allocator* other_allocator = nullptr) const;
 
 private:
