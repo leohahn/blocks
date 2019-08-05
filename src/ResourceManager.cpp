@@ -496,8 +496,6 @@ LoadTextureFromFile(Allocator* allocator,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    const char* texture_str = texture_sid.GetStr();
-
     if (texture_channel_count == 3) {
         glTexImage2D(
             GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);

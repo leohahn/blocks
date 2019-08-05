@@ -82,8 +82,8 @@
 
 #define ASSERT(cond, msg) \
     if (!(cond)) { \
-        LOG_ERROR("%s", "Assertion failed: " #cond); \
-        LOG_ERROR("%s", "Message: " ## msg); \
+        LOG_ERROR("Assertion failed: %s", #cond); \
+        LOG_ERROR("Message %s", #msg); \
         int* val = nullptr; \
         *val = 0xff;\
     }
