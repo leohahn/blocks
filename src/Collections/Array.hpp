@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <initializer_list>
 #include "Allocator.hpp"
 
 #define ARRAY_INITIAL_SIZE 2
@@ -10,16 +11,28 @@
 template<typename T>
 struct Array
 {
+public:
     Array()
         : Array(nullptr)
     {}
     
-    Array(Allocator* allocator)
+    explicit Array(Allocator* allocator)
         : allocator(allocator)
         , len(0)
         , cap(0)
         , data(nullptr)
     {}
+
+    Array(Allocator* allocator, const std::initializer_list<T>& init_list)
+        : allocator(allocator)
+        , len(0)
+        , cap(0)
+        , data(nullptr)
+    {
+        for (const auto& el : init_list) {
+            PushBack(el);
+        }
+    }
 
     // Copy semantics
     Array(const Array& arr)
@@ -123,6 +136,34 @@ struct Array
     size_t GetLen() const { return len; }
     T* GetData() const { return data; }
 
+    //
+    // iterator
+    //
+    using iterator = T*;
+    using const_iterator = const T*;
+
+    iterator begin() const
+    {
+        if (data) {
+            return data;
+        } else {
+            return end();
+        }
+    }
+
+    iterator end() const { return data + len; }
+
+    const_iterator cbegin() const 
+    {
+        if (data) {
+            return data;
+        } else {
+            return cend();
+        }
+    }
+    const_iterator cend() const { return data + len; }
+
+public:
     Allocator* allocator;
     size_t len;
     size_t cap;
