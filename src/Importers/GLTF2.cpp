@@ -58,7 +58,7 @@ struct GltfMesh
     Array<GltfPrimitive> primitives;
 };
 
-struct GltfBufferHeader
+struct GlbBufferHeader
 {
     uint32_t magic;
     uint32_t version;
@@ -67,36 +67,167 @@ struct GltfBufferHeader
     static constexpr int kMagic = 0x46546C67;
 };
 
-struct GltfBufferChunk
+struct GlbBufferChunk
 {
     uint32_t length;
     uint32_t type;
     uint8_t* data;
 };
 
-static_assert(sizeof(GltfBufferHeader) == 12, "Should be 12 bytes large");
+static_assert(sizeof(GlbBufferHeader) == 12, "Should be 12 bytes large");
 
 struct GltfBuffer
 {
+    Allocator* allocator;
     int64_t byte_length = -1;
     String uri;
+    uint8_t* data;
+
+    GltfBuffer(Allocator* alloc, const StringView& uri, int64_t byte_length)
+        : allocator(alloc)
+        , uri(alloc, uri)
+        , byte_length(byte_length)
+    {
+        Path path = FileSystem::GetResourcesPath(alloc);
+        path.Push(uri);
+
+        size_t file_size;
+        data = FileSystem::LoadFileToMemory(alloc, path, &file_size);
+
+        ASSERT(file_size == byte_length, "sizes should be equal");
+        ASSERT(data, "The buffer should exist");
+    }
+
+    GltfBuffer(GltfBuffer&& buf)
+        : data(nullptr)
+    {
+        *this = std::move(buf);
+    }
+
+    GltfBuffer& operator=(GltfBuffer&& buf)
+    {
+        if (data) {
+            allocator->Deallocate(data);
+        }
+        allocator = buf.allocator;
+        uri = std::move(buf.uri);
+        byte_length = buf.byte_length;
+        data = buf.data;
+        buf.allocator = nullptr;
+        buf.data = nullptr;
+        buf.byte_length = 0;
+        return *this;
+    }
+
+    GltfBuffer& operator=(const GltfBuffer&) = delete;
+    GltfBuffer(const GltfBuffer&) = delete;
+};
+
+enum class GltfBufferViewTarget
+{
+    Undefined = 0,
+    ArrayBuffer = 34962,
+    ElementArrayBuffer = 34963,
 };
 
 struct GltfBufferView
 {
+    GltfBufferViewTarget target = GltfBufferViewTarget::Undefined;
     int64_t buffer_index = -1;
     int64_t byte_length = -1;
     int64_t byte_offset = -1;
 };
 
+enum class ComponentType
+{
+    Byte = 5120,
+    UnsignedByte = 5121,
+    Short = 5122,
+    UnsignedShort = 5123,
+    UnsignedInt = 5125,
+    Float = 5126,
+};
+
+static bool
+TryGetComponentType(int64_t component_type, ComponentType* out_component_type)
+{
+    ASSERT(out_component_type, "should be a valid pointer");
+    if (component_type == static_cast<int64_t>(ComponentType::Byte)) {
+        *out_component_type = ComponentType::Byte;
+    } else if (component_type == static_cast<int64_t>(ComponentType::UnsignedByte)) {
+        *out_component_type = ComponentType::UnsignedByte;
+    } else if (component_type == static_cast<int64_t>(ComponentType::Short)) {
+        *out_component_type = ComponentType::Short;
+    } else if (component_type == static_cast<int64_t>(ComponentType::UnsignedShort)) {
+        *out_component_type = ComponentType::UnsignedShort;
+    } else if (component_type == static_cast<int64_t>(ComponentType::UnsignedInt)) {
+        *out_component_type = ComponentType::UnsignedInt;
+    } else if (component_type == static_cast<int64_t>(ComponentType::Float)) {
+        *out_component_type = ComponentType::Float;
+    } else {
+        return false;
+    }
+    return true;
+}
+
+enum class AccessorType
+{
+    Scalar = 1,
+    Vec2 = 2,
+    Vec3 = 3,
+    Vec4 = 4,
+    Mat2 = 4,
+    Mat3 = 9,
+    Mat4 = 16,
+};
+
+static bool
+TryGetAccessorType(const StringView& str, AccessorType* out_type)
+{
+    ASSERT(out_type, "should be a valid pointer");
+    if (str == "SCALAR") {
+        *out_type = AccessorType::Scalar;
+    } else if (str == "VEC2") {
+        *out_type = AccessorType::Vec2;
+    } else if (str == "VEC3") {
+        *out_type = AccessorType::Vec3;
+    } else if (str == "VEC4") {
+        *out_type = AccessorType::Vec4;
+    } else if (str == "MAT2") {
+        *out_type = AccessorType::Mat2;
+    } else if (str == "MAT3") {
+        *out_type = AccessorType::Mat3;
+    } else if (str == "MAT4") {
+        *out_type = AccessorType::Mat4;
+    } else {
+        return false;
+    }
+    return true;
+}
+
 struct GltfAccessor
 {
-    String type;
+    AccessorType type = AccessorType::Vec3;
+    ComponentType component_type = ComponentType::Float;
     int64_t buffer_view_index = -1;
-    int64_t component_type = -1;
     int64_t count = -1;
     Vec3 max = Vec3::Zero();
     Vec3 min = Vec3::Zero();
+    uint32_t opengl_buffer = 0;
+
+    int64_t GetElementSize() const
+    {
+        int64_t num_comp = static_cast<int64_t>(type);
+        switch (component_type) {
+            case ComponentType::Byte:          return num_comp * 1;
+            case ComponentType::UnsignedByte:  return num_comp * 1;
+            case ComponentType::Short:         return num_comp * 2;
+            case ComponentType::UnsignedShort: return num_comp * 2;
+            case ComponentType::UnsignedInt:   return num_comp * 4;
+            case ComponentType::Float:         return num_comp * 4;
+            default: ASSERT(false, "Unknown component type");
+        }
+    }
 };
 
 static bool
@@ -127,7 +258,7 @@ TryGetRotation(const Json::Val* rotation, Quaternion* out)
         return false;
     }
     
-    *out = Quaternion(x, y, z, w);
+    *out = Quaternion((float)x, (float)y, (float)z, (float)w);
     return true;
 }
         
@@ -299,7 +430,6 @@ TryGetMeshes(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file,
                 assert(false);
             }
 
-
             GltfPrimitive primitive;
             primitive.indices = (int32_t)*raw_indices->AsInt64();
             primitive.material = (int32_t)*raw_material->AsInt64();
@@ -320,6 +450,8 @@ TryGetMeshes(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file,
 
             out_mesh.primitives.PushBack(std::move(primitive));
         }
+
+        out_meshes->PushBack(std::move(out_mesh));
     }
     
     return true;
@@ -364,18 +496,18 @@ TryGetBuffers(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file
             LOG_ERROR("Was expecting a byteLength property");
             return false;
         }
-        
-        GltfBuffer out_buf;
-        out_buf.byte_length = *byte_length_val->AsInt64();
-        out_buf.uri = String(alloc, uri_val->AsString()->View());
-        out_buffers->PushBack(out_buf);
+
+        GltfBuffer out_buf(alloc, uri_val->AsString()->View(), *byte_length_val->AsInt64());
+
+        out_buffers->PushBack(std::move(out_buf));
     }
     
     return true;
 }
 
 static bool
-TryGetAccessors(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file, Array<GltfAccessor>* out_accessors)
+TryGetAccessors(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file,
+                const Array<GltfBufferView>& buffer_views, Array<GltfAccessor>* out_accessors)
 {
     assert(alloc);
     assert(gltf_file);
@@ -440,9 +572,22 @@ TryGetAccessors(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_fi
 
         GltfAccessor out_accessor;
         out_accessor.buffer_view_index = *buffer_view_val->AsInt64();
-        out_accessor.component_type = *component_type_val->AsInt64();
         out_accessor.count = *count_val->AsInt64();
-        out_accessor.type = String(alloc, type_val->AsString()->View());
+
+        if (out_accessor.buffer_view_index >= buffer_views.len) {
+            LOG_ERROR("Invalid buffer view index in accessor: %d", out_accessor.buffer_view_index);
+            return false;
+        }
+
+        if (!TryGetAccessorType(type_val->AsString()->View(), &out_accessor.type)) {
+            LOG_ERROR("Invalid accessor type %s", type_val->AsString()->data);
+            return false;
+        }
+
+        if (!TryGetComponentType(*component_type_val->AsInt64(), &out_accessor.component_type)) {
+            LOG_ERROR("Invalid component type %s", *component_type_val->AsInt64());
+            return false;
+        }
 
         if (max_val) {
             if (!TryGetVec3(max_val, &out_accessor.max)) {
@@ -685,10 +830,27 @@ TryGetBufferViews(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_
             return false;
         }
 
+        const Json::Val* target_val = raw_buffer_view->Find(String(alloc, "target"));
+        if (target_val && !target_val->IsInteger()) {
+            LOG_ERROR("Was expecting a target property");
+            return false;
+        }
+
         GltfBufferView out_buffer_view;
         out_buffer_view.buffer_index = *buffer_val->AsInt64();
         out_buffer_view.byte_length = *byte_length_val->AsInt64();
         out_buffer_view.byte_offset = *byte_offset_val->AsInt64();
+
+        if (target_val) {
+            int64_t target = *target_val->AsInt64();
+            if (target != static_cast<int64_t>(GltfBufferViewTarget::ArrayBuffer) ||
+                target != static_cast<int64_t>(GltfBufferViewTarget::ElementArrayBuffer))
+            {
+                LOG_ERROR("Invalid buffer view target");
+                return false;
+            }
+            out_buffer_view.target = static_cast<GltfBufferViewTarget>(target);
+        }
 
         out_buffer_views->PushBack(std::move(out_buffer_view));
     }
@@ -731,7 +893,7 @@ TryGetTextures(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_fil
         }
 
         const Json::Val* sampler_val = raw_texture->Find(String(alloc, "sampler"));
-        if (sampler_val || !sampler_val->IsInteger()) {
+        if (sampler_val && !sampler_val->IsInteger()) {
             LOG_ERROR("Was expecting a sampler property");
             return false;
         }
@@ -750,11 +912,13 @@ TryGetTextures(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_fil
     return true;
 }
 
+#if 0
 struct LoadedGltfBuffer
 {
     Allocator* allocator;
     uint8_t* buffer_data;
     Array<GltfBufferChunk*> chunks;
+    uint32_t vertex_buffer;
 
     LoadedGltfBuffer()
         : allocator(nullptr)
@@ -799,43 +963,44 @@ struct LoadedGltfBuffer
     LoadedGltfBuffer& operator=(const LoadedGltfBuffer&) = delete;
 };
 
-LoadedGltfBuffer
-LoadGltfBuffer(Allocator* alloc, const GltfBuffer& buffer)
-{
-    Path file_path = FileSystem::GetResourcesPath(alloc);
-    file_path.Push(buffer.uri.View());
-
-    size_t buffer_size;
-    uint8_t* buffer_data = FileSystem::LoadFileToMemory(alloc, file_path, &buffer_size);
-    assert(buffer_data);
-
-    GltfBufferHeader* header = (GltfBufferHeader*)buffer_data;
-    assert(header->magic == GltfBufferHeader::kMagic);
-    assert(header->version == 2);
-
-    LOG_DEBUG("Binary buffer is %lu bytes", header->length);
-
-    // start reading the chunks
-    const uint32_t chunks_total_size = header->length - sizeof(GltfBufferHeader);
-    uint32_t offset = sizeof(GltfBufferHeader);
-
-    LoadedGltfBuffer loaded_buffer(alloc, buffer_data);
-
-    for (;;) {
-        const uint32_t bytes_left = header->length - offset;
-        if (bytes_left < sizeof(GltfBufferChunk) + 1) {
-            break;
-        }
-
-        GltfBufferChunk* chunk = (GltfBufferChunk*)(buffer_data + offset);
-        assert(chunk->type == CHUNK_TYPE_BINARY && "Json chunk is not supported");
-        loaded_buffer.chunks.PushBack(chunk);
-
-        offset += chunk->length;
-    }
-
-    return loaded_buffer;
-}
+//LoadedGltfBuffer
+//LoadGltfBuffer(Allocator* alloc, const GltfBuffer& buffer)
+//{
+    //Path file_path = FileSystem::GetResourcesPath(alloc);
+    //file_path.Push(buffer.uri.View());
+//
+    //size_t buffer_size;
+    //uint8_t* buffer_data = FileSystem::LoadFileToMemory(alloc, file_path, &buffer_size);
+    //assert(buffer_data);
+//
+    //GltfBufferHeader* header = (GltfBufferHeader*)buffer_data;
+    //assert(header->magic == GltfBufferHeader::kMagic);
+    //assert(header->version == 2);
+//
+    //LOG_DEBUG("Binary buffer is %lu bytes", header->length);
+//
+    //// start reading the chunks
+    //const uint32_t chunks_total_size = header->length - sizeof(GltfBufferHeader);
+    //uint32_t offset = sizeof(GltfBufferHeader);
+//
+    //LoadedGltfBuffer loaded_buffer(alloc, buffer_data);
+//
+    //for (;;) {
+        //const uint32_t bytes_left = header->length - offset;
+        //if (bytes_left < sizeof(GltfBufferChunk) + 1) {
+            //break;
+        //}
+//
+        //GltfBufferChunk* chunk = (GltfBufferChunk*)(buffer_data + offset);
+        //assert(chunk->type == CHUNK_TYPE_BINARY && "Json chunk is not supported");
+        //loaded_buffer.chunks.PushBack(chunk);
+//
+        //offset += chunk->length;
+    //}
+//
+    //return loaded_buffer;
+//}
+#endif
 
 Model
 ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& path, ResourceManager* resource_manager, int model_index)
@@ -844,8 +1009,6 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
     uint8_t* data = FileSystem::LoadFileToMemory(scratch_allocator, path, &size);
     assert(data);
     
-    Model model(alloc);
-
     Json::Document doc(scratch_allocator);
     doc.Parse(data, size);
     if (doc.HasParseErrors() || !doc.root_val.IsObject()) {
@@ -891,35 +1054,25 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         assert(false);
     }
 
-    Array<GltfAccessor> accessors;
-    if (!TryGetAccessors(alloc, root, &accessors)) {
-        LOG_ERROR("Was expecting an accessors array");
-        assert(false);
-    }
-
     Array<GltfBufferView> buffer_views;
     if (!TryGetBufferViews(alloc, root, &buffer_views)) {
         LOG_ERROR("Was expecting a bufferViews array");
         assert(false);
     }
 
-    Array<GltfTexture> textures;
-    if (!TryGetTextures(alloc, root, &textures)) {
-        LOG_ERROR("Was expecting a bufferViews array");
+    Array<GltfAccessor> accessors;
+    if (!TryGetAccessors(alloc, root, buffer_views, &accessors)) {
+        LOG_ERROR("Was expecting an accessors array");
         assert(false);
     }
 
-    // Load the buffers
-    Array<LoadedGltfBuffer> loaded_buffers(scratch_allocator);
-
-    for (size_t bi = 0; bi < buffers.len; ++bi) {
-        const GltfBuffer& buffer = buffers[bi];
-        LoadedGltfBuffer loaded_buffer = LoadGltfBuffer(scratch_allocator, buffer);
-        loaded_buffers.PushBack(std::move(loaded_buffer));
+    Array<GltfTexture> textures;
+    if (!TryGetTextures(alloc, root, &textures)) {
+        ASSERT(false, "Was expecting a bufferViews array");
     }
 
     // A node inside gltf will be represented as a model.
-    assert(nodes.len == 1 && "only one node supported currently");
+    ASSERT(nodes.len == 1, "only one node supported currently");
 
     const GltfNode& node = nodes[0];
 
@@ -944,7 +1097,7 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         const GltfMaterial& gltf_material = materials[mi];
         // TODO: include metallic roughness texture
 
-        Material* material = resource_manager->allocator->New<Material>(resource_manager->allocator);
+        Material* material = resource_manager->allocator->New<Material>();
         material->name = SID(gltf_material.name.data);
 
         if (gltf_material.base_color.index > -1) {
@@ -966,6 +1119,28 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         const GltfAccessor& indices_accessor = accessors[primitive.indices];
         const GltfBufferView& indices_buffer_view = buffer_views[indices_accessor.buffer_view_index];
 
+        if (indices_accessor.opengl_buffer == 0) {
+            const GltfBufferView& buffer_view = buffer_views[indices_accessor.buffer_view_index];
+            const GltfBuffer& buffer = buffers[buffer_view.buffer_index];
+            size_t buffer_size = indices_accessor.GetElementSize() * indices_accessor.count;
+            ASSERT(buffer_view.byte_length >= buffer_size, "Buffer view is too small!");
+
+            glGenBuffers(1, (GLuint*)&indices_accessor.opengl_buffer);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_accessor.opengl_buffer);
+            glBufferData(
+                GL_ELEMENT_ARRAY_BUFFER,
+                buffer_size,
+                buffer.data + buffer_view.byte_offset,
+                GL_STATIC_DRAW);
+            glVertexAttribPointer(
+                0,
+                static_cast<int64_t>(indices_accessor.type),
+                static_cast<int64_t>(indices_accessor.component_type),
+                GL_FALSE,
+                0,
+                0);
+        }
+
         // Each primitive is a submesh in the engine currently.
         // TODO: improve how nodes are represented in the engine
         SubMesh submesh;
@@ -973,17 +1148,52 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         submesh.start_index = indices_buffer_view.byte_offset;
         submesh.num_indices = indices_buffer_view.byte_length;
 
-        assert(submesh.material);
+        ASSERT(submesh.material, "material shuld exist");
+
+        // We will combine the primitive buffer views into one buffer in order to send it to the
+        // GPU as a single glBufferData (more efficient).
+        size_t buffer_start_index = 0;
+        size_t buffer_total_size = 0;
+
+        uint32_t primitives_vbo;
+        glGenBuffers(1, (GLuint*)&primitives_vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, primitives_vbo);
 
         for (const auto& pair : primitive.attributes) {
             const int32_t accessor_index = pair.val;
             const GltfAccessor& accessor = accessors[accessor_index];
             const GltfBufferView& buffer_view = buffer_views[accessor.buffer_view_index];
+            const GltfBuffer& buffer = buffers[buffer_view.buffer_index];
 
             if (pair.key == "POSITION") {
+                // Position data should be uploaded to the gpu if it was not done yet.                        
+                ASSERT(accessor.type == AccessorType::Vec3, "POSITION should be Vec3");
+                if (accessor.opengl_buffer == 0) {
+                    // Set the layour of the buffer
+                    glVertexAttribPointer(
+                        0,
+                        static_cast<int64_t>(accessor.type),
+                        static_cast<int64_t>(accessor.component_type),
+                        GL_FALSE,
+                        0,
+                        0);
+                }
             } else if (pair.key == "NORMAL") {
+                if (accessor.opengl_buffer == 0) {
+                    // Set the layour of the buffer
+                    ASSERT(static_cast<int64_t>(accessor.type) == 3, "Expection Vec3 for NORMAL");
+                    ASSERT(static_cast<int64_t>(accessor.component_type) == GL_FLOAT, "Expecting Vec3 of Floats");
 
+                    glVertexAttribPointer(
+                        1,
+                        static_cast<int64_t>(accessor.type),
+                        static_cast<int64_t>(accessor.component_type),
+                        GL_FALSE,
+                        0,
+                        0);
+                }
             } else if (pair.key == "TEXCOORD_0") {
+                ASSERT(accessor.type == AccessorType::Vec2, "TEXCOORD_0 should be Vec2");
 
             } else {
                 LOG_ERROR("Unknown attribute %s", pair.key.data);
@@ -993,10 +1203,6 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
 
         mesh->sub_meshes.PushBack(std::move(submesh));
     }
-
-    //
-    // TODO: Now we can start loading the node/model into memory
-    //
 
     scratch_allocator->Deallocate(data);
     return Model(alloc);
