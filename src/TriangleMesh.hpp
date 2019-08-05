@@ -58,11 +58,7 @@ struct TriangleMesh
 
     Array<SubMesh> sub_meshes;
     
-    // OpenGL state
-
     VertexArray* vao;
-    VertexBuffer* vbo;
-    IndexBuffer* ebo;
 
     TriangleMesh(Allocator* allocator)
         : allocator(allocator)
@@ -73,23 +69,17 @@ struct TriangleMesh
         , indices(allocator)
         , sub_meshes(allocator)
         , vao(nullptr)
-        , vbo(nullptr)
-        , ebo(nullptr)
     {}
 
     ~TriangleMesh()
     {
         if (allocator) {
             allocator->Delete(vao);
-            allocator->Delete(vbo);
-            allocator->Delete(ebo);
         }
     }
 
     TriangleMesh(TriangleMesh&& other)
         : vao(nullptr)
-        , vbo(nullptr)
-        , ebo(nullptr)
     {
         *this = std::move(other);
     }
@@ -98,8 +88,6 @@ struct TriangleMesh
     {
         if (allocator) {
             allocator->Delete(vao);
-            allocator->Delete(vbo);
-            allocator->Delete(ebo);
         }
         allocator = other.allocator;
         vertices = std::move(other.vertices);
@@ -109,11 +97,7 @@ struct TriangleMesh
         indices = std::move(other.indices);
         sub_meshes = std::move(other.sub_meshes);
         vao = other.vao;
-        vbo = other.vbo;
-        ebo = other.ebo;
         other.vao = nullptr;
-        other.vbo = nullptr;
-        other.ebo = nullptr;
         return *this;
     }
 

@@ -290,17 +290,17 @@ ResourceManager::LoadObjModel(const ResourceFile& model_res)
         buffer.PushBack(OpenGL::Vertex_PT(mesh->vertices[i], mesh->uvs[i]));
     }
 
-    mesh->vbo = VertexBuffer::Create(mesh->allocator, (float*)buffer.data, buffer.len * sizeof(OpenGL::Vertex_PT));
-    mesh->vbo->SetLayout(BufferLayout(mesh->allocator, {
+    auto vbo = VertexBuffer::Create(mesh->allocator, (float*)buffer.data, buffer.len * sizeof(OpenGL::Vertex_PT));
+    vbo->SetLayout(BufferLayout(mesh->allocator, {
         BufferLayoutDataType::Vec3,
         BufferLayoutDataType::Vec2,
     }));
 
-    mesh->ebo = IndexBuffer::Create(mesh->allocator, mesh->indices.data, mesh->indices.len);
+    auto ibo = IndexBuffer::Create(mesh->allocator, mesh->indices.data, mesh->indices.len);
 
     mesh->vao = VertexArray::Create(mesh->allocator);
-    mesh->vao->SetIndexBuffer(mesh->ebo);
-    mesh->vao->SetVertexBuffer(mesh->vbo);
+    mesh->vao->SetIndexBuffer(ibo);
+    mesh->vao->SetVertexBuffer(vbo);
 
     model.meshes.PushBack(mesh);
     return model;

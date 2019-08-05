@@ -85,17 +85,17 @@ SetupPlane(Allocator* allocator, Allocator* scratch_allocator, Material* materia
         buffer.PushBack(OpenGL::Vertex_PT(mesh.vertices[i], mesh.uvs[i]));
     }
 
-    mesh.vbo = VertexBuffer::Create(allocator, (float*)buffer.data, buffer.len * sizeof(OpenGL::Vertex_PT));
-    mesh.vbo->SetLayout(BufferLayout(allocator, {
+    auto vbo = VertexBuffer::Create(allocator, (float*)buffer.data, buffer.len * sizeof(OpenGL::Vertex_PT));
+    vbo->SetLayout(BufferLayout(allocator, {
         BufferLayoutDataType::Vec3, // postion
         BufferLayoutDataType::Vec2, // texture coord
     }));
 
-    mesh.ebo = IndexBuffer::Create(allocator, mesh.indices.data, mesh.indices.len);
+    auto ibo = IndexBuffer::Create(allocator, mesh.indices.data, mesh.indices.len);
 
     mesh.vao = VertexArray::Create(allocator);
-    mesh.vao->SetIndexBuffer(mesh.ebo);
-    mesh.vao->SetVertexBuffer(mesh.vbo);
+    mesh.vao->SetIndexBuffer(ibo);
+    mesh.vao->SetVertexBuffer(vbo);
 
     SubMesh submesh = {};
     submesh.start_index = 0;
@@ -221,17 +221,17 @@ SetupCube(Allocator* allocator, Allocator* scratch_allocator, Material* material
         buffer.PushBack(OpenGL::Vertex_PT(mesh.vertices[i], mesh.uvs[i]));
     }
 
-    mesh.vbo = VertexBuffer::Create(allocator, (float*)buffer.data, buffer.len * sizeof(OpenGL::Vertex_PT));
-    mesh.vbo->SetLayout(BufferLayout(allocator, {
+    auto vbo = VertexBuffer::Create(allocator, (float*)buffer.data, buffer.len * sizeof(OpenGL::Vertex_PT));
+    vbo->SetLayout(BufferLayout(allocator, {
         BufferLayoutDataType::Vec3, // position
         BufferLayoutDataType::Vec2, // texture
     }));
 
-    mesh.ebo = IndexBuffer::Create(allocator, mesh.indices.data, mesh.indices.len);
+    auto ibo = IndexBuffer::Create(allocator, mesh.indices.data, mesh.indices.len);
 
     mesh.vao = VertexArray::Create(allocator);
-    mesh.vao->SetIndexBuffer(mesh.ebo);
-    mesh.vao->SetVertexBuffer(mesh.vbo);
+    mesh.vao->SetIndexBuffer(ibo);
+    mesh.vao->SetVertexBuffer(vbo);
 
     SubMesh submesh = {};
     submesh.start_index = 0;
