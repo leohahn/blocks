@@ -678,10 +678,10 @@ TryGetMaterial(Allocator* alloc, const RobinHashMap<String, Json::Val>* raw_mate
     GltfMaterial out_mat;
     out_mat.name = String(alloc, material_name->AsString()->View());
     out_mat.double_sided = *double_sided_val->AsBool();
-    out_mat.base_color.index = *base_color_texture_index->AsInt64();
-    out_mat.base_color.tex_coord = *base_color_texture_tex_coord->AsInt64();
-    out_mat.metallic_roughness.index = *metallic_roughness_texture_index->AsInt64();
-    out_mat.metallic_roughness.tex_coord = *metallic_roughness_texture_tex_coord->AsInt64();
+    out_mat.base_color.index = (int32_t)*base_color_texture_index->AsInt64();
+    out_mat.base_color.tex_coord = (int32_t)*base_color_texture_tex_coord->AsInt64();
+    out_mat.metallic_roughness.index = (int32_t)*metallic_roughness_texture_index->AsInt64();
+    out_mat.metallic_roughness.tex_coord = (int32_t)*metallic_roughness_texture_tex_coord->AsInt64();
 
     *out_material = std::move(out_mat);
     return true;
