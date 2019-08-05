@@ -12,7 +12,7 @@ RenderMesh(const TriangleMesh& mesh,
            float mesh_scale,
            Vec4* scale_color)
 {
-    glBindVertexArray(mesh.vao);
+    mesh.vao->Bind();
     const size_t index_size = sizeof(decltype(mesh.indices[0]));
 
     // Create the model matrix
@@ -47,5 +47,5 @@ RenderMesh(const TriangleMesh& mesh,
                        reinterpret_cast<const void*>(mesh.sub_meshes[i].start_index * sizeof(uint32_t)));
     }
 
-    glBindVertexArray(0);
+    mesh.vao->Unbind();
 }

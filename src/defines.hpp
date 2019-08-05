@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Logger.hpp"
+
 #define KILOBYTES(x) (x) * 1024
 #define MEGABYTES(x) KILOBYTES(x) * 1024
 #define GIGABYTES(x) MEGABYTES(x) * 1024
@@ -61,6 +63,14 @@
 #define DISABLE_OBJECT_COPY_AND_MOVE(Type) \
     DISABLE_OBJECT_COPY(Type); \
     DISABLE_OBJECT_MOVE(Type)
+
+#define ASSERT(cond, msg) \
+    if (!(cond)) { \
+        LOG_ERROR("%s", "Assertion failed: " #cond); \
+        LOG_ERROR("%s", "Message: " ## msg); \
+        int* val = nullptr; \
+        *val = 0xff;\
+    }
 
 #ifdef _DEBUG
 struct ResourceManager;

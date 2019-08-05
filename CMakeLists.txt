@@ -58,6 +58,10 @@ add_executable(blocks
     src/Model.hpp
     src/Window.hpp
     src/Window.cpp
+    src/Renderer/Buffer.hpp
+    src/Renderer/Buffer.cpp
+    src/Renderer/OpenGLBuffer.hpp
+    src/Renderer/OpenGLBuffer.cpp
 
     # Importers
     src/Importers/GLTF2.hpp

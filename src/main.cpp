@@ -18,6 +18,7 @@
 #include <glad/glad.h>
 #include <stdio.h>
 #include "Json.hpp"
+#include "Renderer/Buffer.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -84,26 +85,16 @@ SetupPlane(Allocator* allocator, Allocator* scratch_allocator, Material* materia
         buffer.PushBack(OpenGL::Vertex_PT(mesh.vertices[i], mesh.uvs[i]));
     }
 
-    glGenVertexArrays(1, &mesh.vao);
-    glBindVertexArray(mesh.vao);
+    mesh.vao = VertexArray::Create(allocator);
+    mesh.vao->Bind();
 
-    // create the vbo and ebo
-    glGenBuffers(1, &mesh.vbo);
-    glGenBuffers(1, &mesh.ebo);
+    mesh.vbo = VertexBuffer::Create(allocator, (float*)buffer.data, buffer.len * sizeof(OpenGL::Vertex_PT));
+    mesh.vbo->Bind();
 
-    // bind vbo
-    glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo);
-    glBufferData(
-        GL_ARRAY_BUFFER, sizeof(OpenGL::Vertex_PT) * buffer.len, buffer.data, GL_STATIC_DRAW);
+    mesh.ebo = IndexBuffer::Create(allocator, mesh.indices.data, mesh.indices.len);
+    mesh.ebo->Bind();
 
     OpenGL::SetVertexFormat_PT();
-
-    // bind ebo
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 mesh.indices.len * sizeof(uint32_t),
-                 mesh.indices.data,
-                 GL_STATIC_DRAW);
 
     SubMesh submesh = {};
     submesh.start_index = 0;
@@ -229,26 +220,16 @@ SetupCube(Allocator* allocator, Allocator* scratch_allocator, Material* material
         buffer.PushBack(OpenGL::Vertex_PT(mesh.vertices[i], mesh.uvs[i]));
     }
 
-    glGenVertexArrays(1, &mesh.vao);
-    glBindVertexArray(mesh.vao);
+    mesh.vao = VertexArray::Create(allocator);
+    mesh.vao->Bind();
 
-    // create the vbo and ebo
-    glGenBuffers(1, &mesh.vbo);
-    glGenBuffers(1, &mesh.ebo);
+    mesh.vbo = VertexBuffer::Create(allocator, (float*)buffer.data, buffer.len * sizeof(OpenGL::Vertex_PT));
+    mesh.vbo->Bind();
 
-    // bind vbo
-    glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo);
-    glBufferData(
-        GL_ARRAY_BUFFER, sizeof(OpenGL::Vertex_PT) * buffer.len, buffer.data, GL_STATIC_DRAW);
+    mesh.ebo = IndexBuffer::Create(allocator, mesh.indices.data, mesh.indices.len);
+    mesh.ebo->Bind();
 
     OpenGL::SetVertexFormat_PT();
-
-    // bind ebo
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 mesh.indices.len * sizeof(uint32_t),
-                 mesh.indices.data,
-                 GL_STATIC_DRAW);
 
     SubMesh submesh = {};
     submesh.start_index = 0;
@@ -268,7 +249,6 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
 
 //
 // What needs to be done
-// TODO: finish rendering the nanosuit with the materials specified in the mtl file.
 // TODO: use row major matrices instead of the current column major,
 // since they are friendlier to read in code.
 //
@@ -345,12 +325,11 @@ main(int argc, char** argv)
     TriangleMesh floor_mesh = SetupPlane(&program.main_allocator, &program.temp_allocator, wall_material);
     TriangleMesh cube_mesh = SetupCube(&program.main_allocator, &program.temp_allocator, wall_material);
 
+    //Model alpine_chalet = program.resource_manager->LoadModel(SID("Alpine_chalet.model"));
     Model nanosuit = program.resource_manager->LoadModel(SID("nanosuit.model"));
 
-    Model alpine_chalet = program.resource_manager->LoadModel(SID("Alpine_chalet.model"));
-
     LOG_DEBUG("Starting main loop");
-    glClearColor(0, 0, 0, 1);
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     
     while (running) {
         input_system.Update();

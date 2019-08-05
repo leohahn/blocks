@@ -290,26 +290,19 @@ ResourceManager::LoadObjModel(const ResourceFile& model_res)
         buffer.PushBack(OpenGL::Vertex_PT(mesh->vertices[i], mesh->uvs[i]));
     }
 
-    glGenVertexArrays(1, &mesh->vao);
-    glBindVertexArray(mesh->vao);
+    mesh->vao = VertexArray::Create(mesh->allocator);
+    mesh->vao->Bind();
 
     // create the vbo and ebo
-    glGenBuffers(1, &mesh->vbo);
-    glGenBuffers(1, &mesh->ebo);
+    mesh->vbo = VertexBuffer::Create(mesh->allocator, (float*)buffer.data, buffer.len * sizeof(OpenGL::Vertex_PT));
+    mesh->vbo->Bind();
 
-    // bind vbo
-    glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-    glBufferData(
-        GL_ARRAY_BUFFER, sizeof(OpenGL::Vertex_PT) * buffer.len, buffer.data, GL_STATIC_DRAW);
-
-    // bind ebo
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 mesh->indices.len * sizeof(uint32_t),
-                 mesh->indices.data,
-                 GL_STATIC_DRAW);
+    mesh->ebo = IndexBuffer::Create(mesh->allocator, mesh->indices.data, mesh->indices.len);
+    mesh->ebo->Bind();
 
     OpenGL::SetVertexFormat_PT();
+
+    mesh->vao->Unbind();
 
     model.meshes.PushBack(mesh);
     return model;
@@ -500,14 +493,16 @@ LoadTextureFromFile(Allocator* allocator,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    if (StringUtils::EndsWith(texture_sid.GetStr(), ".jpg")) {
+    const char* texture_str = texture_sid.GetStr();
+
+    if (texture_channel_count == 3) {
         glTexImage2D(
             GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    } else if (StringUtils::EndsWith(texture_sid.GetStr(), ".png")) {
+    } else if (texture_channel_count == 4) {
         glTexImage2D(
             GL_TEXTURE_2D, 0, GL_RGBA, texture_width, texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     } else {
-        LOG_ERROR("Unknown file extension %s", texture_sid.GetStr());
+        LOG_ERROR("Unsupported channel count of %d", texture_channel_count);
         assert(false);
     }
     
