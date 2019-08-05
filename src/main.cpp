@@ -85,16 +85,17 @@ SetupPlane(Allocator* allocator, Allocator* scratch_allocator, Material* materia
         buffer.PushBack(OpenGL::Vertex_PT(mesh.vertices[i], mesh.uvs[i]));
     }
 
-    mesh.vao = VertexArray::Create(allocator);
-    mesh.vao->Bind();
-
     mesh.vbo = VertexBuffer::Create(allocator, (float*)buffer.data, buffer.len * sizeof(OpenGL::Vertex_PT));
-    mesh.vbo->Bind();
+    mesh.vbo->SetLayout(BufferLayout(allocator, {
+        BufferLayoutDataType::Vec3, // postion
+        BufferLayoutDataType::Vec2, // texture coord
+    }));
 
     mesh.ebo = IndexBuffer::Create(allocator, mesh.indices.data, mesh.indices.len);
-    mesh.ebo->Bind();
 
-    OpenGL::SetVertexFormat_PT();
+    mesh.vao = VertexArray::Create(allocator);
+    mesh.vao->SetIndexBuffer(mesh.ebo);
+    mesh.vao->SetVertexBuffer(mesh.vbo);
 
     SubMesh submesh = {};
     submesh.start_index = 0;
@@ -220,16 +221,17 @@ SetupCube(Allocator* allocator, Allocator* scratch_allocator, Material* material
         buffer.PushBack(OpenGL::Vertex_PT(mesh.vertices[i], mesh.uvs[i]));
     }
 
-    mesh.vao = VertexArray::Create(allocator);
-    mesh.vao->Bind();
-
     mesh.vbo = VertexBuffer::Create(allocator, (float*)buffer.data, buffer.len * sizeof(OpenGL::Vertex_PT));
-    mesh.vbo->Bind();
+    mesh.vbo->SetLayout(BufferLayout(allocator, {
+        BufferLayoutDataType::Vec3, // position
+        BufferLayoutDataType::Vec2, // texture
+    }));
 
     mesh.ebo = IndexBuffer::Create(allocator, mesh.indices.data, mesh.indices.len);
-    mesh.ebo->Bind();
 
-    OpenGL::SetVertexFormat_PT();
+    mesh.vao = VertexArray::Create(allocator);
+    mesh.vao->SetIndexBuffer(mesh.ebo);
+    mesh.vao->SetVertexBuffer(mesh.vbo);
 
     SubMesh submesh = {};
     submesh.start_index = 0;

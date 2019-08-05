@@ -11,6 +11,8 @@ public:
 
     void Bind() override;
     void Unbind() override;
+    void SetLayout(BufferLayout layout) override;
+    const BufferLayout& Layout() override;
 
     OpenGLVertexBuffer(OpenGLVertexBuffer&& other);
     OpenGLVertexBuffer& operator=(OpenGLVertexBuffer&& other);
@@ -20,6 +22,7 @@ public:
 
 private:
     uint32_t _handle;
+    BufferLayout _layout;
 };
 
 class OpenGLIndexBuffer : public IndexBuffer
@@ -44,11 +47,14 @@ private:
 class OpenGLVertexArray : public VertexArray
 {
 public:
-    OpenGLVertexArray();
+    OpenGLVertexArray(Allocator* allocator);
     ~OpenGLVertexArray();
 
     void Bind() override;
     void Unbind() override;
+
+    void SetVertexBuffer(VertexBuffer* vbo) override;
+    void SetIndexBuffer(IndexBuffer* ibo) override;
 
     OpenGLVertexArray(OpenGLVertexArray&& other);
     OpenGLVertexArray& operator=(OpenGLVertexArray&& other);
@@ -57,5 +63,8 @@ public:
     OpenGLVertexArray& operator=(OpenGLVertexArray&) = delete;
 
 private:
+    Allocator* _allocator;
     uint32_t _handle;
+    VertexBuffer* _vbo;
+    IndexBuffer* _ibo;
 };
