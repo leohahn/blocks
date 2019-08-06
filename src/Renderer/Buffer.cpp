@@ -41,6 +41,12 @@ IndexBuffer::Create(Allocator* allocator, uint32_t* indices, size_t len)
     return allocator->New<OpenGLIndexBuffer>(indices, len);
 }
 
+IndexBuffer*
+IndexBuffer::Create(Allocator* allocator, uint16_t* indices, size_t len)
+{
+    return allocator->New<OpenGLIndexBuffer>(indices, len);
+}
+
 VertexArray*
 VertexArray::Create(Allocator* allocator)
 {

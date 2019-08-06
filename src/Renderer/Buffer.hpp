@@ -71,8 +71,11 @@ public:
     virtual ~IndexBuffer() = default;
     virtual void Bind() = 0;
     virtual void Unbind() = 0;
+    virtual size_t GetNumIndices() = 0;
+    virtual size_t GetIndexSize() = 0;
 
     static IndexBuffer* Create(Allocator* allocator, uint32_t* indices, size_t len);
+    static IndexBuffer* Create(Allocator* allocator, uint16_t* indices, size_t len);
 };
 
 class VertexArray
@@ -81,6 +84,7 @@ public:
     virtual ~VertexArray() = default;
     virtual void Bind() = 0;
     virtual void Unbind() = 0;
+    virtual IndexBuffer* GetIndexBuffer() const = 0;
 
     virtual void SetVertexBuffer(VertexBuffer* vbo) = 0;
     virtual void SetIndexBuffer(IndexBuffer* ibo) = 0;

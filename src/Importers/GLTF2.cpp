@@ -1081,7 +1081,6 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
     model.rotation = node.rotation;
     model.translation = node.translation;
     model.scale = 1.0f;
-    model.meshes = Array<TriangleMesh*>(alloc);
 
     const GltfMesh& gltf_mesh = meshes[node.mesh];
 
@@ -1127,7 +1126,18 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
             size_t buffer_size = indices_accessor.GetElementSize() * indices_accessor.count;
             ASSERT(buffer_view.byte_length >= buffer_size, "Buffer view is too small!");
 
-            ibo = IndexBuffer::Create(alloc, (uint32_t*)(buffer.data + buffer_view.byte_offset), indices_accessor.count);
+            ASSERT(indices_accessor.type == AccessorType::Scalar, "should be a scalar");
+            if (indices_accessor.component_type == ComponentType::UnsignedInt) {
+                ibo = IndexBuffer::Create(alloc, (uint32_t*)(buffer.data + buffer_view.byte_offset), indices_accessor.count);
+            } else if (indices_accessor.component_type == ComponentType::UnsignedShort) {
+                ibo = IndexBuffer::Create(alloc, (uint16_t*)(buffer.data + buffer_view.byte_offset), indices_accessor.count);
+            } else if (indices_accessor.component_type == ComponentType::UnsignedByte) {
+                // TODO: add support for indices of unsigned byte
+                //ibo = IndexBuffer::Create(alloc, (uint8_t*)(buffer.data + buffer_view.byte_offset), indices_accessor.count);
+                ASSERT(false, "Unsupported component type");
+            } else {
+                ASSERT(false, "Unsupported component type");
+            }
         }
 
         LOG_DEBUG("Gltf2 model is using an index buffer for mesh %s", gltf_mesh.name.data);
@@ -1137,7 +1147,7 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         SubMesh submesh;
         submesh.material = resource_manager->GetMaterial(SID(material.name.data));
         submesh.start_index = indices_buffer_view.byte_offset;
-        submesh.num_indices = indices_buffer_view.byte_length;
+        submesh.num_indices = indices_accessor.count;
         ASSERT(submesh.material, "material should exist");
 
         //
@@ -1188,12 +1198,15 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         submesh.vao = VertexArray::Create(mesh->allocator);
         submesh.vao->SetVertexBuffer(vbo);
         if (ibo) {
+            ASSERT(ibo->GetNumIndices() == submesh.num_indices, "should be the same");
             submesh.vao->SetIndexBuffer(ibo);
         }
 
         mesh->sub_meshes.PushBack(std::move(submesh));
     }
 
+    model.meshes.PushBack(std::move(mesh));
+
     scratch_allocator->Deallocate(data);
-    return Model(alloc);
+    return model;
 }

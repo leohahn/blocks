@@ -2,6 +2,7 @@
 
 #include "Buffer.hpp"
 #include <stdint.h>
+#include "Defines.hpp"
 
 class OpenGLVertexBuffer : public VertexBuffer
 {
@@ -29,10 +30,13 @@ class OpenGLIndexBuffer : public IndexBuffer
 {
 public:
     OpenGLIndexBuffer(uint32_t* indices, size_t len);
+    OpenGLIndexBuffer(uint16_t* indices, size_t len);
     ~OpenGLIndexBuffer();
 
     void Bind() override;
     void Unbind() override;
+    size_t GetNumIndices() override { return _len; }
+    size_t GetIndexSize() override { return _index_size; }
 
     OpenGLIndexBuffer(OpenGLIndexBuffer&& other);
     OpenGLIndexBuffer& operator=(OpenGLIndexBuffer&& other);
@@ -42,6 +46,8 @@ public:
 
 private:
     uint32_t _handle;
+    size_t _len;
+    size_t _index_size;
 };
 
 class OpenGLVertexArray : public VertexArray
@@ -55,6 +61,7 @@ public:
 
     void SetVertexBuffer(VertexBuffer* vbo) override;
     void SetIndexBuffer(IndexBuffer* ibo) override;
+    IndexBuffer* GetIndexBuffer() const override { return _ibo; }
 
     OpenGLVertexArray(OpenGLVertexArray&& other);
     OpenGLVertexArray& operator=(OpenGLVertexArray&& other);

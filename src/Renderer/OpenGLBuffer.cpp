@@ -70,11 +70,26 @@ OpenGLVertexBuffer::operator=(OpenGLVertexBuffer&& other)
 //-------------------------------------------------
 
 OpenGLIndexBuffer::OpenGLIndexBuffer(uint32_t* indices, size_t len)
+    : _len(len)
+    , _index_size(sizeof(uint32_t))
 {
     glGenBuffers(1, &_handle);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _handle);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 len * sizeof(uint32_t),
+                 len * _index_size,
+                 indices,
+                 GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+OpenGLIndexBuffer::OpenGLIndexBuffer(uint16_t* indices, size_t len)
+    : _len(len)
+    , _index_size(sizeof(uint16_t))
+{
+    glGenBuffers(1, &_handle);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _handle);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 len * _index_size,
                  indices,
                  GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

@@ -280,6 +280,11 @@ main(int argc, char** argv)
     assert(basic_shader && basic_shader->IsValid() && "program should be valid");
     SetLocationsForShader(basic_shader);
 
+    program.resource_manager->LoadShader(SID("gltf.glsl"));
+    Shader* gltf_shader = program.resource_manager->GetShader(SID("gltf.glsl"));
+    assert(gltf_shader && gltf_shader->IsValid() && "program should be valid");
+    SetLocationsForShader(gltf_shader);
+
     bool running = true;
 
     //
@@ -325,8 +330,8 @@ main(int argc, char** argv)
     TriangleMesh floor_mesh = SetupPlane(&program.main_allocator, &program.temp_allocator, wall_material);
     TriangleMesh cube_mesh = SetupCube(&program.main_allocator, &program.temp_allocator, wall_material);
 
-    //Model alpine_chalet = program.resource_manager->LoadModel(SID("Alpine_chalet.model"));
-    Model nanosuit = program.resource_manager->LoadModel(SID("nanosuit.model"));
+    Model alpine_chalet = program.resource_manager->LoadModel(SID("Alpine_chalet.model"));
+    //Model nanosuit = program.resource_manager->LoadModel(SID("nanosuit.model"));
 
     LOG_DEBUG("Starting main loop");
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
@@ -406,8 +411,14 @@ main(int argc, char** argv)
 
         Vec3 nanosuit_position(0, 0, 0);
         Quaternion nanosuit_orientation = Quaternion::Identity();
-        assert(nanosuit.meshes.len == 1);
-        RenderMesh(*nanosuit.meshes[0], *basic_shader, nanosuit_position, nanosuit_orientation, 1.0f);
+        //assert(nanosuit.meshes.len == 1);
+        //RenderMesh(*nanosuit.meshes[0], *basic_shader, nanosuit_position, nanosuit_orientation, 1.0f);
+
+        glUseProgram(gltf_shader->program);
+
+        OpenGL::SetUniformMatrixForCurrentShader(gltf_shader->view_location, camera.GetViewMatrix());
+
+        RenderModel(alpine_chalet, *gltf_shader, Vec3::Zero(), Quaternion::Identity(), 1.0f);
 
         program.window->SwapBuffers();
     }
