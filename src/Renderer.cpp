@@ -40,8 +40,9 @@ void RenderModel(
                 glBindTexture(GL_TEXTURE_2D, submesh.material->diffuse_map->handle);
             }
 
+            size_t index_size = submesh.vao->GetIndexBuffer()->GetIndexSize();
             GLenum index_type;
-            switch (submesh.vao->GetIndexBuffer()->GetIndexSize()) {
+            switch (index_size) {
                 case sizeof(uint32_t) :
                     index_type = GL_UNSIGNED_INT;
                     break;
@@ -60,7 +61,7 @@ void RenderModel(
             glDrawElements(GL_TRIANGLES,
                            submesh.num_indices,
                            index_type,
-                           reinterpret_cast<const void*>(submesh.start_index * sizeof(uint32_t)));
+                           reinterpret_cast<const void*>(submesh.start_index * index_size));
 
             submesh.vao->Unbind();
         }

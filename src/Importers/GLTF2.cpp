@@ -1146,7 +1146,7 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         // TODO: improve how nodes are represented in the engine
         SubMesh submesh;
         submesh.material = resource_manager->GetMaterial(SID(material.name.data));
-        submesh.start_index = indices_buffer_view.byte_offset;
+        submesh.start_index = 0;
         submesh.num_indices = indices_accessor.count;
         ASSERT(submesh.material, "material should exist");
 
