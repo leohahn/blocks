@@ -36,11 +36,13 @@ struct SubMesh
     // Rendering information
     int32_t start_index;
     size_t num_indices;
-    Material* material;
 
     // Placement information
     Vec3 local_position;
     Quaternion local_orientation;
+    
+    VertexArray* vao;
+    Material* material;
 };
 
 struct TriangleMesh
@@ -58,8 +60,6 @@ struct TriangleMesh
 
     Array<SubMesh> sub_meshes;
     
-    VertexArray* vao;
-
     TriangleMesh(Allocator* allocator)
         : allocator(allocator)
         , vertices(allocator)
@@ -68,18 +68,17 @@ struct TriangleMesh
         , normals(allocator)
         , indices(allocator)
         , sub_meshes(allocator)
-        , vao(nullptr)
     {}
 
     ~TriangleMesh()
     {
-        if (allocator) {
-            allocator->Delete(vao);
+        for (auto& sm : sub_meshes) {
+            allocator->Delete(sm.vao);
         }
     }
 
     TriangleMesh(TriangleMesh&& other)
-        : vao(nullptr)
+        : allocator(nullptr)
     {
         *this = std::move(other);
     }
@@ -87,7 +86,9 @@ struct TriangleMesh
     TriangleMesh& operator=(TriangleMesh&& other)
     {
         if (allocator) {
-            allocator->Delete(vao);
+            for (auto& sm : sub_meshes) {
+                allocator->Delete(sm.vao);
+            }
         }
         allocator = other.allocator;
         vertices = std::move(other.vertices);
@@ -96,8 +97,6 @@ struct TriangleMesh
         normals = std::move(other.normals);
         indices = std::move(other.indices);
         sub_meshes = std::move(other.sub_meshes);
-        vao = other.vao;
-        other.vao = nullptr;
         return *this;
     }
 

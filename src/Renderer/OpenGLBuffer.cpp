@@ -3,7 +3,7 @@
 
 #include <glad/glad.h>
 
-OpenGLVertexBuffer::OpenGLVertexBuffer(float* buf, size_t size)
+OpenGLVertexBuffer::OpenGLVertexBuffer(const float* buf, size_t size)
 {
     ASSERT(buf, "buffer should exist");
     

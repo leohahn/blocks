@@ -12,7 +12,6 @@ RenderMesh(const TriangleMesh& mesh,
            float mesh_scale,
            Vec4* scale_color)
 {
-    mesh.vao->Bind();
     const size_t index_size = sizeof(decltype(mesh.indices[0]));
 
     // Create the model matrix
@@ -32,20 +31,21 @@ RenderMesh(const TriangleMesh& mesh,
     const Mat4 object_to_world_matrix = model_matrix * orientation.ToMat4();
     OpenGL::SetUniformMatrixForCurrentShader(shader.model_location, object_to_world_matrix);
 
-    for (size_t i = 0; i < mesh.sub_meshes.len; ++i) {
-        Material* material = mesh.sub_meshes[i].material;
+    for (const auto& submesh : mesh.sub_meshes) {
+        submesh.vao->Bind();
         //Material* material = g_debug_resource_manager->GetMaterial(SID("wall"));
-        if (material->diffuse_map) {
+        if (submesh.material->diffuse_map) {
             glActiveTexture(GL_TEXTURE0 + 0);
-            glBindTexture(GL_TEXTURE_2D, material->diffuse_map->handle);
+            glBindTexture(GL_TEXTURE_2D, submesh.material->diffuse_map->handle);
         }
 
         // TODO: bind material properties for each submesh here
         glDrawElements(GL_TRIANGLES,
-                       mesh.sub_meshes[i].num_indices,
+                       submesh.num_indices,
                        GL_UNSIGNED_INT,
-                       reinterpret_cast<const void*>(mesh.sub_meshes[i].start_index * sizeof(uint32_t)));
+                       reinterpret_cast<const void*>(submesh.start_index * sizeof(uint32_t)));
+
+        submesh.vao->Unbind();
     }
 
-    mesh.vao->Unbind();
 }

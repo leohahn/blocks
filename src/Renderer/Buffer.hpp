@@ -37,7 +37,9 @@ public:
     BufferLayout()
         : _stride(0)
     {}
-    BufferLayout(Allocator* allocator, const std::initializer_list<BufferLayoutElement>& data_types);
+    BufferLayout(Allocator* allocator, const std::initializer_list<BufferLayoutElement>& elements);
+    static BufferLayout NonInterleaved(Allocator* allocator, const std::initializer_list<BufferLayoutElement>& elements, size_t num_elements);
+
     size_t Stride() const { return _stride; }
     size_t ElementCount() const { return _elements.len; }
 
@@ -60,7 +62,7 @@ public:
     virtual void SetLayout(BufferLayout layout) = 0;
     virtual const BufferLayout& Layout() = 0;
 
-    static VertexBuffer* Create(Allocator* allocator, float* data, size_t size);
+    static VertexBuffer* Create(Allocator* allocator, const float* data, size_t size);
 };
 
 class IndexBuffer

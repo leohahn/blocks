@@ -298,11 +298,16 @@ ResourceManager::LoadObjModel(const ResourceFile& model_res)
 
     auto ibo = IndexBuffer::Create(mesh->allocator, mesh->indices.data, mesh->indices.len);
 
-    mesh->vao = VertexArray::Create(mesh->allocator);
-    mesh->vao->SetIndexBuffer(ibo);
-    mesh->vao->SetVertexBuffer(vbo);
-
     model.meshes.PushBack(mesh);
+
+    LOG_DEBUG("Number of submeshes: %lu", model.meshes[0]->sub_meshes.len);
+
+    // HACK
+    for (auto& submesh : model.meshes[0]->sub_meshes) {
+        submesh.vao = VertexArray::Create(mesh->allocator);
+        submesh.vao->SetIndexBuffer(ibo);
+        submesh.vao->SetVertexBuffer(vbo);
+    }
     return model;
 }
 

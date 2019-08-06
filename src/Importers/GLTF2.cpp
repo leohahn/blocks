@@ -1119,27 +1119,18 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         const GltfAccessor& indices_accessor = accessors[primitive.indices];
         const GltfBufferView& indices_buffer_view = buffer_views[indices_accessor.buffer_view_index];
 
+        IndexBuffer* ibo = nullptr;
+
         if (indices_accessor.opengl_buffer == 0) {
             const GltfBufferView& buffer_view = buffer_views[indices_accessor.buffer_view_index];
             const GltfBuffer& buffer = buffers[buffer_view.buffer_index];
             size_t buffer_size = indices_accessor.GetElementSize() * indices_accessor.count;
             ASSERT(buffer_view.byte_length >= buffer_size, "Buffer view is too small!");
 
-            glGenBuffers(1, (GLuint*)&indices_accessor.opengl_buffer);
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indices_accessor.opengl_buffer);
-            glBufferData(
-                GL_ELEMENT_ARRAY_BUFFER,
-                buffer_size,
-                buffer.data + buffer_view.byte_offset,
-                GL_STATIC_DRAW);
-            glVertexAttribPointer(
-                0,
-                static_cast<int64_t>(indices_accessor.type),
-                static_cast<int64_t>(indices_accessor.component_type),
-                GL_FALSE,
-                0,
-                0);
+            ibo = IndexBuffer::Create(alloc, (uint32_t*)(buffer.data + buffer_view.byte_offset), indices_accessor.count);
         }
+
+        LOG_DEBUG("Gltf2 model is using an index buffer for mesh %s", gltf_mesh.name.data);
 
         // Each primitive is a submesh in the engine currently.
         // TODO: improve how nodes are represented in the engine
@@ -1147,58 +1138,57 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         submesh.material = resource_manager->GetMaterial(SID(material.name.data));
         submesh.start_index = indices_buffer_view.byte_offset;
         submesh.num_indices = indices_buffer_view.byte_length;
+        ASSERT(submesh.material, "material should exist");
 
-        ASSERT(submesh.material, "material shuld exist");
+        //
+        // We will combine the primitive buffer views into one buffer in order to send it to the GPU 
+        //
+        const int32_t* position_accessor_index = primitive.attributes.Find(String(scratch_allocator, "POSITION"));
+        ASSERT(position_accessor_index, "should have a position accessor");
+        const GltfAccessor& position_accessor = accessors[*position_accessor_index];
+        ASSERT(position_accessor.type == AccessorType::Vec3, "should be vec3");
+        ASSERT(position_accessor.component_type == ComponentType::Float, "should be float");
+        const GltfBufferView& position_buffer_view = buffer_views[position_accessor.buffer_view_index];
 
-        // We will combine the primitive buffer views into one buffer in order to send it to the
-        // GPU as a single glBufferData (more efficient).
-        size_t buffer_start_index = 0;
-        size_t buffer_total_size = 0;
+        const int32_t* normal_accessor_index = primitive.attributes.Find(String(scratch_allocator, "NORMAL"));
+        ASSERT(normal_accessor_index, "should have a normal accessor");
+        const GltfAccessor& normal_accessor = accessors[*normal_accessor_index];
+        ASSERT(normal_accessor.type == AccessorType::Vec3, "should be vec3");
+        ASSERT(normal_accessor.component_type == ComponentType::Float, "should be float");
+        const GltfBufferView& normal_buffer_view = buffer_views[normal_accessor.buffer_view_index];
 
-        uint32_t primitives_vbo;
-        glGenBuffers(1, (GLuint*)&primitives_vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, primitives_vbo);
+        const int32_t* texcoord0_accessor_index = primitive.attributes.Find(String(scratch_allocator, "TEXCOORD_0"));
+        ASSERT(texcoord0_accessor_index, "should have a tex coord 0 accessor");
+        const GltfAccessor& texcoord0_accessor = accessors[*texcoord0_accessor_index];
+        ASSERT(texcoord0_accessor.type == AccessorType::Vec2, "should be vec2");
+        ASSERT(texcoord0_accessor.component_type == ComponentType::Float, "should be float");
+        const GltfBufferView& texcoord0_buffer_view = buffer_views[texcoord0_accessor.buffer_view_index];
 
-        for (const auto& pair : primitive.attributes) {
-            const int32_t accessor_index = pair.val;
-            const GltfAccessor& accessor = accessors[accessor_index];
-            const GltfBufferView& buffer_view = buffer_views[accessor.buffer_view_index];
-            const GltfBuffer& buffer = buffers[buffer_view.buffer_index];
+        ASSERT(position_buffer_view.buffer_index == normal_buffer_view.buffer_index, "Should reference the same buffer");
+        ASSERT(position_buffer_view.buffer_index == texcoord0_buffer_view.buffer_index, "Should reference the same buffer");
+        const GltfBuffer& buffer = buffers[position_buffer_view.buffer_index];
 
-            if (pair.key == "POSITION") {
-                // Position data should be uploaded to the gpu if it was not done yet.                        
-                ASSERT(accessor.type == AccessorType::Vec3, "POSITION should be Vec3");
-                if (accessor.opengl_buffer == 0) {
-                    // Set the layour of the buffer
-                    glVertexAttribPointer(
-                        0,
-                        static_cast<int64_t>(accessor.type),
-                        static_cast<int64_t>(accessor.component_type),
-                        GL_FALSE,
-                        0,
-                        0);
-                }
-            } else if (pair.key == "NORMAL") {
-                if (accessor.opengl_buffer == 0) {
-                    // Set the layour of the buffer
-                    ASSERT(static_cast<int64_t>(accessor.type) == 3, "Expection Vec3 for NORMAL");
-                    ASSERT(static_cast<int64_t>(accessor.component_type) == GL_FLOAT, "Expecting Vec3 of Floats");
+        ASSERT(position_buffer_view.byte_offset < normal_buffer_view.byte_offset, "position should come first");
+        ASSERT(normal_buffer_view.byte_offset < texcoord0_buffer_view.byte_offset, "normals should come second");
 
-                    glVertexAttribPointer(
-                        1,
-                        static_cast<int64_t>(accessor.type),
-                        static_cast<int64_t>(accessor.component_type),
-                        GL_FALSE,
-                        0,
-                        0);
-                }
-            } else if (pair.key == "TEXCOORD_0") {
-                ASSERT(accessor.type == AccessorType::Vec2, "TEXCOORD_0 should be Vec2");
+        const size_t buffer_start_offset = position_buffer_view.byte_offset;
+        const size_t buffer_total_size = position_buffer_view.byte_length + normal_buffer_view.byte_length + texcoord0_buffer_view.byte_length;
+        const float* buffer_start = (float*)(buffer.data + buffer_start_offset);
 
-            } else {
-                LOG_ERROR("Unknown attribute %s", pair.key.data);
-                assert(false);
-            }
+        ASSERT(position_accessor.count == normal_accessor.count, "Vertex attributes should have the same count of elements");
+        ASSERT(position_accessor.count == texcoord0_accessor.count, "Vertex attributes should have the same count of elements");
+
+        auto vbo = VertexBuffer::Create(alloc, buffer_start, buffer_total_size * sizeof(float));
+        vbo->SetLayout(BufferLayout::NonInterleaved(alloc, {
+            BufferLayoutDataType::Vec3, // position
+            BufferLayoutDataType::Vec3, // normals
+            BufferLayoutDataType::Vec2, // tex coords
+        }, (size_t)position_accessor.count));
+
+        submesh.vao = VertexArray::Create(mesh->allocator);
+        submesh.vao->SetVertexBuffer(vbo);
+        if (ibo) {
+            submesh.vao->SetIndexBuffer(ibo);
         }
 
         mesh->sub_meshes.PushBack(std::move(submesh));

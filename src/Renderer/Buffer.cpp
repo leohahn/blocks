@@ -30,7 +30,7 @@ BufferLayoutElement::BufferLayoutElement(BufferLayoutDataType data_type)
 {}
 
 VertexBuffer*
-VertexBuffer::Create(Allocator* allocator, float* data, size_t size)
+VertexBuffer::Create(Allocator* allocator, const float* data, size_t size)
 {
     return allocator->New<OpenGLVertexBuffer>(data, size);
 }
@@ -53,11 +53,28 @@ BufferLayout::BufferLayout(Allocator* allocator, const std::initializer_list<Buf
     , _stride(0)
 {
     size_t offset = 0;
-
     for (auto& el : _elements) {
         el._offset = offset;
         size_t size = GetLayoutDataTypeSize(el._data_type);
         offset += size;
         _stride += size;
     }
+}
+
+BufferLayout
+BufferLayout::NonInterleaved(Allocator* allocator, const std::initializer_list<BufferLayoutElement>& elements, size_t num_elements)
+{
+    BufferLayout layout(allocator, elements);
+
+    // NOTE: When the buffer is not interleaved, there is no stride on the attributes, since all vertex
+    // attributes of one type are packed into memory.
+    layout._stride = 0;
+
+    size_t offset = 0;
+    for (auto& el : layout._elements) {
+        el._offset = offset;
+        offset += GetLayoutDataTypeSize(el._data_type) * num_elements;
+    }
+
+    return layout;
 }

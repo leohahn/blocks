@@ -93,11 +93,10 @@ SetupPlane(Allocator* allocator, Allocator* scratch_allocator, Material* materia
 
     auto ibo = IndexBuffer::Create(allocator, mesh.indices.data, mesh.indices.len);
 
-    mesh.vao = VertexArray::Create(allocator);
-    mesh.vao->SetIndexBuffer(ibo);
-    mesh.vao->SetVertexBuffer(vbo);
-
     SubMesh submesh = {};
+    submesh.vao = VertexArray::Create(allocator);
+    submesh.vao->SetIndexBuffer(ibo);
+    submesh.vao->SetVertexBuffer(vbo);
     submesh.start_index = 0;
     submesh.num_indices = mesh.indices.len;
     submesh.material = material;
@@ -229,11 +228,10 @@ SetupCube(Allocator* allocator, Allocator* scratch_allocator, Material* material
 
     auto ibo = IndexBuffer::Create(allocator, mesh.indices.data, mesh.indices.len);
 
-    mesh.vao = VertexArray::Create(allocator);
-    mesh.vao->SetIndexBuffer(ibo);
-    mesh.vao->SetVertexBuffer(vbo);
-
     SubMesh submesh = {};
+    submesh.vao = VertexArray::Create(allocator);
+    submesh.vao->SetIndexBuffer(ibo);
+    submesh.vao->SetVertexBuffer(vbo);
     submesh.start_index = 0;
     submesh.num_indices = mesh.indices.len;
     submesh.material = material;

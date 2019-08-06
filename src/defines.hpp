@@ -14,16 +14,32 @@
 #define BLOCKS_DEBUG 1
 #endif
 
+#ifndef BIT
+#define BIT(x) (1 << (x))
+#endif
+
 #ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #else
 #error "MIN is already defined"
 #endif
 
+#ifndef MIN3
+#define MIN3(a, b, c) MIN(MIN(a, b), c)
+#else
+#error "MIN3 is already defined"
+#endif
+
 #ifndef MAX
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #else
 #error "MIN is already defined"
+#endif
+
+#ifndef MAX3
+#define MAX3(a, b, c) MAX(MAX(a, b), c)
+#else
+#error "MAX3 is already defined"
 #endif
 
 #ifdef __GNUC__
