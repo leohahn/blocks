@@ -334,7 +334,7 @@ main(int argc, char** argv)
     TriangleMesh cube_mesh = SetupCube(&program.main_allocator, &program.temp_allocator, wall_material);
 
     Model alpine_chalet = program.resource_manager->LoadModel(SID("Alpine_chalet.model"));
-    //Model nanosuit = program.resource_manager->LoadModel(SID("nanosuit.model"));
+    Model nanosuit = program.resource_manager->LoadModel(SID("nanosuit.model"));
 
     LOG_DEBUG("Starting main loop");
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
@@ -414,8 +414,8 @@ main(int argc, char** argv)
 
         Vec3 nanosuit_position(0, 0, 0);
         Quaternion nanosuit_orientation = Quaternion::Identity();
-        //assert(nanosuit.meshes.len == 1);
-        //RenderMesh(*nanosuit.meshes[0], *basic_shader, nanosuit_position, nanosuit_orientation, 1.0f);
+        assert(nanosuit.meshes.len == 1);
+        RenderMesh(*nanosuit.meshes[0], *basic_shader, nanosuit_position, nanosuit_orientation, 1.0f);
 
         glUseProgram(gltf_shader->program);
 

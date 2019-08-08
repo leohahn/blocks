@@ -4,15 +4,18 @@
 #include "Logger.hpp"
 #include "glad/glad.h"
 #include "Sid.hpp"
+#include "Renderer/LowLevel.hpp"
 
 void
 InitProgram(Program* program, size_t memory_amount, int32_t window_width, int32_t window_height)
 {
     const size_t resource_manager_designated_memory = MEGABYTES(64);
-    
+
     program->memory = Memory(memory_amount);
     program->main_allocator = LinearAllocator("main", program->memory);
     program->temp_allocator = MallocAllocator("temporary_allocator");
+
+    Graphics::LowLevelApi::Initialize(&program->main_allocator);
     
     WindowOptions window_opts;
     window_opts.height = window_height;
@@ -20,6 +23,17 @@ InitProgram(Program* program, size_t memory_amount, int32_t window_width, int32_
     window_opts.title = "Blocks";
     
     program->window = Window::Create(&program->main_allocator, window_opts);
+
+        LOG_INFO("Initializing glad");
+        if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
+            LOG_ERROR("Failed to initialize GLAD\n");
+            exit(1);
+        }
+        
+    Graphics::LowLevelApi::SetViewPort(0, 0, window_width, window_height);
+    Graphics::LowLevelApi::SetFaceCulling(true);
+    Graphics::LowLevelApi::SetDepthTest(true);
+
     program->running = true;
 
     program->resource_manager_allocator = LinearAllocator(
