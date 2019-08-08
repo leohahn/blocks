@@ -39,7 +39,9 @@ inline static void
 SetLocationsForShader(Shader* shader)
 {
     assert(shader);
+    glUseProgram(shader->program);
     shader->model_location = glGetUniformLocation(shader->program, "model");
     shader->view_location = glGetUniformLocation(shader->program, "view");
     shader->projection_location = glGetUniformLocation(shader->program, "projection");
+    glUseProgram(0);
 }

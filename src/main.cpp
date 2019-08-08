@@ -306,6 +306,9 @@ main(int argc, char** argv)
         Mat4::Perspective(60.0f, (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 500.0f);
     glUniformMatrix4fv(basic_shader->projection_location, 1, false, &projection_matrix.data[0]);
 
+    glUseProgram(gltf_shader->program);
+    glUniformMatrix4fv(gltf_shader->projection_location, 1, false, &projection_matrix.data[0]);
+
     //------------------------------
     // Create the texture catalog and textures
     //------------------------------
