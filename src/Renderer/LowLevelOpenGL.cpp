@@ -43,5 +43,15 @@ Graphics::LowLevelApi::Initialize(Allocator* allocator)
     _api = allocator->New<LowLevelOpenGLApi>();
 }
 
+void
+Graphics::LowLevelApi::Terminate()
+{
+    ASSERT(_api, "api should exist");
+    ASSERT(_allocator, "allocator should exist");
+    _allocator->Delete(_api);
+    _allocator = nullptr;
+    _api = nullptr;
+}
+
 Graphics::LowLevelApi* Graphics::LowLevelApi::_api = nullptr;
 Allocator* Graphics::LowLevelApi::_allocator = nullptr;

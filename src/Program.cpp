@@ -15,8 +15,6 @@ InitProgram(Program* program, size_t memory_amount, int32_t window_width, int32_
     program->main_allocator = LinearAllocator("main", program->memory);
     program->temp_allocator = MallocAllocator("temporary_allocator");
 
-    Graphics::LowLevelApi::Initialize(&program->main_allocator);
-    
     WindowOptions window_opts;
     window_opts.height = window_height;
     window_opts.width = window_width;
@@ -24,12 +22,7 @@ InitProgram(Program* program, size_t memory_amount, int32_t window_width, int32_
     
     program->window = Window::Create(&program->main_allocator, window_opts);
 
-        LOG_INFO("Initializing glad");
-        if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
-            LOG_ERROR("Failed to initialize GLAD\n");
-            exit(1);
-        }
-        
+    Graphics::LowLevelApi::Initialize(&program->main_allocator);
     Graphics::LowLevelApi::SetViewPort(0, 0, window_width, window_height);
     Graphics::LowLevelApi::SetFaceCulling(true);
     Graphics::LowLevelApi::SetDepthTest(true);
@@ -44,7 +37,6 @@ InitProgram(Program* program, size_t memory_amount, int32_t window_width, int32_
     program->resource_manager = program->main_allocator.New<ResourceManager>(&program->resource_manager_allocator, &program->temp_allocator);
     program->resource_manager->Create();
 
-    // Initialize Sid database
     SidDatabase::Initialize(&program->main_allocator);
 }
 
@@ -54,6 +46,8 @@ TerminateProgram(Program* program)
     assert(program);
     SidDatabase::Terminate();
     program->resource_manager->Destroy();
-    program->main_allocator.Delete<ResourceManager>(program->resource_manager);
+    program->main_allocator.Delete(program->resource_manager);
+    Graphics::LowLevelApi::Terminate();
+    program->main_allocator.Delete(program->window);
     SDL_Quit();
 }

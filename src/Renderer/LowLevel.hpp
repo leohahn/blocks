@@ -13,9 +13,10 @@ public:
     static void SetFaceCulling(bool on) { _api->SetFaceCullingImpl(on); }
     static void SetDepthTest(bool on) { _api->SetDepthTestImpl(on); }
     static void SetViewPort(int x, int y, int width, int height) { _api->SetViewPortImpl(x, y, width, height); }
+    static void Terminate();
+    virtual ~LowLevelApi() = default;
 
 protected:
-    virtual ~LowLevelApi() = default;
     virtual void ClearBuffersImpl() = 0;
     virtual void SetFaceCullingImpl(bool on) = 0;
     virtual void SetDepthTestImpl(bool on) = 0;
