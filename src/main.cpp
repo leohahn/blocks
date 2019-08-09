@@ -278,12 +278,16 @@ main(int argc, char** argv)
     program.resource_manager->LoadShader(SID("basic.glsl"));
     Shader* basic_shader = program.resource_manager->GetShader(SID("basic.glsl"));
     assert(basic_shader && basic_shader->IsValid() && "program should be valid");
-    SetLocationsForShader(basic_shader);
+    basic_shader->AddUniform("model");
+    basic_shader->AddUniform("view");
+    basic_shader->AddUniform("projection");
 
     program.resource_manager->LoadShader(SID("gltf.glsl"));
     Shader* gltf_shader = program.resource_manager->GetShader(SID("gltf.glsl"));
     assert(gltf_shader && gltf_shader->IsValid() && "program should be valid");
-    SetLocationsForShader(gltf_shader);
+    gltf_shader->AddUniform("model");
+    gltf_shader->AddUniform("view");
+    gltf_shader->AddUniform("projection");
 
     bool running = true;
 
@@ -300,14 +304,15 @@ main(int argc, char** argv)
 
     Camera camera(Vec3(0, 0, 5), Vec3(0, 0, -1));
 
-    glUseProgram(basic_shader->program);
-
+    // TODO: add projection matrix to the camera
     auto projection_matrix =
         Mat4::Perspective(60.0f, (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 500.0f);
-    glUniformMatrix4fv(basic_shader->projection_location, 1, false, &projection_matrix.data[0]);
 
-    glUseProgram(gltf_shader->program);
-    glUniformMatrix4fv(gltf_shader->projection_location, 1, false, &projection_matrix.data[0]);
+    basic_shader->Bind();
+    basic_shader->SetUniformMat4(SID("projection"), projection_matrix);
+
+    gltf_shader->Bind();
+    gltf_shader->SetUniformMat4(SID("projection"), projection_matrix);
 
     //------------------------------
     // Create the texture catalog and textures
@@ -384,16 +389,10 @@ main(int argc, char** argv)
         //
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // TODO: figure out a way of keeping track of the shader, especially
-        // when rendering a mesh (should it be stored in the mesh?)
-        glUseProgram(basic_shader->program);
-
         auto ticks = SDL_GetTicks();
 
-        // TODO: is ok to calculate the view matrix every time here?
-        // consider only updating the view matrix when something changed on the camera.
-        OpenGL::SetUniformMatrixForCurrentShader(basic_shader->view_location,
-                                                 camera.GetViewMatrix());
+        basic_shader->Bind();
+        basic_shader->SetUniformMat4(SID("view"), camera.GetViewMatrix());
 
         // TODO: add real values here for the parameters
         Vec3 cube_position(0);
@@ -417,9 +416,8 @@ main(int argc, char** argv)
         assert(nanosuit.meshes.len == 1);
         RenderMesh(*nanosuit.meshes[0], *basic_shader, nanosuit_position, nanosuit_orientation, 1.0f);
 
-        glUseProgram(gltf_shader->program);
-
-        OpenGL::SetUniformMatrixForCurrentShader(gltf_shader->view_location, camera.GetViewMatrix());
+        gltf_shader->Bind();
+        gltf_shader->SetUniformMat4(SID("view"), camera.GetViewMatrix());
 
         RenderModel(alpine_chalet, *gltf_shader, Vec3::Zero(), Quaternion::Identity(), 1.0f);
 

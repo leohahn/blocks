@@ -29,7 +29,7 @@ void RenderModel(
 
     // Set the rotation component
     const Mat4 object_to_world_matrix = model_matrix * orientation.ToMat4();
-    OpenGL::SetUniformMatrixForCurrentShader(shader.model_location, object_to_world_matrix);
+    shader.SetUniformMat4(SID("model"), object_to_world_matrix);
 
     for (const auto& mesh : model.meshes) {
         for (const auto& submesh : mesh->sub_meshes) {
@@ -91,7 +91,7 @@ RenderMesh(const TriangleMesh& mesh,
 
     // Set the rotation component
     const Mat4 object_to_world_matrix = model_matrix * orientation.ToMat4();
-    OpenGL::SetUniformMatrixForCurrentShader(shader.model_location, object_to_world_matrix);
+    shader.SetUniformMat4(SID("model"), object_to_world_matrix);
 
     for (const auto& submesh : mesh.sub_meshes) {
         submesh.vao->Bind();

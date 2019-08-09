@@ -2,17 +2,18 @@
 
 #include "Allocator.hpp"
 #include "Collections/String.hpp"
+#include "Collections/RobinHashMap.hpp"
 #include "Defines.hpp"
+#include "Sid.hpp"
 #include <assert.h>
 #include <glad/glad.h>
+#include "Math/Mat4.hpp"
 
 struct Shader
 {
     String name;
-    GLuint model_location;
-    GLuint view_location;
-    GLuint projection_location;
-    GLuint program;
+    uint32_t program;
+    RobinHashMap<Sid, int> location_cache;
 
 public:
     Shader()
@@ -20,28 +21,26 @@ public:
     {}
     Shader(Allocator* allocator)
         : name(allocator)
+        , program(0)
+        , location_cache(allocator, 16)
     {}
 
-    ~Shader() { assert(program == 0); }
+    ~Shader();
 
-    void Destroy()
-    {
-        glDeleteProgram(program);
-        program = 0;
-    }
+    void Bind() const;
+    void Unbind() const;
+
+    void AddUniform(const char* loc);
 
     bool IsValid() const { return program != 0; }
 
+    void SetUniformMat4(const Sid& loc, const Mat4& mat) const;
+    void SetVector(const Sid& loc, const Vec4& vec) const;
+
     DISABLE_OBJECT_COPY(Shader);
+
+    // move semantics
+    Shader(Shader&& other);
+    Shader& operator=(Shader&& other);
 };
 
-inline static void
-SetLocationsForShader(Shader* shader)
-{
-    assert(shader);
-    glUseProgram(shader->program);
-    shader->model_location = glGetUniformLocation(shader->program, "model");
-    shader->view_location = glGetUniformLocation(shader->program, "view");
-    shader->projection_location = glGetUniformLocation(shader->program, "projection");
-    glUseProgram(0);
-}

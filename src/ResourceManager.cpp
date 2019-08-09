@@ -48,7 +48,6 @@ ResourceManager::Destroy()
     }
 
     for (auto& el : shaders) {
-        el.val->Destroy();
         allocator->Delete(el.val);
     }
 
