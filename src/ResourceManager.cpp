@@ -123,8 +123,9 @@ ResourceManager::LoadObjModel(const ResourceFile& model_res)
             // new material
             Sid material_name = SID(strbuf);
 
-            Material* new_material = allocator->New<Material>();
+            Material* new_material = allocator->New<Material>(allocator);
             new_material->name = material_name;
+            new_material->shader = GetShader(SID("basic.glsl"));
             materials.Add(material_name, new_material);
 
             // FIXME: This is potentially dangerous, since if the hash table is rehashed the pointer
@@ -165,8 +166,7 @@ ResourceManager::LoadObjModel(const ResourceFile& model_res)
             Sid texture_sid = SID(texture_path.data);
             LoadTexture(texture_sid);
 
-            current_material->diffuse_map = GetTexture(texture_sid);
-            assert(current_material->diffuse_map);
+            current_material->AddValue(SID("input_texture"), MaterialValue(GetTexture(texture_sid)));
         } else if (sscanf(line, "map_Bump %s", strbuf) == 1) {
             assert(current_material);
             // normal mapping

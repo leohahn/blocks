@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include "Json.hpp"
 #include "Renderer/Buffer.hpp"
+#include "Renderer/LowLevel.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -281,6 +282,7 @@ main(int argc, char** argv)
     basic_shader->AddUniform("model");
     basic_shader->AddUniform("view");
     basic_shader->AddUniform("projection");
+    basic_shader->AddUniform("input_texture");
 
     program.resource_manager->LoadShader(SID("gltf.glsl"));
     Shader* gltf_shader = program.resource_manager->GetShader(SID("gltf.glsl"));
@@ -288,6 +290,16 @@ main(int argc, char** argv)
     gltf_shader->AddUniform("model");
     gltf_shader->AddUniform("view");
     gltf_shader->AddUniform("projection");
+    gltf_shader->AddUniform("input_texture");
+
+    program.resource_manager->LoadShader(SID("pbr.glsl"));
+    Shader* pbr_shader = program.resource_manager->GetShader(SID("pbr.glsl"));
+    assert(pbr_shader && pbr_shader->IsValid() && "program should be valid");
+    pbr_shader->AddUniform("u_model");
+    pbr_shader->AddUniform("u_view_projection");
+    pbr_shader->AddUniform("u_albedo_texture");
+    pbr_shader->AddUniform("u_normal_texture");
+    pbr_shader->AddUniform("u_metallic_roughness_texture");
 
     bool running = true;
 
@@ -326,9 +338,10 @@ main(int argc, char** argv)
 
     // HACK: load this material from a file instead of doing it like this
     {
-        Material* material = program.resource_manager->allocator->New<Material>();
+        Material* material = program.resource_manager->allocator->New<Material>(program.resource_manager->allocator);
         material->name = SID("wall");
-        material->diffuse_map = wall_texture;
+        material->shader = basic_shader;
+        material->AddValue(SID("input_texture"), MaterialValue(wall_texture));
         program.resource_manager->materials.Add(material->name, material);
     }
 
@@ -342,8 +355,8 @@ main(int argc, char** argv)
     Model nanosuit = program.resource_manager->LoadModel(SID("nanosuit.model"));
 
     LOG_DEBUG("Starting main loop");
-    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-    
+    Graphics::LowLevelApi::SetClearColor(Vec4(0.2f, 0.2f, 0.2f, 1.0f));
+
     while (running) {
         input_system.Update();
 
@@ -387,7 +400,7 @@ main(int argc, char** argv)
         //
         // Start rendering part of the main loop
         //
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        Graphics::LowLevelApi::ClearBuffers();
 
         auto ticks = SDL_GetTicks();
 
@@ -428,9 +441,6 @@ main(int argc, char** argv)
     LOG_DEBUG("Total memory used by heap allocator: %s",
               Utils::GetPrettySize(program.temp_allocator.GetBytesWaterMark()));
 
-    // TODO: remove this
-    // wall_texture.name.Destroy();
-    
     input_system.Destroy();
     TerminateProgram(&program);
 	return 0;

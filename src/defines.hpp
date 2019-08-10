@@ -84,8 +84,9 @@
     if (!(cond)) { \
         LOG_ERROR("Assertion failed: %s", #cond); \
         LOG_ERROR("Message %s", #msg); \
+        fflush(stdout); \
         int* val = nullptr; \
-        *val = 0xff;\
+        *val = 0xdeadbeef; \
     }
 
 #ifdef _DEBUG

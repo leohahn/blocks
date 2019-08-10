@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Allocator.hpp"
+#include "Math/vec4.hpp"
 
 namespace Graphics
 {
@@ -14,6 +15,7 @@ public:
     static void SetDepthTest(bool on) { _api->SetDepthTestImpl(on); }
     static void SetViewPort(int x, int y, int width, int height) { _api->SetViewPortImpl(x, y, width, height); }
     static void Terminate();
+    static void SetClearColor(const Vec4& color) { _api->SetClearColorImpl(color); }
     virtual ~LowLevelApi() = default;
 
 protected:
@@ -21,6 +23,7 @@ protected:
     virtual void SetFaceCullingImpl(bool on) = 0;
     virtual void SetDepthTestImpl(bool on) = 0;
     virtual void SetViewPortImpl(int x, int y, int width, int height) = 0;
+    virtual void SetClearColorImpl(const Vec4& color) = 0;
 
 private:
     static Allocator* _allocator;

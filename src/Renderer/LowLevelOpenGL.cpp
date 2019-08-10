@@ -35,6 +35,12 @@ Graphics::LowLevelOpenGLApi::SetViewPortImpl(int x, int y, int width, int height
 }
 
 void
+Graphics::LowLevelOpenGLApi::SetClearColorImpl(const Vec4& color)
+{
+    glClearColor(color.x, color.y, color.z, color.w);
+}
+
+void
 Graphics::LowLevelApi::Initialize(Allocator* allocator)
 {
     ASSERT(_allocator == nullptr, "Allocator should be null");

@@ -12,6 +12,7 @@ protected:
     void SetFaceCullingImpl(bool on) override;
     void SetDepthTestImpl(bool on) override;
     void SetViewPortImpl(int x, int y, int width, int height) override;
+    void SetClearColorImpl(const Vec4& color) override;
 };
 
 }

@@ -30,6 +30,7 @@ struct GltfMaterial
     bool double_sided = false;
     TextureRef base_color;
     TextureRef metallic_roughness;
+    TextureRef normal;
 };
 
 struct GltfTexture
@@ -214,6 +215,7 @@ struct GltfAccessor
     Vec3 max = Vec3::Zero();
     Vec3 min = Vec3::Zero();
     uint32_t opengl_buffer = 0;
+    bool normalized = false;
 
     int64_t GetElementSize() const
     {
@@ -570,9 +572,16 @@ TryGetAccessors(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_fi
             return false;
         }
 
+        const Json::Val* normalized_val = accessor->Find(String(alloc, "normalized"));
+        if (normalized_val && !normalized_val->IsBool()) {
+            LOG_ERROR("Was expecting a normalized property");
+            return false;
+        }
+
         GltfAccessor out_accessor;
         out_accessor.buffer_view_index = *buffer_view_val->AsInt64();
         out_accessor.count = *count_val->AsInt64();
+        out_accessor.normalized = normalized_val ? *normalized_val->AsBool() : false;
 
         if (out_accessor.buffer_view_index >= buffer_views.len) {
             LOG_ERROR("Invalid buffer view index in accessor: %d", out_accessor.buffer_view_index);
@@ -632,13 +641,19 @@ TryGetMaterial(Allocator* alloc, const RobinHashMap<String, Json::Val>* raw_mate
         LOG_ERROR("Was expecting a doubleSided property");
         return false;
     }
+
+    const Json::Val* normal_texture = raw_material->Find(String(alloc, "normalTexture"));
+    if (!normal_texture || !normal_texture->IsObject()) {
+        LOG_ERROR("Was expecting normalTexture");
+        return false;
+    }
     
     const Json::Val* pbr_params = raw_material->Find(String(alloc, "pbrMetallicRoughness"));
     if (!pbr_params || !pbr_params->AsObject()) {
         LOG_ERROR("Was expecting pbr metallic roughness");
         return false;
     }
-    
+
     const Json::Val* base_color_texture = pbr_params->AsObject()->Find(String(alloc, "baseColorTexture"));
     if (!base_color_texture || !base_color_texture->IsObject()) {
         LOG_ERROR("Was expecting baseColorTexture");
@@ -648,6 +663,18 @@ TryGetMaterial(Allocator* alloc, const RobinHashMap<String, Json::Val>* raw_mate
     const Json::Val* metallic_roughness_texture = pbr_params->AsObject()->Find(String(alloc, "metallicRoughnessTexture"));
     if (!metallic_roughness_texture || !metallic_roughness_texture->IsObject()) {
         LOG_ERROR("Was expecting metallicRoughnessTexture");
+        return false;
+    }
+
+    const Json::Val* normal_texture_index = normal_texture->AsObject()->Find(String(alloc, "index"));
+    if (!normal_texture_index || !normal_texture_index->IsInteger()) {
+        LOG_ERROR("Was expecting normal texture index");
+        return false;
+    }
+
+    const Json::Val* normal_texture_tex_coord = normal_texture->AsObject()->Find(String(alloc, "texCoord"));
+    if (!normal_texture_tex_coord || !normal_texture_tex_coord->IsInteger()) {
+        LOG_ERROR("Was expecting normal texture texCoord");
         return false;
     }
 
@@ -682,7 +709,8 @@ TryGetMaterial(Allocator* alloc, const RobinHashMap<String, Json::Val>* raw_mate
     out_mat.base_color.tex_coord = (int32_t)*base_color_texture_tex_coord->AsInt64();
     out_mat.metallic_roughness.index = (int32_t)*metallic_roughness_texture_index->AsInt64();
     out_mat.metallic_roughness.tex_coord = (int32_t)*metallic_roughness_texture_tex_coord->AsInt64();
-
+    out_mat.normal.index = (int32_t)*normal_texture_index->AsInt64();
+    out_mat.normal.tex_coord = (int32_t)*normal_texture_tex_coord->AsInt64();
     *out_material = std::move(out_mat);
     return true;
 }
@@ -1096,12 +1124,24 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         const GltfMaterial& gltf_material = materials[mi];
         // TODO: include metallic roughness texture
 
-        Material* material = resource_manager->allocator->New<Material>();
+        Material* material = resource_manager->allocator->New<Material>(resource_manager->allocator);
         material->name = SID(gltf_material.name.data);
+        material->shader = resource_manager->GetShader(SID("pbr.glsl"));
+        ASSERT(material->shader, "shader is not loaded!");
 
         if (gltf_material.base_color.index > -1) {
             const GltfImage& gltf_base_image = images[gltf_material.base_color.index];
-            material->diffuse_map = resource_manager->GetTexture(SID(gltf_base_image.uri.data));
+            material->AddValue(SID("u_albedo_texture"), resource_manager->GetTexture(SID(gltf_base_image.uri.data)));
+        }
+
+        if (gltf_material.metallic_roughness.index > -1) {
+            const GltfImage& gltf_base_image = images[gltf_material.metallic_roughness.index];
+            material->AddValue(SID("u_metallic_roughness_texture"), resource_manager->GetTexture(SID(gltf_base_image.uri.data)));
+        }
+
+        if (gltf_material.normal.index > -1) {
+            const GltfImage& gltf_base_image = images[gltf_material.normal.index];
+            material->AddValue(SID("u_normal_texture"), resource_manager->GetTexture(SID(gltf_base_image.uri.data)));
         }
 
         resource_manager->materials.Add(material->name, material);

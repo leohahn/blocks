@@ -12,8 +12,6 @@ void RenderModel(
     float mesh_scale,
     Vec4* scale_color)
 {
-    LOG_DEBUG("Will render model %s", model.name.GetStr());
-
     // Create the model matrix
     auto model_matrix = Mat4::Identity();
     // Set translation component
@@ -35,10 +33,11 @@ void RenderModel(
         for (const auto& submesh : mesh->sub_meshes) {
             submesh.vao->Bind();
             //Material* material = g_debug_resource_manager->GetMaterial(SID("wall"));
-            if (submesh.material->diffuse_map) {
-                glActiveTexture(GL_TEXTURE0 + 0);
-                glBindTexture(GL_TEXTURE_2D, submesh.material->diffuse_map->handle);
-            }
+            submesh.material->Bind();
+            //if (submesh.material->diffuse_map) {
+                //glActiveTexture(GL_TEXTURE0 + 0);
+                //glBindTexture(GL_TEXTURE_2D, submesh.material->diffuse_map->handle);
+            //}
 
             size_t index_size = submesh.vao->GetIndexBuffer()->GetIndexSize();
             GLenum index_type;
@@ -96,10 +95,11 @@ RenderMesh(const TriangleMesh& mesh,
     for (const auto& submesh : mesh.sub_meshes) {
         submesh.vao->Bind();
         //Material* material = g_debug_resource_manager->GetMaterial(SID("wall"));
-        if (submesh.material->diffuse_map) {
-            glActiveTexture(GL_TEXTURE0 + 0);
-            glBindTexture(GL_TEXTURE_2D, submesh.material->diffuse_map->handle);
-        }
+        submesh.material->Bind();
+        //if (submesh.material->diffuse_map) {
+            //glActiveTexture(GL_TEXTURE0 + 0);
+            //glBindTexture(GL_TEXTURE_2D, submesh.material->diffuse_map->handle);
+        //}
 
         // TODO: bind material properties for each submesh here
         glDrawElements(GL_TRIANGLES,

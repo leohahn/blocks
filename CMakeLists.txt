@@ -128,7 +128,10 @@ if(WIN32)
         $<$<CONFIG:Debug>:/MDd>
         $<$<CONFIG:Release>:/MD>
         $<$<CONFIG:Debug>:/Zi>)
-    target_compile_definitions(blocks PRIVATE _HAS_EXCEPTIONS=0)
+    target_compile_definitions(blocks
+      PRIVATE
+        _HAS_EXCEPTIONS=0
+	$<$<CONFIG:Debug>:BLOCKS_DEBUG>)
 else()
 	#target_compile_options(blocks PRIVATE -fno-rtti -fno-exceptions)
     target_compile_options(blocks PRIVATE -fno-exceptions)
