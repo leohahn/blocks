@@ -52,8 +52,8 @@ add_executable(blocks
     src/ResourceFile.cpp
     src/Sid.hpp
     src/Sid.cpp
-    src/Material.hpp
-    src/Material.cpp
+    src/Renderer/Material.hpp
+    src/Renderer/Material.cpp
     src/Json.hpp
     src/Json.cpp
     src/Model.hpp
