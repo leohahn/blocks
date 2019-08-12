@@ -22,7 +22,8 @@ static constexpr const char* kNormalTextureKey = "normal_texture";
 
 static Texture* LoadTextureFromFile(Allocator* allocator,
                                     Allocator* scratch_allocator,
-                                    const Sid& texture_sid);
+                                    const Sid& texture_sid,
+                                    LoadTextureFlags flags = LoadTextureFlags_None);
 
 void
 ResourceManager::Create()
@@ -164,7 +165,7 @@ ResourceManager::LoadObjModel(const ResourceFile& model_res)
             texture_path.Append(strbuf);
 
             Sid texture_sid = SID(texture_path.data);
-            LoadTexture(texture_sid);
+            LoadTexture(texture_sid, LoadTextureFlags_FlipVertically);
 
             current_material->AddValue(SID("input_texture"), MaterialValue(GetTexture(texture_sid)));
         } else if (sscanf(line, "map_Bump %s", strbuf) == 1) {
@@ -323,10 +324,10 @@ ResourceManager::LoadGltfModel(const ResourceFile& res_file)
 }
 
 Texture*
-ResourceManager::LoadTexture(const Sid& texture_sid)
+ResourceManager::LoadTexture(const Sid& texture_sid, LoadTextureFlags flags)
 {
     LOG_INFO("Loading texture for SID %s", texture_sid.GetStr());
-    Texture* new_texture = LoadTextureFromFile(allocator, scratch_allocator, texture_sid);
+    Texture* new_texture = LoadTextureFromFile(allocator, scratch_allocator, texture_sid, flags);
     textures.Add(texture_sid, new_texture);
     return new_texture;
 }
@@ -441,7 +442,8 @@ ok:
 static Texture*
 LoadTextureFromFile(Allocator* allocator,
                     Allocator* scratch_allocator,
-                    const Sid& texture_sid)
+                    const Sid& texture_sid,
+                    LoadTextureFlags flags)
 {
     assert(allocator);
     assert(scratch_allocator);
@@ -462,7 +464,7 @@ LoadTextureFromFile(Allocator* allocator,
     // memory was read, now load it into an opengl buffer
 
     // tell stb_image.h to flip loaded texture's on the y-axis.
-    stbi_set_flip_vertically_on_load(true);
+    stbi_set_flip_vertically_on_load((flags & LoadTextureFlags_FlipVertically) != 0);
 
     int texture_width, texture_height, texture_channel_count;
     uint8_t* data = stbi_load_from_memory(texture_buffer,
@@ -471,7 +473,6 @@ LoadTextureFromFile(Allocator* allocator,
                                           &texture_height,
                                           &texture_channel_count,
                                           0);
-
 
     texture->width = texture_width;
     texture->height = texture_height;

@@ -1122,7 +1122,6 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
     // Create all materials
     for (size_t mi = 0; mi < materials.len; ++mi) {
         const GltfMaterial& gltf_material = materials[mi];
-        // TODO: include metallic roughness texture
 
         Material* material = resource_manager->allocator->New<Material>(resource_manager->allocator);
         material->name = SID(gltf_material.name.data);

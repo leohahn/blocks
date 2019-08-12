@@ -23,8 +23,6 @@ void RenderModel(
     model_matrix.m11 = mesh_scale;
     model_matrix.m22 = mesh_scale;
 
-    // set the texture
-
     // Set the rotation component
     const Mat4 object_to_world_matrix = model_matrix * orientation.ToMat4();
     shader.SetUniformMat4(SID("model"), object_to_world_matrix);

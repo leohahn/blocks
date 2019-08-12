@@ -1,9 +1,10 @@
 #include "Camera.hpp"
 
-Camera::Camera(Vec3 position, Vec3 front)
+Camera::Camera(Vec3 position, Vec3 front, float aspect_ratio, float fov, float near, float far)
     : position(position)
     , front(0, Math::Normalize(front))
     , up_world(0, 1, 0)
+    , projection_matrix(Mat4::Perspective(fov, aspect_ratio, near, far))
 {
     UpdateUpAndRightVectors();
 }
@@ -27,6 +28,12 @@ Camera::GetViewMatrix()
     right = Normalize(Cross(front.v, up_world));
     auto view_matrix = Mat4::LookAt(position, front.v, right, up);
     return view_matrix;
+}
+
+Mat4
+Camera::GetViewProjectionMatrix(const Mat4& view)
+{
+    return projection_matrix * view;
 }
 
 void

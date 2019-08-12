@@ -271,6 +271,9 @@ main(int argc, char** argv)
 //    g_debug_resource_manager = &resource_manager;
 #endif
 
+    // Create the main camera
+    Camera camera(Vec3(0, 0, 5), Vec3(0, 0, -1), (float)SCREEN_WIDTH / SCREEN_HEIGHT, 60.0f, 0.1f, 500.0f);
+
     //
     // Load shaders
     //
@@ -301,35 +304,27 @@ main(int argc, char** argv)
     pbr_shader->AddUniform("u_normal_texture");
     pbr_shader->AddUniform("u_metallic_roughness_texture");
 
-    bool running = true;
-
     //
     // Create the input system
     //
     InputSystem input_system;
     input_system.Create(&program.main_allocator);
     input_system.AddKeyboardEventListener(
-        kKeyboardEventButtonDown, SDLK_q, OnApplicationQuit, &running, &program.main_allocator);
+        kKeyboardEventButtonDown, SDLK_q, OnApplicationQuit, &program.running, &program.main_allocator);
 
     PlayerInput player_input;
     player_input.RegisterInputs(&input_system, &program.main_allocator);
 
-    Camera camera(Vec3(0, 0, 5), Vec3(0, 0, -1));
-
-    // TODO: add projection matrix to the camera
-    auto projection_matrix =
-        Mat4::Perspective(60.0f, (float)SCREEN_WIDTH / SCREEN_HEIGHT, 0.1f, 500.0f);
-
     basic_shader->Bind();
-    basic_shader->SetUniformMat4(SID("projection"), projection_matrix);
+    basic_shader->SetUniformMat4(SID("projection"), camera.projection_matrix);
 
     gltf_shader->Bind();
-    gltf_shader->SetUniformMat4(SID("projection"), projection_matrix);
+    gltf_shader->SetUniformMat4(SID("projection"), camera.projection_matrix);
 
     //------------------------------
     // Create the texture catalog and textures
     //------------------------------
-    program.resource_manager->LoadTexture(SID("wall.jpg"));
+    program.resource_manager->LoadTexture(SID("wall.jpg"), LoadTextureFlags_FlipVertically);
 
     Texture* wall_texture = program.resource_manager->GetTexture(SID("wall.jpg"));
     LOG_DEBUG("Loaded texture named: %s", wall_texture->name.GetStr());
@@ -357,7 +352,7 @@ main(int argc, char** argv)
     LOG_DEBUG("Starting main loop");
     Graphics::LowLevelApi::SetClearColor(Vec4(0.2f, 0.2f, 0.2f, 1.0f));
 
-    while (running) {
+    while (program.running) {
         input_system.Update();
 
         if (input_system.ReceivedQuitEvent()) {
@@ -404,6 +399,11 @@ main(int argc, char** argv)
 
         auto ticks = SDL_GetTicks();
 
+        auto view_matrix = camera.GetViewMatrix();
+
+        pbr_shader->Bind();
+        pbr_shader->SetUniformMat4(SID("u_view_projection"), camera.GetViewProjectionMatrix(view_matrix));
+
         basic_shader->Bind();
         basic_shader->SetUniformMat4(SID("view"), camera.GetViewMatrix());
 
@@ -432,6 +432,7 @@ main(int argc, char** argv)
         gltf_shader->Bind();
         gltf_shader->SetUniformMat4(SID("view"), camera.GetViewMatrix());
 
+        pbr_shader->Bind();
         RenderModel(alpine_chalet, *gltf_shader, Vec3::Zero(), Quaternion::Identity(), 1.0f);
 
         program.window->SwapBuffers();

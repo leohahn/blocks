@@ -13,10 +13,12 @@ public:
     Vec3 up;
     Vec3 right;
     Vec3 up_world;
+    Mat4 projection_matrix;
    
 public:
-    Camera(Vec3 position, Vec3 front);
+    Camera(Vec3 position, Vec3 front, float aspect_ratio, float fov, float near = 0.1f, float far = 100.0f);
     Mat4 GetViewMatrix();
+    Mat4 GetViewProjectionMatrix(const Mat4& view);
     //
     // HACK, TODO: remove this GAMBETA
     //
