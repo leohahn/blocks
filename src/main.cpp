@@ -110,6 +110,9 @@ SetupPlane(Allocator* allocator, Allocator* scratch_allocator, Material* materia
 static TriangleMesh
 SetupCube(Allocator* allocator, Allocator* scratch_allocator, Material* material)
 {
+    ASSERT(material, "material should exist");
+    ASSERT(allocator, "allocator should exist");
+    ASSERT(scratch_allocator, "scratch allocator should exist");
     // clang-format off
     static const uint32_t indices[] =
     {
@@ -279,6 +282,13 @@ main(int argc, char** argv)
     //
     LOG_DEBUG("Loading shaders\n");
 
+    program.resource_manager->LoadShader(SID("flat_color.glsl"));
+    Shader* flat_color_shader = program.resource_manager->GetShader(SID("flat_color.glsl"));
+    assert(flat_color_shader && flat_color_shader->IsValid() && "program should be valid");
+    flat_color_shader->AddUniform("model");
+    flat_color_shader->AddUniform("u_view_projection");
+    flat_color_shader->AddUniform("u_flat_color");
+
     program.resource_manager->LoadShader(SID("basic.glsl"));
     Shader* basic_shader = program.resource_manager->GetShader(SID("basic.glsl"));
     assert(basic_shader && basic_shader->IsValid() && "program should be valid");
@@ -303,6 +313,9 @@ main(int argc, char** argv)
     pbr_shader->AddUniform("u_albedo_texture");
     pbr_shader->AddUniform("u_normal_texture");
     pbr_shader->AddUniform("u_metallic_roughness_texture");
+    pbr_shader->AddUniform("u_camera_position");
+    pbr_shader->AddUniform("u_light_position");
+    pbr_shader->AddUniform("u_light_color");
 
     //
     // Create the input system
@@ -345,6 +358,16 @@ main(int argc, char** argv)
     assert(wall_material);
     TriangleMesh floor_mesh = SetupPlane(&program.main_allocator, &program.temp_allocator, wall_material);
     TriangleMesh cube_mesh = SetupCube(&program.main_allocator, &program.temp_allocator, wall_material);
+
+    {
+        Material* material = program.resource_manager->allocator->New<Material>(program.resource_manager->allocator);
+        material->name = SID("flat_color");
+        material->shader = flat_color_shader;
+        material->AddValue(SID("u_flat_color"), MaterialValue(Vec4(1.0f)));
+        program.resource_manager->materials.Add(material->name, material);
+    }
+
+    TriangleMesh light_mesh = SetupCube(&program.main_allocator, &program.temp_allocator, program.resource_manager->GetMaterial(SID("flat_color")));
 
     Model alpine_chalet = program.resource_manager->LoadModel(SID("Alpine_chalet.model"));
     Model nanosuit = program.resource_manager->LoadModel(SID("nanosuit.model"));
@@ -400,15 +423,16 @@ main(int argc, char** argv)
         auto ticks = SDL_GetTicks();
 
         auto view_matrix = camera.GetViewMatrix();
+        auto view_projection_matrix = camera.GetViewProjectionMatrix(view_matrix);
 
         pbr_shader->Bind();
-        pbr_shader->SetUniformMat4(SID("u_view_projection"), camera.GetViewProjectionMatrix(view_matrix));
+        pbr_shader->SetUniformMat4(SID("u_view_projection"), view_projection_matrix);
 
         basic_shader->Bind();
         basic_shader->SetUniformMat4(SID("view"), camera.GetViewMatrix());
 
         // TODO: add real values here for the parameters
-        Vec3 cube_position(0);
+        Vec3 cube_position(10.0f, 0.0f, 0.0f);
         Quaternion cube_orientation =
             Quaternion::Rotation(Math::DegreesToRadians(ticks * 0.035f), Vec3(0, 1, 0));
         float cube_scale = 1.0f;
@@ -424,15 +448,23 @@ main(int argc, char** argv)
             //RenderMesh(*cottage.meshes[i], *basic_shader, Vec3::Zero(), Quaternion::Identity(), 1.0f);
         //}
 
-        Vec3 nanosuit_position(0, 0, 0);
+        Vec3 nanosuit_position(-10, 0, 0);
         Quaternion nanosuit_orientation = Quaternion::Identity();
         assert(nanosuit.meshes.len == 1);
         RenderMesh(*nanosuit.meshes[0], *basic_shader, nanosuit_position, nanosuit_orientation, 1.0f);
+
+        Vec3 light_position(0.0f, 5.0f, 20.0f);
+        flat_color_shader->Bind();
+        flat_color_shader->SetUniformMat4(SID("u_view_projection"), view_projection_matrix);
+        RenderMesh(light_mesh, *flat_color_shader, light_position, Quaternion::Identity(), 0.4f);
 
         gltf_shader->Bind();
         gltf_shader->SetUniformMat4(SID("view"), camera.GetViewMatrix());
 
         pbr_shader->Bind();
+        pbr_shader->SetVector(SID("u_camera_position"), camera.position);
+        pbr_shader->SetVector(SID("u_light_position"), light_position);
+        pbr_shader->SetVector(SID("u_light_color"), Vec3(1.0f));
         RenderModel(alpine_chalet, *gltf_shader, Vec3::Zero(), Quaternion::Identity(), 1.0f);
 
         program.window->SwapBuffers();

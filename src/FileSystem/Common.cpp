@@ -67,6 +67,7 @@ FileSystem::GetResourcesPath(Allocator* allocator)
 
     Path resources_path(allocator);
     resources_path.Push(cwd_buf);
+    resources_path.Push("..");
     resources_path.Push("resources");
 
     return resources_path;
