@@ -289,7 +289,7 @@ TryGetVec3(const Json::Val* vec, Vec3* out)
         return false;
     }
 
-    *out = Vec3(x, y, z);
+    *out = Vec3((float)x, (float)y, (float)z);
     return true;
 }
 
@@ -333,13 +333,13 @@ TryGetNodes(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file, 
         }
 
         const Json::Val* rotation_val = raw_node->Find(String(alloc, "rotation"));
-        if (!rotation_val || !rotation_val->IsArray()) {
+        if (rotation_val && !rotation_val->IsArray()) {
             LOG_ERROR("Was expecting a rotation property");
             return false;
         }
 
         const Json::Val* translation_val = raw_node->Find(String(alloc, "translation"));
-        if (!translation_val || !translation_val->IsArray()) {
+        if (translation_val && !translation_val->IsArray()) {
             LOG_ERROR("Was expecting a translation property");
             return false;
         }
@@ -348,14 +348,18 @@ TryGetNodes(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file, 
         out_node.name = String(alloc, name_val->AsString()->View());
         out_node.mesh = (int32_t)*mesh_val->AsInt64();
 
-        if (!TryGetVec3(translation_val, &out_node.translation)) {
-            LOG_ERROR("Failed to parse translation vector in node");
-            return false;
+        if (translation_val) {
+            if (!TryGetVec3(translation_val, &out_node.translation)) {
+                LOG_ERROR("Failed to parse translation vector in node");
+                return false;
+            }
         }
 
-        if (!TryGetRotation(rotation_val, &out_node.rotation)) {
-            LOG_ERROR("Failed to parse rotation vector in node");
-            return false;
+        if (rotation_val) {
+            if (!TryGetRotation(rotation_val, &out_node.rotation)) {
+                LOG_ERROR("Failed to parse rotation vector in node");
+                return false;
+            }
         }
 
         out_nodes->PushBack(std::move(out_node));
@@ -1192,6 +1196,8 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         //
         // We will combine the primitive buffer views into one buffer in order to send it to the GPU 
         //
+
+        // position
         const int32_t* position_accessor_index = primitive.attributes.Find(String(scratch_allocator, "POSITION"));
         ASSERT(position_accessor_index, "should have a position accessor");
         const GltfAccessor& position_accessor = accessors[*position_accessor_index];
@@ -1199,6 +1205,7 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         ASSERT(position_accessor.component_type == ComponentType::Float, "should be float");
         const GltfBufferView& position_buffer_view = buffer_views[position_accessor.buffer_view_index];
 
+        // normal
         const int32_t* normal_accessor_index = primitive.attributes.Find(String(scratch_allocator, "NORMAL"));
         ASSERT(normal_accessor_index, "should have a normal accessor");
         const GltfAccessor& normal_accessor = accessors[*normal_accessor_index];
@@ -1206,6 +1213,15 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         ASSERT(normal_accessor.component_type == ComponentType::Float, "should be float");
         const GltfBufferView& normal_buffer_view = buffer_views[normal_accessor.buffer_view_index];
 
+        // tangent
+        const int32_t* tangent_accessor_index = primitive.attributes.Find(String(scratch_allocator, "TANGENT"));
+        ASSERT(tangent_accessor_index, "should have a tangent accessor");
+        const GltfAccessor& tangent_accessor = accessors[*tangent_accessor_index];
+        ASSERT(tangent_accessor.type == AccessorType::Vec4, "should be vec4");
+        ASSERT(tangent_accessor.component_type == ComponentType::Float, "should be float");
+        const GltfBufferView& tangent_buffer_view = buffer_views[tangent_accessor.buffer_view_index];
+
+        // tex coords
         const int32_t* texcoord0_accessor_index = primitive.attributes.Find(String(scratch_allocator, "TEXCOORD_0"));
         ASSERT(texcoord0_accessor_index, "should have a tex coord 0 accessor");
         const GltfAccessor& texcoord0_accessor = accessors[*texcoord0_accessor_index];
@@ -1214,11 +1230,13 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         const GltfBufferView& texcoord0_buffer_view = buffer_views[texcoord0_accessor.buffer_view_index];
 
         ASSERT(position_buffer_view.buffer_index == normal_buffer_view.buffer_index, "Should reference the same buffer");
+        ASSERT(position_buffer_view.buffer_index == tangent_buffer_view.buffer_index, "Should reference the same buffer");
         ASSERT(position_buffer_view.buffer_index == texcoord0_buffer_view.buffer_index, "Should reference the same buffer");
         const GltfBuffer& buffer = buffers[position_buffer_view.buffer_index];
 
         ASSERT(position_buffer_view.byte_offset < normal_buffer_view.byte_offset, "position should come first");
         ASSERT(normal_buffer_view.byte_offset < texcoord0_buffer_view.byte_offset, "normals should come second");
+        ASSERT(tangent_buffer_view.byte_offset < texcoord0_buffer_view.byte_offset, "tangents should come third");
 
         const size_t buffer_start_offset = position_buffer_view.byte_offset;
         const size_t buffer_total_size = position_buffer_view.byte_length + normal_buffer_view.byte_length + texcoord0_buffer_view.byte_length;
@@ -1226,11 +1244,13 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
 
         ASSERT(position_accessor.count == normal_accessor.count, "Vertex attributes should have the same count of elements");
         ASSERT(position_accessor.count == texcoord0_accessor.count, "Vertex attributes should have the same count of elements");
+        ASSERT(position_accessor.count == tangent_accessor.count, "Vertex attributes should have the same count of elements");
 
         auto vbo = VertexBuffer::Create(alloc, buffer_start, buffer_total_size * sizeof(float));
         vbo->SetLayout(BufferLayout::NonInterleaved(alloc, {
             BufferLayoutDataType::Vec3, // position
             BufferLayoutDataType::Vec3, // normals
+            BufferLayoutDataType::Vec4, // tangent
             BufferLayoutDataType::Vec2, // tex coords
         }, (size_t)position_accessor.count));
 

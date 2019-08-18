@@ -13,6 +13,7 @@ enum class BufferLayoutDataType
 {
     Vec2,
     Vec3,
+    Vec4,
 };
 
 size_t GetLayoutDataTypeSize(BufferLayoutDataType t);

@@ -8,6 +8,7 @@ GetLayoutDataTypeSize(BufferLayoutDataType t)
     switch (t) {
         case BufferLayoutDataType::Vec2: return sizeof(float) * 2;
         case BufferLayoutDataType::Vec3: return sizeof(float) * 3;
+        case BufferLayoutDataType::Vec4: return sizeof(float) * 4;
         default: ASSERT(false, "unknown data type");
     }
     return 0;
@@ -19,6 +20,7 @@ GetLayoutDataTypeNumComponents(BufferLayoutDataType t)
     switch (t) {
         case BufferLayoutDataType::Vec2: return 2;
         case BufferLayoutDataType::Vec3: return 3;
+        case BufferLayoutDataType::Vec4: return 4;
         default: ASSERT(false, "unknown data type");
     }
     return 0;

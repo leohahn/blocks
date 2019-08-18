@@ -16,6 +16,7 @@ enum LoadTextureFlags
 {
     LoadTextureFlags_None = 0,
     LoadTextureFlags_FlipVertically = BIT(0),
+    LoadTextureFlags_LinearSpace = BIT(1),
 };
 
 struct ResourceManager
@@ -52,7 +53,7 @@ public:
     void Create();
     void Destroy();
 
-    Texture* LoadTexture(const Sid& texture_file, LoadTextureFlags flags = LoadTextureFlags_None);
+    Texture* LoadTexture(const Sid& texture_file, int flags = LoadTextureFlags_None);
     Texture* GetTexture(const Sid& texture_file)
     {
         return *textures.Find(texture_file);

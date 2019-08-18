@@ -285,25 +285,25 @@ main(int argc, char** argv)
     program.resource_manager->LoadShader(SID("flat_color.glsl"));
     Shader* flat_color_shader = program.resource_manager->GetShader(SID("flat_color.glsl"));
     assert(flat_color_shader && flat_color_shader->IsValid() && "program should be valid");
-    flat_color_shader->AddUniform("model");
+    flat_color_shader->AddUniform("u_model");
     flat_color_shader->AddUniform("u_view_projection");
     flat_color_shader->AddUniform("u_flat_color");
 
     program.resource_manager->LoadShader(SID("basic.glsl"));
     Shader* basic_shader = program.resource_manager->GetShader(SID("basic.glsl"));
     assert(basic_shader && basic_shader->IsValid() && "program should be valid");
-    basic_shader->AddUniform("model");
-    basic_shader->AddUniform("view");
-    basic_shader->AddUniform("projection");
-    basic_shader->AddUniform("input_texture");
+    basic_shader->AddUniform("u_model");
+    basic_shader->AddUniform("u_view");
+    basic_shader->AddUniform("u_projection");
+    basic_shader->AddUniform("u_input_texture");
 
     program.resource_manager->LoadShader(SID("gltf.glsl"));
     Shader* gltf_shader = program.resource_manager->GetShader(SID("gltf.glsl"));
     assert(gltf_shader && gltf_shader->IsValid() && "program should be valid");
-    gltf_shader->AddUniform("model");
-    gltf_shader->AddUniform("view");
-    gltf_shader->AddUniform("projection");
-    gltf_shader->AddUniform("input_texture");
+    gltf_shader->AddUniform("u_model");
+    gltf_shader->AddUniform("u_view");
+    gltf_shader->AddUniform("u_projection");
+    gltf_shader->AddUniform("u_input_texture");
 
     program.resource_manager->LoadShader(SID("pbr.glsl"));
     Shader* pbr_shader = program.resource_manager->GetShader(SID("pbr.glsl"));
@@ -329,15 +329,15 @@ main(int argc, char** argv)
     player_input.RegisterInputs(&input_system, &program.main_allocator);
 
     basic_shader->Bind();
-    basic_shader->SetUniformMat4(SID("projection"), camera.projection_matrix);
+    basic_shader->SetUniformMat4(SID("u_projection"), camera.projection_matrix);
 
     gltf_shader->Bind();
-    gltf_shader->SetUniformMat4(SID("projection"), camera.projection_matrix);
+    gltf_shader->SetUniformMat4(SID("u_projection"), camera.projection_matrix);
 
     //------------------------------
     // Create the texture catalog and textures
     //------------------------------
-    program.resource_manager->LoadTexture(SID("wall.jpg"), LoadTextureFlags_FlipVertically);
+    program.resource_manager->LoadTexture(SID("wall.jpg"), LoadTextureFlags_FlipVertically|LoadTextureFlags_LinearSpace);
 
     Texture* wall_texture = program.resource_manager->GetTexture(SID("wall.jpg"));
     LOG_DEBUG("Loaded texture named: %s", wall_texture->name.GetStr());
@@ -349,7 +349,7 @@ main(int argc, char** argv)
         Material* material = program.resource_manager->allocator->New<Material>(program.resource_manager->allocator);
         material->name = SID("wall");
         material->shader = basic_shader;
-        material->AddValue(SID("input_texture"), MaterialValue(wall_texture));
+        material->AddValue(SID("u_input_texture"), MaterialValue(wall_texture));
         program.resource_manager->materials.Add(material->name, material);
     }
 
@@ -369,7 +369,8 @@ main(int argc, char** argv)
 
     TriangleMesh light_mesh = SetupCube(&program.main_allocator, &program.temp_allocator, program.resource_manager->GetMaterial(SID("flat_color")));
 
-    Model alpine_chalet = program.resource_manager->LoadModel(SID("Alpine_chalet.model"));
+    //Model alpine_chalet = program.resource_manager->LoadModel(SID("Alpine_chalet.model"));
+    Model hammer = program.resource_manager->LoadModel(SID("hammer.model"));
     Model nanosuit = program.resource_manager->LoadModel(SID("nanosuit.model"));
 
     LOG_DEBUG("Starting main loop");
@@ -425,11 +426,8 @@ main(int argc, char** argv)
         auto view_matrix = camera.GetViewMatrix();
         auto view_projection_matrix = camera.GetViewProjectionMatrix(view_matrix);
 
-        pbr_shader->Bind();
-        pbr_shader->SetUniformMat4(SID("u_view_projection"), view_projection_matrix);
-
         basic_shader->Bind();
-        basic_shader->SetUniformMat4(SID("view"), camera.GetViewMatrix());
+        basic_shader->SetUniformMat4(SID("u_view"), camera.GetViewMatrix());
 
         // TODO: add real values here for the parameters
         Vec3 cube_position(10.0f, 0.0f, 0.0f);
@@ -459,13 +457,17 @@ main(int argc, char** argv)
         RenderMesh(light_mesh, *flat_color_shader, light_position, Quaternion::Identity(), 0.4f);
 
         gltf_shader->Bind();
-        gltf_shader->SetUniformMat4(SID("view"), camera.GetViewMatrix());
+        gltf_shader->SetUniformMat4(SID("u_view"), camera.GetViewMatrix());
 
         pbr_shader->Bind();
+        pbr_shader->SetUniformMat4(SID("u_view_projection"), view_projection_matrix);
         pbr_shader->SetVector(SID("u_camera_position"), camera.position);
         pbr_shader->SetVector(SID("u_light_position"), light_position);
         pbr_shader->SetVector(SID("u_light_color"), Vec3(1.0f));
-        RenderModel(alpine_chalet, *gltf_shader, Vec3::Zero(), Quaternion::Identity(), 1.0f);
+        //RenderModel(alpine_chalet, *gltf_shader, Vec3::Zero(), Quaternion::Identity(), 1.0f);
+        Quaternion hammer_rotation =
+            Quaternion::Rotation(Math::DegreesToRadians(90), Vec3(1, 0, 0));
+        RenderModel(hammer, *pbr_shader, Vec3::Zero(), hammer_rotation, 1.0f);
 
         program.window->SwapBuffers();
     }

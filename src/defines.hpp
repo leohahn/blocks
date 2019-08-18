@@ -89,6 +89,8 @@
         *val = 0xdeadbeef; \
     }
 
+#define UNREACHABLE ASSERT(false, "Unreachable code")
+
 #ifdef _DEBUG
 struct ResourceManager;
 extern ResourceManager* g_debug_resource_manager;

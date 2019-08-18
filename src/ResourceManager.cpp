@@ -23,7 +23,7 @@ static constexpr const char* kNormalTextureKey = "normal_texture";
 static Texture* LoadTextureFromFile(Allocator* allocator,
                                     Allocator* scratch_allocator,
                                     const Sid& texture_sid,
-                                    LoadTextureFlags flags = LoadTextureFlags_None);
+                                    int flags = LoadTextureFlags_None);
 
 void
 ResourceManager::Create()
@@ -165,9 +165,9 @@ ResourceManager::LoadObjModel(const ResourceFile& model_res)
             texture_path.Append(strbuf);
 
             Sid texture_sid = SID(texture_path.data);
-            LoadTexture(texture_sid, LoadTextureFlags_FlipVertically);
+            LoadTexture(texture_sid, LoadTextureFlags_FlipVertically|LoadTextureFlags_LinearSpace);
 
-            current_material->AddValue(SID("input_texture"), MaterialValue(GetTexture(texture_sid)));
+            current_material->AddValue(SID("u_input_texture"), MaterialValue(GetTexture(texture_sid)));
         } else if (sscanf(line, "map_Bump %s", strbuf) == 1) {
             assert(current_material);
             // normal mapping
@@ -300,7 +300,7 @@ ResourceManager::LoadObjModel(const ResourceFile& model_res)
 
     model.meshes.PushBack(mesh);
 
-    LOG_DEBUG("Number of submeshes: %lu", model.meshes[0]->sub_meshes.len);
+    LOG_DEBUG("Number of submeshes: %llu", model.meshes[0]->sub_meshes.len);
 
     // HACK
     for (auto& submesh : model.meshes[0]->sub_meshes) {
@@ -324,7 +324,7 @@ ResourceManager::LoadGltfModel(const ResourceFile& res_file)
 }
 
 Texture*
-ResourceManager::LoadTexture(const Sid& texture_sid, LoadTextureFlags flags)
+ResourceManager::LoadTexture(const Sid& texture_sid, int flags)
 {
     LOG_INFO("Loading texture for SID %s", texture_sid.GetStr());
     Texture* new_texture = LoadTextureFromFile(allocator, scratch_allocator, texture_sid, flags);
@@ -443,7 +443,7 @@ static Texture*
 LoadTextureFromFile(Allocator* allocator,
                     Allocator* scratch_allocator,
                     const Sid& texture_sid,
-                    LoadTextureFlags flags)
+                    int flags)
 {
     assert(allocator);
     assert(scratch_allocator);
@@ -496,16 +496,25 @@ LoadTextureFromFile(Allocator* allocator,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+    GLenum internal_format;
+    GLenum format;
     if (texture_channel_count == 3) {
-        glTexImage2D(
-            GL_TEXTURE_2D, 0, GL_RGB, texture_width, texture_height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        format = GL_RGB;
+        internal_format = ((flags & LoadTextureFlags_LinearSpace) != 0)
+            ? GL_RGB
+            : GL_SRGB8;
     } else if (texture_channel_count == 4) {
-        glTexImage2D(
-            GL_TEXTURE_2D, 0, GL_RGBA, texture_width, texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        format = GL_RGBA;
+        internal_format = ((flags & LoadTextureFlags_LinearSpace) != 0)
+            ? GL_RGBA
+            : GL_SRGB8_ALPHA8;
     } else {
         LOG_ERROR("Unsupported channel count of %d", texture_channel_count);
-        assert(false);
+        UNREACHABLE;
     }
+
+    glTexImage2D(
+        GL_TEXTURE_2D, 0, internal_format, texture_width, texture_height, 0, format, GL_UNSIGNED_BYTE, data);
     
     LOG_DEBUG("  loaded with width=%d and height=%d", texture_width, texture_height);
 
