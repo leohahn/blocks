@@ -41,6 +41,21 @@ struct GltfImage
     String name;
     String mime_type;
     String uri;
+
+    Texture* LoadAsNormal(ResourceManager* rm) const
+    { 
+        return rm->LoadTexture(SID(uri.data), LoadTextureFlags_LinearSpace);
+    }
+
+    Texture* LoadAsAlbedo(ResourceManager* rm) const
+    {
+        return rm->LoadTexture(SID(uri.data));
+    }
+
+    Texture* LoadAsRoughness(ResourceManager* rm) const
+    {
+        return rm->LoadTexture(SID(uri.data), LoadTextureFlags_LinearSpace);
+    }
 };
 
 struct GltfPrimitive
@@ -1113,13 +1128,6 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
 
     const GltfMesh& gltf_mesh = meshes[node.mesh];
 
-    // Load all textures
-    for (size_t ti = 0; ti < textures.len; ++ti) {
-        const GltfTexture& gltf_texture = textures[ti];
-        const GltfImage& gltf_image = images[gltf_texture.source];
-        resource_manager->LoadTexture(SID(gltf_image.uri.data), LoadTextureFlags_LinearSpace);
-    }
-
     // Create all materials
     for (size_t mi = 0; mi < materials.len; ++mi) {
         const GltfMaterial& gltf_material = materials[mi];
@@ -1131,18 +1139,22 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         ASSERT(material->shader, "shader is not loaded!");
 
         if (gltf_material.base_color.index > -1) {
-            const GltfImage& gltf_base_image = images[gltf_material.base_color.index];
-            material->AddValue(SID("u_albedo_texture"), resource_manager->GetTexture(SID(gltf_base_image.uri.data)));
+            const GltfTexture& gltf_base_image_texture = textures[gltf_material.base_color.index];
+            const GltfImage& gltf_base_image = images[gltf_base_image_texture.source];
+            Texture* texture = gltf_base_image.LoadAsAlbedo(resource_manager);
+            material->AddValue(SID("u_albedo_texture"), texture);
         }
 
         if (gltf_material.metallic_roughness.index > -1) {
             const GltfImage& gltf_base_image = images[gltf_material.metallic_roughness.index];
-            material->AddValue(SID("u_metallic_roughness_texture"), resource_manager->GetTexture(SID(gltf_base_image.uri.data)));
+            Texture* texture = gltf_base_image.LoadAsRoughness(resource_manager);
+            material->AddValue(SID("u_metallic_roughness_texture"), texture);
         }
 
         if (gltf_material.normal.index > -1) {
             const GltfImage& gltf_base_image = images[gltf_material.normal.index];
-            material->AddValue(SID("u_normal_texture"), resource_manager->GetTexture(SID(gltf_base_image.uri.data)));
+            Texture* texture = gltf_base_image.LoadAsNormal(resource_manager);
+            material->AddValue(SID("u_normal_texture"), texture);
         }
 
         material->shader->Unbind();

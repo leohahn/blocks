@@ -326,10 +326,15 @@ ResourceManager::LoadGltfModel(const ResourceFile& res_file)
 Texture*
 ResourceManager::LoadTexture(const Sid& texture_sid, int flags)
 {
-    LOG_INFO("Loading texture for SID %s", texture_sid.GetStr());
-    Texture* new_texture = LoadTextureFromFile(allocator, scratch_allocator, texture_sid, flags);
-    textures.Add(texture_sid, new_texture);
-    return new_texture;
+    Texture** texture;
+    if (texture = textures.Find(texture_sid)) {
+        return *texture;
+    } else {
+        LOG_DEBUG("Loading texture for SID %s", texture_sid.GetStr());
+        Texture* new_texture = LoadTextureFromFile(allocator, scratch_allocator, texture_sid, flags);
+        textures.Add(texture_sid, new_texture);
+        return new_texture;
+    }
 }
 
 void

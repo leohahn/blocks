@@ -451,7 +451,7 @@ main(int argc, char** argv)
         assert(nanosuit.meshes.len == 1);
         RenderMesh(*nanosuit.meshes[0], *basic_shader, nanosuit_position, nanosuit_orientation, 1.0f);
 
-        Vec3 light_position(0.0f, 5.0f, 20.0f);
+        Vec3 light_position(0.0f, 10.0f, 10.0f);
         flat_color_shader->Bind();
         flat_color_shader->SetUniformMat4(SID("u_view_projection"), view_projection_matrix);
         RenderMesh(light_mesh, *flat_color_shader, light_position, Quaternion::Identity(), 0.4f);
