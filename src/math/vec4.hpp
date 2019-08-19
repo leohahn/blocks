@@ -4,10 +4,23 @@
 
 struct Vec4
 {
-    float x;
-    float y;
-    float z;
-    float w;
+    union
+    {
+        struct
+        {
+            float x;
+            float y;
+            float z;
+            float w;
+        };
+
+        struct
+        {
+            Vec3 xyz;
+            float _unused;
+        };
+    };
+
 
     Vec4() = default;
 

@@ -369,7 +369,7 @@ main(int argc, char** argv)
 
     TriangleMesh light_mesh = SetupCube(&program.main_allocator, &program.temp_allocator, program.resource_manager->GetMaterial(SID("flat_color")));
 
-    //Model alpine_chalet = program.resource_manager->LoadModel(SID("Alpine_chalet.model"));
+    Model alpine_chalet = program.resource_manager->LoadModel(SID("Alpine_chalet.model"));
     Model hammer = program.resource_manager->LoadModel(SID("hammer.model"));
     Model nanosuit = program.resource_manager->LoadModel(SID("nanosuit.model"));
 
@@ -465,9 +465,11 @@ main(int argc, char** argv)
         pbr_shader->SetVector(SID("u_light_position"), light_position);
         pbr_shader->SetVector(SID("u_light_color"), Vec3(1.0f));
         //RenderModel(alpine_chalet, *gltf_shader, Vec3::Zero(), Quaternion::Identity(), 1.0f);
-        Quaternion hammer_rotation =
-            Quaternion::Rotation(Math::DegreesToRadians(90), Vec3(1, 0, 0));
+        auto hammer_rotation = Quaternion::Rotation(Math::DegreesToRadians(90), Vec3(1, 0, 0));
+        //auto hammer_rotation = Quaternion::Identity();
         RenderModel(hammer, *pbr_shader, Vec3::Zero(), hammer_rotation, 1.0f);
+
+        RenderModel(alpine_chalet, *pbr_shader, Vec3(20, 1, 0), Quaternion::Identity(), 1.0f);
 
         program.window->SwapBuffers();
     }

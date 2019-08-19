@@ -4,9 +4,6 @@
 #include "Logger.hpp"
 #include "ResourceManager.hpp"
 
-#define TARGET_ELEMENT_ARRAY_BUFFER 0x8893
-#define TARGET_ARRAY_BUFFER 0x8892
-
 #define CHUNK_TYPE_JSON 0x4E4F534A
 #define CHUNK_TYPE_BINARY 0x004E4942
 
@@ -415,25 +412,25 @@ TryGetMeshes(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file,
             const RobinHashMap<String, Json::Val>* raw_primitive = (*primitives_val->AsArray())[pi].AsObject();
             if (!raw_primitive) {
                 LOG_ERROR("Was expecting a primitive object");
-                assert(false);
+                return false;
             }
 
             const Json::Val* raw_indices = raw_primitive->Find(String(alloc, "indices"));
             if (!raw_indices || !raw_indices->IsInteger()) {
                 LOG_ERROR("Was expecting a indice property");
-                assert(false);
+                return false;
             }
 
             const Json::Val* raw_material = raw_primitive->Find(String(alloc, "material"));
             if (!raw_material || !raw_material->IsInteger()) {
                 LOG_ERROR("Was expecting a material property");
-                assert(false);
+                return false;
             }
 
             const Json::Val* raw_attributes = raw_primitive->Find(String(alloc, "attributes"));
             if (!raw_attributes || !raw_attributes->IsObject()) {
                 LOG_ERROR("Was expecting an attributes property");
-                assert(false);
+                return false;
             }
 
             GltfPrimitive primitive;
@@ -445,7 +442,7 @@ TryGetMeshes(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file,
                 const int64_t* val = pair.val.AsInt64();
                 if (!val) {
                     LOG_ERROR("Was expecting integer as an attribute");
-                    assert(false);
+                    return false;
                 }
 
                 primitive.attributes.Add(
@@ -1120,7 +1117,7 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
     for (size_t ti = 0; ti < textures.len; ++ti) {
         const GltfTexture& gltf_texture = textures[ti];
         const GltfImage& gltf_image = images[gltf_texture.source];
-        resource_manager->LoadTexture(SID(gltf_image.uri.data));
+        resource_manager->LoadTexture(SID(gltf_image.uri.data), LoadTextureFlags_LinearSpace);
     }
 
     // Create all materials
@@ -1130,6 +1127,7 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         Material* material = resource_manager->allocator->New<Material>(resource_manager->allocator);
         material->name = SID(gltf_material.name.data);
         material->shader = resource_manager->GetShader(SID("pbr.glsl"));
+        material->shader->Bind();
         ASSERT(material->shader, "shader is not loaded!");
 
         if (gltf_material.base_color.index > -1) {
@@ -1147,6 +1145,7 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
             material->AddValue(SID("u_normal_texture"), resource_manager->GetTexture(SID(gltf_base_image.uri.data)));
         }
 
+        material->shader->Unbind();
         resource_manager->materials.Add(material->name, material);
     }
 
@@ -1253,6 +1252,40 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
             BufferLayoutDataType::Vec4, // tangent
             BufferLayoutDataType::Vec2, // tex coords
         }, (size_t)position_accessor.count));
+
+        Vec3* pos = (Vec3*)buffer_start;
+        Vec3* normal = (Vec3*)(pos + position_accessor.count);
+        Vec4* tangent = (Vec4*)(normal + position_accessor.count);
+        Vec2* tex_coords = (Vec2*)(tangent + position_accessor.count);
+        int num_ones = 0, num_minus_ones = 0;
+        for (size_t i = 0; i < position_accessor.count; i += 3) {
+            ASSERT(ABS(Math::Dot(*normal, tangent->xyz)) < 0.0005, "shshs");
+
+            Vec3 n1 = normal[i];
+            Vec3 n2 = normal[i+1];
+            Vec3 n3 = normal[i+2];
+
+            Vec4 t1 = tangent[i];
+            Vec4 t2 = tangent[i+1];
+            Vec4 t3 = tangent[i+2];
+
+            //ASSERT(t1.w == t2.w, "");
+            //ASSERT(t1.w == t3.w, "");
+
+            if (Math::IsAlmostEqual(tangent->w, -1.0f)) {
+                ++num_minus_ones;
+            }
+            if (Math::IsAlmostEqual(tangent->w, 1.0f)) {
+                ++num_ones;
+            }
+            ++pos;
+            ++normal;
+            ++tangent;
+            ++tex_coords;
+        }
+
+        LOG_DEBUG("Num 1: %d", num_ones);
+        LOG_DEBUG("Num -1: %d", num_minus_ones);
 
         submesh.vao = VertexArray::Create(mesh->allocator);
         submesh.vao->SetVertexBuffer(vbo);

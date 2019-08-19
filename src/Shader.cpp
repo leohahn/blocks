@@ -11,12 +11,14 @@ void
 Shader::Bind() const
 {
     glUseProgram(program);
+    bound = true;
 }
 
 void
 Shader::Unbind() const
 { 
     glUseProgram(0);
+    bound = false;
 } 
 
 Shader::Shader(Shader&& other)
@@ -56,45 +58,53 @@ Shader::AddUniform(const char* loc)
 void
 Shader::SetUniformMat4(Sid loc, const Mat4& mat) const
 {
+    ASSERT(bound, "shader should be bound");
     const int* cached_loc = location_cache.Find(loc);
-    ASSERT(cached_loc, "value not found");
-    glUniformMatrix4fv(*cached_loc, 1, false, &mat.data[0]);
+    if (cached_loc) {
+        glUniformMatrix4fv(*cached_loc, 1, false, &mat.data[0]);
+    }
 }
 
 void
 Shader::SetVector(Sid loc, const Vec4 & vec) const
 {
+    ASSERT(bound, "shader should be bound");
     const int* cached_loc = location_cache.Find(loc);
-    ASSERT(cached_loc, "value not found");
-    glUniform4f(*cached_loc, vec.x, vec.y, vec.z, vec.w);
+    if (cached_loc) {
+        glUniform4f(*cached_loc, vec.x, vec.y, vec.z, vec.w);
+    }
 }
 
 void
 Shader::SetVector(Sid loc, const Vec3& vec) const
 {
+    ASSERT(bound, "shader should be bound");
     const int* cached_loc = location_cache.Find(loc);
-    ASSERT(cached_loc, "value not found");
-    glUniform3f(*cached_loc, vec.x, vec.y, vec.z);
+    if (cached_loc) {
+        glUniform3f(*cached_loc, vec.x, vec.y, vec.z);
+    }
 }
 
 void
 Shader::SetTexture2d(Sid loc, const Texture* texture, int texture_index) const
 {
+    ASSERT(bound, "shader should be bound");
     const int* cached_loc = location_cache.Find(loc);
-    if (!cached_loc) {
-        return;
+    if (cached_loc) {
+        glActiveTexture(GL_TEXTURE0 + texture_index);
+        glBindTexture(GL_TEXTURE_2D, texture->handle);
     }
-    glActiveTexture(GL_TEXTURE0 + texture_index);
-    glBindTexture(GL_TEXTURE_2D, texture->handle);
 }
 
 void
 Shader::SetTextureIndex(Sid name, int index) const
 {
+    ASSERT(bound, "shader should be bound");
     const int* cached_loc = location_cache.Find(name);
-    if (!cached_loc) {
-        return;
+    if (cached_loc) {
+        glUniform1i(*cached_loc, index);
+    } else {
+        UNREACHABLE;
     }
-    glUniform1i(*cached_loc, index);
 }
 

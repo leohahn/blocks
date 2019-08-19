@@ -1,6 +1,6 @@
 {
     "asset" : {
-        "generator" : "Khronos glTF Blender I/O v0.9.33",
+        "generator" : "Khronos glTF Blender I/O v0.9.36",
         "version" : "2.0"
     },
     "scene" : 0,
@@ -57,9 +57,10 @@
                     "attributes" : {
                         "POSITION" : 0,
                         "NORMAL" : 1,
-                        "TEXCOORD_0" : 2
+                        "TANGENT" : 2,
+                        "TEXCOORD_0" : 3
                     },
-                    "indices" : 3,
+                    "indices" : 4,
                     "material" : 0
                 }
             ]
@@ -97,7 +98,7 @@
         {
             "bufferView" : 0,
             "componentType" : 5126,
-            "count" : 3283,
+            "count" : 5627,
             "max" : [
                 4.8684773445129395,
                 3.170487403869629,
@@ -113,17 +114,23 @@
         {
             "bufferView" : 1,
             "componentType" : 5126,
-            "count" : 3283,
+            "count" : 5627,
             "type" : "VEC3"
         },
         {
             "bufferView" : 2,
             "componentType" : 5126,
-            "count" : 3283,
-            "type" : "VEC2"
+            "count" : 5627,
+            "type" : "VEC4"
         },
         {
             "bufferView" : 3,
+            "componentType" : 5126,
+            "count" : 5627,
+            "type" : "VEC2"
+        },
+        {
+            "bufferView" : 4,
             "componentType" : 5123,
             "count" : 5997,
             "type" : "SCALAR"
@@ -132,28 +139,33 @@
     "bufferViews" : [
         {
             "buffer" : 0,
-            "byteLength" : 39396,
+            "byteLength" : 67524,
             "byteOffset" : 0
         },
         {
             "buffer" : 0,
-            "byteLength" : 39396,
-            "byteOffset" : 39396
+            "byteLength" : 67524,
+            "byteOffset" : 67524
         },
         {
             "buffer" : 0,
-            "byteLength" : 26264,
-            "byteOffset" : 78792
+            "byteLength" : 90032,
+            "byteOffset" : 135048
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 45016,
+            "byteOffset" : 225080
         },
         {
             "buffer" : 0,
             "byteLength" : 11994,
-            "byteOffset" : 105056
+            "byteOffset" : 270096
         }
     ],
     "buffers" : [
         {
-            "byteLength" : 117052,
+            "byteLength" : 282092,
             "uri" : "Alpine_chalet.bin"
         }
     ]

@@ -15,6 +15,7 @@ struct Shader
     String name;
     uint32_t program;
     RobinHashMap<Sid, int> location_cache;
+    mutable bool bound;
 
 public:
     Shader()
@@ -24,6 +25,7 @@ public:
         : name(allocator)
         , program(0)
         , location_cache(allocator, 16)
+        , bound(false)
     {}
 
     ~Shader();

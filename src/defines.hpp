@@ -42,6 +42,10 @@
 #error "MAX3 is already defined"
 #endif
 
+#ifndef ABS
+#define ABS(x) ((x) < 0) ? -(x) : (x)
+#endif
+
 #ifdef __GNUC__
 #define COMPILER_GCC 1
 #endif
