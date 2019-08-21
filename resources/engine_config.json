@@ -1,0 +1,5 @@
+{
+    "windows": {
+        "game_dll": "../build/Debug/game.dll"
+    }
+}

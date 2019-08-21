@@ -11,6 +11,7 @@ public:
 
     virtual ~Application() = default;
     virtual void Update() = 0;
+    virtual void OnShutdown() = 0;
 
 protected:
     Allocator* _allocator;

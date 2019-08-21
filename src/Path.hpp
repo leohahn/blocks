@@ -33,7 +33,9 @@ public:
         , cap(0)
         , len(0)
     {
-        Push(path);
+        if (!path.IsEmpty()) {
+            Push(path);
+        }
     }
     
     Path(const Path& other_path) = delete;

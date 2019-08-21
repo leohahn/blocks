@@ -1,5 +1,6 @@
 #include "GameInstance.hpp"
 #include "Defines.hpp"
+#include "EngineInterface.hpp"
 
 #include <Windows.h>
 
@@ -40,8 +41,10 @@ public:
             return false;
         }
 
+        EngineInterfaceImpl engine_interface;
+
         initialize_plugin(&_init_data);
-        _application = _init_data.app_factory(_allocator);
+        _application = _init_data.app_factory(_allocator, &engine_interface);
         ASSERT(_application, "Application should have been created");
 
         _application->Update();

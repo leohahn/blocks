@@ -376,7 +376,7 @@ main(int argc, char** argv)
     Graphics::LowLevelApi::SetClearColor(Vec4(0.2f, 0.2f, 0.2f, 1.0f));
 
     // Now, load a game instance
-    GameInstance* game_instance = GameInstance::Create(&program.main_allocator, "game.dll");
+    GameInstance* game_instance = GameInstance::Create(&program.main_allocator, program.game_dll_path.data);
     if (!game_instance->Load()) {
         LOG_ERROR("Failed to load game library");
         UNREACHABLE;
@@ -484,6 +484,8 @@ main(int argc, char** argv)
     LOG_INFO("Deallocating main resources");
     LOG_DEBUG("Total memory used by heap allocator: %s",
               Utils::GetPrettySize(program.temp_allocator.GetBytesWaterMark()));
+
+    game_instance->GetApplication()->OnShutdown();
 
     input_system.Destroy();
     TerminateProgram(&program);

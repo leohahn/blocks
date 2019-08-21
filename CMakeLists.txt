@@ -37,6 +37,8 @@ add_executable(blocks
     src/Program.hpp
     src/Program.cpp
     src/Application.hpp
+    src/EngineInterface.hpp
+    src/EngineInterface.cpp
     src/InputSystem.hpp
     src/InputSystem.cpp
     src/GameInstance.hpp
@@ -165,9 +167,9 @@ target_include_directories(game PRIVATE src)
 
 target_compile_definitions(game PRIVATE BLOCKS_COMPILING_DLL)
 
-add_custom_command(
-    TARGET game 
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-        $<TARGET_FILE:game>
-        $<TARGET_FILE_DIR:blocks>/$<TARGET_FILE_NAME:game>)
+# add_custom_command(
+#     TARGET game 
+#     POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy
+#         $<TARGET_FILE:game>
+#         $<TARGET_FILE_DIR:blocks>/$<TARGET_FILE_NAME:game>)

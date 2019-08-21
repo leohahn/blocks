@@ -5,6 +5,7 @@
 #include "glad/glad.h"
 #include "Sid.hpp"
 #include "Renderer/LowLevel.hpp"
+#include "Json.hpp"
 
 void
 InitProgram(Program* program, size_t memory_amount, int32_t window_width, int32_t window_height)
@@ -15,6 +16,48 @@ InitProgram(Program* program, size_t memory_amount, int32_t window_width, int32_
     program->main_allocator = LinearAllocator("main", program->memory);
     program->temp_allocator = MallocAllocator("temporary_allocator");
 
+    // ===============================================================
+    // First, load the engine configuration file
+    //
+    Path config_path = FileSystem::GetResourcesPath(&program->temp_allocator);
+    config_path.Push("engine_config.json");
+
+    size_t file_size;
+    uint8_t* file_data = FileSystem::LoadFileToMemory(&program->temp_allocator, config_path, &file_size);
+
+    Json::Document config_doc(&program->temp_allocator);
+    config_doc.Parse(file_data, file_size);
+
+    if (config_doc.HasParseErrors() || !config_doc.root_val.IsObject()) {
+        LOG_ERROR("Failed to parse configuration file: %s", config_doc.GetErrorStr());
+        ASSERT(false, "should not enter here");
+    }
+
+    program->temp_allocator.Deallocate(file_data);
+
+    const Json::Val* os_obj = nullptr;
+#if OS_WINDOWS
+    os_obj = config_doc.root_val.AsObject()->Find(String(&program->temp_allocator, "windows"));
+#else
+#error "not working yet"
+#endif
+
+    if (!os_obj || !os_obj->IsObject()) {
+        LOG_ERROR("Os configuration was not found");
+        ASSERT(false, "should not enter here");
+    }
+
+    const RobinHashMap<String, Json::Val>* config_obj = os_obj->AsObject();
+    const Json::Val* game_dll_val = config_obj->Find(String(&program->temp_allocator, "game_dll"));
+    if (!game_dll_val || !game_dll_val->IsString()) {
+        LOG_ERROR("Failed to parse configuration file: No game dll");
+        ASSERT(false, "should not enter here");
+    }
+
+    program->game_dll_path = FileSystem::GetResourcesPath(&program->main_allocator);
+    program->game_dll_path.Push(game_dll_val->AsString()->View());
+
+    // ===============================================================
     WindowOptions window_opts;
     window_opts.height = window_height;
     window_opts.width = window_width;

@@ -112,7 +112,9 @@ struct ResourceManager;
 extern ResourceManager* g_debug_resource_manager;
 #endif
 
-typedef Application* (*AppFactoryFunction)(Allocator* allocator);
+class EngineInterface;
+
+typedef Application* (*AppFactoryFunction)(Allocator*, EngineInterface*);
 
 struct InitData
 {

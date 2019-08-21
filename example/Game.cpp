@@ -1,24 +1,32 @@
 #include "Defines.hpp"
+#include "EngineInterface.hpp"
 
 class MyApplication : Application
 {
 public:
-    MyApplication(Allocator* allocator)
+    MyApplication(Allocator* allocator, EngineInterface* engine)
         : Application(allocator)
+        , _engine(engine)
     {}
 
     void Update() override
     {
-        printf("OnUpdate!!!\n");
+    }
+
+    void OnShutdown() override
+    {
+        printf("OnShutdown!\n");
     }
 
 private:
+    EngineInterface* _engine;
 };
 
 static Application*
-CreateApplication(Allocator* allocator)
+CreateApplication(Allocator* allocator, EngineInterface* engine)
 {
-    return (Application*)allocator->New<MyApplication>(allocator);
+    engine->Hello();
+    return (Application*)allocator->New<MyApplication>(allocator, engine);
 }
 
 extern "C"

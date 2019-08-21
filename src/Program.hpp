@@ -25,6 +25,7 @@ struct Program
     Window* window;
     LinearAllocator resource_manager_allocator;
     ResourceManager* resource_manager;
+    Path game_dll_path;
 };
 
 void InitProgram(Program* program, size_t memory_amount, int32_t window_width, int32_t window_height);
