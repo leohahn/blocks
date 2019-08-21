@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Logger.hpp"
+#include "Allocator.hpp"
+#include "Application.hpp"
 
 #define KILOBYTES(x) (x) * 1024
 #define MEGABYTES(x) KILOBYTES(x) * 1024
@@ -72,6 +74,16 @@
 #define ARCH_X86 1
 #endif
 
+#if OS_WINDOWS
+#ifdef BLOCKS_COMPILING_DLL
+#define BLOCKS_API __declspec(dllexport)
+#else
+#define BLOCKS_API __declspec(dllimport)
+#endif
+#else
+#define BLOCKS_API
+#endif
+
 #define DISABLE_OBJECT_COPY(Type) \
     Type& operator=(const Type& t) = delete; \
     Type(const Type& t) = delete
@@ -99,3 +111,13 @@
 struct ResourceManager;
 extern ResourceManager* g_debug_resource_manager;
 #endif
+
+typedef Application* (*AppFactoryFunction)(Allocator* allocator);
+
+struct InitData
+{
+    AppFactoryFunction app_factory;
+};
+
+typedef void(*InitializePluginFunction)(InitData* init_data);
+

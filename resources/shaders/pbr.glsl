@@ -140,8 +140,7 @@ void main()
         vec3 h = normalize(view_dir + light_dir);
 
         float distance = length(u_light_position - fs_in.world_pos);
-        //float attenuation = 1 / (distance * distance);
-        float attenuation = 1;
+        float attenuation = 1 / (distance * distance);
         vec3 radiance = u_light_color * attenuation;
 
         vec3 F = FresnelSchlick(max(dot(h, view_dir), 0.0), F0);

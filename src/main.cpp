@@ -20,12 +20,98 @@
 #include "Json.hpp"
 #include "Renderer/Buffer.hpp"
 #include "Renderer/LowLevel.hpp"
+#include "Application.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#define SCREEN_WIDTH 800
-#define SCREEN_HEIGHT 600
+#define SCREEN_WIDTH 1024
+#define SCREEN_HEIGHT 768
+
+// HACK: remove windows.h from here
+#include <Windows.h>
+
+class GameInstance
+{
+public:
+    GameInstance(Allocator* allocator, const char* lib_name)
+        : _allocator(allocator)
+        , _lib_name(lib_name)
+        , _lib_handle(nullptr)
+        , _application(nullptr)
+    {
+    }
+
+    GameInstance(const GameInstance&) = delete;
+    GameInstance& operator=(const GameInstance&) = delete;
+
+    GameInstance(GameInstance&& other)
+        : GameInstance(nullptr, nullptr)
+    {
+        *this = std::move(other);
+    }
+
+    GameInstance& operator=(GameInstance&& other)
+    {
+        if (_lib_handle) {
+            FreeLibrary(_lib_handle);
+        }
+        _allocator->Deallocate(_application);
+        _allocator = other._allocator;
+        _lib_name = other._lib_name;
+        _lib_handle = other._lib_handle;
+        _application = other._application;
+        other._allocator = nullptr;
+        other._lib_name = nullptr;
+        other._lib_handle = nullptr;
+        other._application = nullptr;
+        return *this;
+    }
+
+    ~GameInstance()
+    {
+        if (_lib_handle) {
+            _allocator->Delete(_application);
+            FreeLibrary(_lib_handle);
+        } else {
+            ASSERT(_application == nullptr, "Application should not exist");
+        }
+    }
+
+    bool Load()
+    {
+        ASSERT(_lib_handle == nullptr, "Lib is being initialized two times!");
+
+        _lib_handle = LoadLibraryA(_lib_name);
+        if (!_lib_handle) {
+            LOG_ERROR("Failed to load game library %s", _lib_name);
+            return false;
+        }
+
+        auto initialize_plugin = (InitializePluginFunction)GetProcAddress(_lib_handle, "InitializePlugin");
+        if (!initialize_plugin) {
+            LOG_ERROR("Loaded library does not export InitializePlugin function");
+            return false;
+        }
+
+        initialize_plugin(&_init_data);
+        _application = _init_data.app_factory(_allocator);
+        ASSERT(_application, "Application should have been created");
+
+        _application->Update();
+
+        return true;
+    }
+
+    Application* GetApplication() const { return _application; }
+
+private:
+    Allocator* _allocator;
+    const char* _lib_name;
+    HMODULE _lib_handle;
+    Application* _application;
+    InitData _init_data;
+};
 
 static TriangleMesh
 SetupPlane(Allocator* allocator, Allocator* scratch_allocator, Material* material)
@@ -251,12 +337,6 @@ OnApplicationQuit(SDL_Event ev, void* user_data)
     *running = false;
 }
 
-//
-// What needs to be done
-// TODO: use row major matrices instead of the current column major,
-// since they are friendlier to read in code.
-//
-
 //ResourceManager* g_debug_resource_manager = nullptr;
 
 int
@@ -376,6 +456,13 @@ main(int argc, char** argv)
     LOG_DEBUG("Starting main loop");
     Graphics::LowLevelApi::SetClearColor(Vec4(0.2f, 0.2f, 0.2f, 1.0f));
 
+    // Now, load a game instance
+    GameInstance game_instance(&program.main_allocator, "game.dll");
+    if (!game_instance.Load()) {
+        LOG_ERROR("Failed to load game library");
+        UNREACHABLE;
+    }
+
     while (program.running) {
         input_system.Update();
 
@@ -417,6 +504,11 @@ main(int argc, char** argv)
         }
 
         //
+        // Update the game instance
+        //
+        game_instance.GetApplication()->Update();
+
+        //
         // Start rendering part of the main loop
         //
         Graphics::LowLevelApi::ClearBuffers();
@@ -441,10 +533,6 @@ main(int argc, char** argv)
             Quaternion::Rotation(Math::DegreesToRadians(90), Vec3(-1, 0, 0));
         float floor_scale = 50.0f;
         RenderMesh(floor_mesh, *basic_shader, floor_position, floor_orientation, floor_scale);
-
-        //for (size_t i = 1; i < cottage.meshes.len; ++i) {
-            //RenderMesh(*cottage.meshes[i], *basic_shader, Vec3::Zero(), Quaternion::Identity(), 1.0f);
-        //}
 
         Vec3 nanosuit_position(-10, 0, 0);
         Quaternion nanosuit_orientation = Quaternion::Identity();

@@ -36,6 +36,7 @@ add_executable(blocks
     # Core
     src/Program.hpp
     src/Program.cpp
+    src/Application.hpp
     src/InputSystem.hpp
     src/InputSystem.cpp
     src/Camera.hpp
@@ -151,3 +152,20 @@ endif()
 target_link_libraries(blocks
   PUBLIC
     CONAN_PKG::sdl2)
+
+#
+# Add game dll for testing
+#
+add_library(game SHARED
+    example/Game.cpp)
+
+target_include_directories(game PRIVATE src)
+
+target_compile_definitions(game PRIVATE BLOCKS_COMPILING_DLL)
+
+add_custom_command(
+    TARGET game 
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        $<TARGET_FILE:game>
+        $<TARGET_FILE_DIR:blocks>/$<TARGET_FILE_NAME:game>)
