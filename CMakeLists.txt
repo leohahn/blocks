@@ -39,6 +39,7 @@ add_executable(blocks
     src/Application.hpp
     src/InputSystem.hpp
     src/InputSystem.cpp
+    src/GameInstance.hpp
     src/Camera.hpp
     src/Camera.cpp
     src/Shader.hpp
@@ -123,6 +124,7 @@ elseif(WIN32)
 endif()
 
 if(WIN32)
+    target_sources(blocks PRIVATE src/WindowsGameInstance.cpp)
     target_compile_options(blocks
       PRIVATE
         /EHsc-
