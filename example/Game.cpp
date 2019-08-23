@@ -1,5 +1,4 @@
-#include "Defines.hpp"
-#include "EngineInterface.hpp"
+#include <Han/Han.hpp>
 
 class MyApplication : Application
 {
@@ -11,6 +10,7 @@ public:
 
     void Update() override
     {
+
     }
 
     void OnShutdown() override
