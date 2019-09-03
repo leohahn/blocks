@@ -11,9 +11,9 @@
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 #ifdef NDEBUG
-#define BLOCKS_PRODUCTION 1
+#define HAN_PRODUCTION 1
 #else
-#define BLOCKS_DEBUG 1
+#define HAN_DEBUG 1
 #endif
 
 #ifndef BIT
@@ -75,13 +75,13 @@
 #endif
 
 #if OS_WINDOWS
-#ifdef BLOCKS_COMPILING_DLL
-#define BLOCKS_API __declspec(dllexport)
+#ifdef HAN_COMPILING_DLL
+#define HAN_API __declspec(dllexport)
 #else
-#define BLOCKS_API __declspec(dllimport)
+#define HAN_API __declspec(dllimport)
 #endif
 #else
-#define BLOCKS_API
+#define HAN_API
 #endif
 
 #define DISABLE_OBJECT_COPY(Type) \

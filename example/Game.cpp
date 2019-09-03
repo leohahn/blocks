@@ -31,7 +31,7 @@ CreateApplication(Allocator* allocator, EngineInterface* engine)
 
 extern "C"
 {
-    BLOCKS_API void
+    HAN_API void
     InitializePlugin(InitData* init_data)
     {
         ASSERT(init_data, "Init data should not be null");

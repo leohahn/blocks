@@ -28,6 +28,7 @@ struct GltfMaterial
     TextureRef base_color;
     TextureRef metallic_roughness;
     TextureRef normal;
+    TextureRef occlusion;
 };
 
 struct GltfTexture
@@ -638,6 +639,38 @@ TryGetAccessors(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_fi
     return true;
 }
 
+static bool
+TryGetTextureRef(Allocator* alloc, const Json::Val* raw_texture_ref, TextureRef* out_texture_ref)
+{
+    assert(alloc);
+    assert(out_texture_ref);
+
+    if (!raw_texture_ref) {
+        *out_texture_ref = TextureRef();
+        return true;
+    }
+
+    if (!raw_texture_ref->IsObject()) {
+        return false;
+    }
+
+    const RobinHashMap<String, Json::Val>* texture_ref = raw_texture_ref->AsObject();
+
+    const Json::Val* index = texture_ref->Find(String(alloc, "index"));
+    if (!index || !index->IsInteger()) {
+        return false;
+    }
+
+    const Json::Val* tex_coord = texture_ref->Find(String(alloc, "texCoord"));
+    if (!tex_coord || !tex_coord->IsInteger()) {
+        return false;
+    }
+
+    *out_texture_ref = TextureRef();
+    out_texture_ref->index = (int32_t)*index->AsInt64();
+    out_texture_ref->tex_coord = (int32_t)*tex_coord->AsInt64();
+    return true;
+}
 
 static bool
 TryGetMaterial(Allocator* alloc, const RobinHashMap<String, Json::Val>* raw_material, GltfMaterial* out_material)
@@ -659,10 +692,7 @@ TryGetMaterial(Allocator* alloc, const RobinHashMap<String, Json::Val>* raw_mate
     }
 
     const Json::Val* normal_texture = raw_material->Find(String(alloc, "normalTexture"));
-    if (!normal_texture || !normal_texture->IsObject()) {
-        LOG_ERROR("Was expecting normalTexture");
-        return false;
-    }
+    const Json::Val* occlusion_texture = raw_material->Find(String(alloc, "occlusionTexture"));
     
     const Json::Val* pbr_params = raw_material->Find(String(alloc, "pbrMetallicRoughness"));
     if (!pbr_params || !pbr_params->AsObject()) {
@@ -671,62 +701,32 @@ TryGetMaterial(Allocator* alloc, const RobinHashMap<String, Json::Val>* raw_mate
     }
 
     const Json::Val* base_color_texture = pbr_params->AsObject()->Find(String(alloc, "baseColorTexture"));
-    if (!base_color_texture || !base_color_texture->IsObject()) {
-        LOG_ERROR("Was expecting baseColorTexture");
-        return false;
-    }
-
     const Json::Val* metallic_roughness_texture = pbr_params->AsObject()->Find(String(alloc, "metallicRoughnessTexture"));
-    if (!metallic_roughness_texture || !metallic_roughness_texture->IsObject()) {
-        LOG_ERROR("Was expecting metallicRoughnessTexture");
-        return false;
-    }
-
-    const Json::Val* normal_texture_index = normal_texture->AsObject()->Find(String(alloc, "index"));
-    if (!normal_texture_index || !normal_texture_index->IsInteger()) {
-        LOG_ERROR("Was expecting normal texture index");
-        return false;
-    }
-
-    const Json::Val* normal_texture_tex_coord = normal_texture->AsObject()->Find(String(alloc, "texCoord"));
-    if (!normal_texture_tex_coord || !normal_texture_tex_coord->IsInteger()) {
-        LOG_ERROR("Was expecting normal texture texCoord");
-        return false;
-    }
-
-    const Json::Val* base_color_texture_index = base_color_texture->AsObject()->Find(String(alloc, "index"));
-    if (!base_color_texture_index || !base_color_texture_index->IsInteger()) {
-        LOG_ERROR("Was expecting base texture index");
-        return false;
-    }
-
-    const Json::Val* base_color_texture_tex_coord = base_color_texture->AsObject()->Find(String(alloc, "texCoord"));
-    if (!base_color_texture_tex_coord || !base_color_texture_tex_coord->IsInteger()) {
-        LOG_ERROR("Was expecting base texture texCoord");
-        return false;
-    }
-
-    const Json::Val* metallic_roughness_texture_index = metallic_roughness_texture->AsObject()->Find(String(alloc, "index"));
-    if (!metallic_roughness_texture_index || !metallic_roughness_texture_index->IsInteger()) {
-        LOG_ERROR("Was expecting metallic roughness texture index");
-        return false;
-    }
-
-    const Json::Val* metallic_roughness_texture_tex_coord = metallic_roughness_texture->AsObject()->Find(String(alloc, "texCoord"));
-    if (!metallic_roughness_texture_tex_coord || !metallic_roughness_texture_tex_coord->IsInteger()) {
-        LOG_ERROR("Was expecting metallic roughness texture texCoord");
-        return false;
-    }
 
     GltfMaterial out_mat;
     out_mat.name = String(alloc, material_name->AsString()->View());
     out_mat.double_sided = *double_sided_val->AsBool();
-    out_mat.base_color.index = (int32_t)*base_color_texture_index->AsInt64();
-    out_mat.base_color.tex_coord = (int32_t)*base_color_texture_tex_coord->AsInt64();
-    out_mat.metallic_roughness.index = (int32_t)*metallic_roughness_texture_index->AsInt64();
-    out_mat.metallic_roughness.tex_coord = (int32_t)*metallic_roughness_texture_tex_coord->AsInt64();
-    out_mat.normal.index = (int32_t)*normal_texture_index->AsInt64();
-    out_mat.normal.tex_coord = (int32_t)*normal_texture_tex_coord->AsInt64();
+
+    if (!TryGetTextureRef(alloc, base_color_texture, &out_mat.base_color)) {
+        LOG_ERROR("Failed to get base color texture reference from material");
+        return false;
+    }
+
+    if (!TryGetTextureRef(alloc, metallic_roughness_texture, &out_mat.metallic_roughness)) {
+        LOG_ERROR("Failed to get metallic roughness texture reference from material");
+        return false;
+    }
+
+    if (!TryGetTextureRef(alloc, normal_texture, &out_mat.normal)) {
+        LOG_ERROR("Failed to get normal texture reference from material");
+        return false;
+    }
+
+    if (!TryGetTextureRef(alloc, occlusion_texture, &out_mat.occlusion)) {
+        LOG_ERROR("Failed to get occlusion texture reference from material");
+        return false;
+    }
+
     *out_material = std::move(out_mat);
     return true;
 }

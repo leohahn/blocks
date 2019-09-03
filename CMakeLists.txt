@@ -58,11 +58,11 @@ add_library(Han
     include/Han/Collections/String.hpp
     include/Han/Collections/StringView.hpp
     include/Han/Collections/RobinHashMap.hpp
+    include/Han/EngineInterface.hpp
 
     # Core
     src/Engine/Program.hpp
     src/Engine/Program.cpp
-    src/Engine/EngineInterface.hpp
     src/Engine/EngineInterface.cpp
     src/Engine/InputSystem.hpp
     src/Engine/InputSystem.cpp
