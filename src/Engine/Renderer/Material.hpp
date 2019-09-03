@@ -19,7 +19,7 @@ class MaterialValue
 public:
     enum class Kind
     {
-        Vec3, Vec4, Mat4, Texture
+        Vec3, Vec4, Mat4, Texture, Float
     };
 
     MaterialValue(Vec3 vec3)
@@ -37,6 +37,11 @@ public:
         , _mat4(mat4)
     {}
 
+    MaterialValue(float f)
+        : _kind(Kind::Float)
+        , _float(f)
+    {}
+
     MaterialValue(Texture* tex)
         : _kind(Kind::Texture)
     {
@@ -49,6 +54,7 @@ public:
     Vec3 GetVec3() const { return _vec3; }
     Vec4 GetVec4() const { return _vec4; }
     Mat4 GetMat4() const { return _mat4; }
+    float GetFloat() const { return _float; }
     Texture* GetTexture() const { return _texture.ptr; }
     int GetTextureIndex() const { return _texture.shader_index; }
 private:
@@ -58,6 +64,7 @@ private:
         Vec3 _vec3;
         Vec4 _vec4;
         Mat4 _mat4;
+        float _float;
         struct
         {
             Texture* ptr;
@@ -115,8 +122,11 @@ public:
                 case MaterialValue::Kind::Texture:
                     shader->SetTexture2d(pair.key, pair.val.GetTexture(), pair.val.GetTextureIndex());
                     break;
+                case MaterialValue::Kind::Float:
+                    shader->SetFloat(pair.key, pair.val.GetFloat());
+                    break;
                 default:
-                    ASSERT(false, "unrecognized kind");
+                    UNREACHABLE;
                     break;
             }
         }

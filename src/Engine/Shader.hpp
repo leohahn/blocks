@@ -40,6 +40,7 @@ public:
     void SetVector(Sid name, const Vec3& vec) const;
     void SetTexture2d(Sid name, const Texture* texture, int texture_index) const;
     void SetTextureIndex(Sid name, int index) const;
+    void SetFloat(Sid name, float val) const;
 
     DISABLE_OBJECT_COPY(Shader);
 

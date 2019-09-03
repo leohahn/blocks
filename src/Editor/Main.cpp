@@ -308,9 +308,12 @@ main(int argc, char** argv)
     pbr_shader->AddUniform("u_albedo_texture");
     pbr_shader->AddUniform("u_normal_texture");
     pbr_shader->AddUniform("u_metallic_roughness_texture");
+    pbr_shader->AddUniform("u_occlusion_texture");
     pbr_shader->AddUniform("u_camera_position");
     pbr_shader->AddUniform("u_light_position");
     pbr_shader->AddUniform("u_light_color");
+    pbr_shader->AddUniform("u_metallic_factor");
+    pbr_shader->AddUniform("u_roughness_factor");
 
     //
     // Create the input system

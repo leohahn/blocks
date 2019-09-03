@@ -60,6 +60,9 @@ out vec4 out_color;
 uniform sampler2D u_albedo_texture;
 uniform sampler2D u_normal_texture;
 uniform sampler2D u_metallic_roughness_texture;
+uniform sampler2D u_occlusion_texture;
+uniform float u_metallic_factor = 1.0;
+uniform float u_roughness_factor = 1.0;
 
 uniform vec3 u_camera_position;
 uniform vec3 u_light_position;
@@ -127,10 +130,11 @@ void main()
 #endif
 
     vec3 albedo = texture(u_albedo_texture, fs_in.tex_coords).rgb;
+    float ambient_occlusion = texture(u_occlusion_texture, fs_in.tex_coords).r;
     // Get the metalness and roughness component from the packed texture value.
     vec4 metallic_roughness = texture(u_metallic_roughness_texture, fs_in.tex_coords);
-    float metalness = metallic_roughness.b;
-    float roughness = metallic_roughness.g;
+    float metalness = metallic_roughness.b * u_metallic_factor;
+    float roughness = metallic_roughness.g * u_roughness_factor;
 
     vec3 F0 = mix(vec3(0.04), albedo, metalness);
 
@@ -161,7 +165,7 @@ void main()
         Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     }
 
-    vec3 ambient = vec3(0.03) * albedo;
+    vec3 ambient = vec3(0.03) * albedo * ambient_occlusion;
     vec3 color = ambient + Lo;
 
     // Apply gamma correction

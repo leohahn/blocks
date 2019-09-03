@@ -107,3 +107,12 @@ Shader::SetTextureIndex(Sid name, int index) const
     }
 }
 
+void
+Shader::SetFloat(Sid name, float val) const
+{
+    ASSERT(bound, "shader should be bound");
+    const int* cached_loc = location_cache.Find(name);
+    if (cached_loc) {
+        glUniform1f(*cached_loc, val);
+    }
+}

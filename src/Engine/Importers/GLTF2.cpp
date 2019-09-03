@@ -19,6 +19,8 @@ struct TextureRef
 {
     int32_t index = -1;
     int32_t tex_coord = -1;
+
+    bool IsValid() const { return index > -1; }
 };
 
 struct GltfMaterial
@@ -26,7 +28,10 @@ struct GltfMaterial
     String name;
     bool double_sided = false;
     TextureRef base_color;
+    Vec4 base_color_factor = Vec4(1.0f);
     TextureRef metallic_roughness;
+    float metallic_factor = 1.0f;
+    float roughness_factor = 1.0f;
     TextureRef normal;
     TextureRef occlusion;
 };
@@ -43,19 +48,14 @@ struct GltfImage
     String mime_type;
     String uri;
 
-    Texture* LoadAsNormal(ResourceManager* rm) const
-    { 
+    Texture* LoadInLinearSpace(ResourceManager* rm) const
+    {
         return rm->LoadTexture(SID(uri.data), LoadTextureFlags_LinearSpace);
     }
 
     Texture* LoadAsAlbedo(ResourceManager* rm) const
     {
         return rm->LoadTexture(SID(uri.data));
-    }
-
-    Texture* LoadAsRoughness(ResourceManager* rm) const
-    {
-        return rm->LoadTexture(SID(uri.data), LoadTextureFlags_LinearSpace);
     }
 };
 
@@ -303,6 +303,38 @@ TryGetVec3(const Json::Val* vec, Vec3* out)
     }
 
     *out = Vec3((float)x, (float)y, (float)z);
+    return true;
+}
+
+static bool 
+TryGetVec4(const Json::Val* vec, Vec4* out)
+{
+    assert(out);
+    const Array<Json::Val>* translation_array = vec->AsArray();
+    if (!translation_array) {
+        return false;
+    }
+    
+    if (translation_array->len != 4) {
+        return false;
+    }
+
+    double x, y, z, w;
+
+    if (!(*translation_array)[0].TryConvertNumberToDouble(&x)) {
+        return false;
+    }
+    if (!(*translation_array)[1].TryConvertNumberToDouble(&y)) {
+        return false;
+    }
+    if (!(*translation_array)[2].TryConvertNumberToDouble(&z)) {
+        return false;
+    }
+    if (!(*translation_array)[3].TryConvertNumberToDouble(&w)) {
+        return false;
+    }
+
+    *out = Vec4((float)x, (float)y, (float)z, (float)w);
     return true;
 }
 
@@ -702,6 +734,9 @@ TryGetMaterial(Allocator* alloc, const RobinHashMap<String, Json::Val>* raw_mate
 
     const Json::Val* base_color_texture = pbr_params->AsObject()->Find(String(alloc, "baseColorTexture"));
     const Json::Val* metallic_roughness_texture = pbr_params->AsObject()->Find(String(alloc, "metallicRoughnessTexture"));
+    const Json::Val* base_color_factor = pbr_params->AsObject()->Find(String(alloc, "baseColorFactor"));
+    const Json::Val* metallic_factor = pbr_params->AsObject()->Find(String(alloc, "metallicFactor"));
+    const Json::Val* roughness_factor = pbr_params->AsObject()->Find(String(alloc, "roughnessFactor"));
 
     GltfMaterial out_mat;
     out_mat.name = String(alloc, material_name->AsString()->View());
@@ -710,6 +745,27 @@ TryGetMaterial(Allocator* alloc, const RobinHashMap<String, Json::Val>* raw_mate
     if (!TryGetTextureRef(alloc, base_color_texture, &out_mat.base_color)) {
         LOG_ERROR("Failed to get base color texture reference from material");
         return false;
+    }
+
+    if (base_color_factor) {
+        if (!TryGetVec4(base_color_factor, &out_mat.base_color_factor)) {
+            LOG_ERROR("Failed to get base color factor from material");
+            return false;
+        }
+    }
+
+    if (metallic_factor) {
+        if (!metallic_factor->TryConvertNumberToFloat(&out_mat.metallic_factor)) {
+            LOG_ERROR("Failed to get metallic factor");
+            return false;
+        }
+    }
+
+    if (roughness_factor) {
+        if (!roughness_factor->TryConvertNumberToFloat(&out_mat.roughness_factor)) {
+            LOG_ERROR("Failed to get roughness factor");
+            return false;
+        }
     }
 
     if (!TryGetTextureRef(alloc, metallic_roughness_texture, &out_mat.metallic_roughness)) {
@@ -1138,24 +1194,33 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         material->shader->Bind();
         ASSERT(material->shader, "shader is not loaded!");
 
-        if (gltf_material.base_color.index > -1) {
+        if (gltf_material.base_color.IsValid()) {
             const GltfTexture& gltf_base_image_texture = textures[gltf_material.base_color.index];
             const GltfImage& gltf_base_image = images[gltf_base_image_texture.source];
             Texture* texture = gltf_base_image.LoadAsAlbedo(resource_manager);
             material->AddValue(SID("u_albedo_texture"), texture);
         }
 
-        if (gltf_material.metallic_roughness.index > -1) {
+        if (gltf_material.metallic_roughness.IsValid()) {
             const GltfImage& gltf_base_image = images[gltf_material.metallic_roughness.index];
-            Texture* texture = gltf_base_image.LoadAsRoughness(resource_manager);
+            Texture* texture = gltf_base_image.LoadInLinearSpace(resource_manager);
             material->AddValue(SID("u_metallic_roughness_texture"), texture);
         }
 
-        if (gltf_material.normal.index > -1) {
+        if (gltf_material.normal.IsValid()) {
             const GltfImage& gltf_base_image = images[gltf_material.normal.index];
-            Texture* texture = gltf_base_image.LoadAsNormal(resource_manager);
+            Texture* texture = gltf_base_image.LoadInLinearSpace(resource_manager);
             material->AddValue(SID("u_normal_texture"), texture);
         }
+
+        if (gltf_material.occlusion.IsValid()) {
+            const GltfImage& gltf_base_image = images[gltf_material.normal.index];
+            Texture* texture = gltf_base_image.LoadInLinearSpace(resource_manager);
+            material->AddValue(SID("u_occlusion_texture"), texture);
+        }
+
+        material->AddValue(SID("u_metallic_factor"), gltf_material.metallic_factor);
+        material->AddValue(SID("u_roughness_factor"), gltf_material.roughness_factor);
 
         material->shader->Unbind();
         resource_manager->materials.Add(material->name, material);
@@ -1264,40 +1329,6 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
             BufferLayoutDataType::Vec4, // tangent
             BufferLayoutDataType::Vec2, // tex coords
         }, (size_t)position_accessor.count));
-
-        Vec3* pos = (Vec3*)buffer_start;
-        Vec3* normal = (Vec3*)(pos + position_accessor.count);
-        Vec4* tangent = (Vec4*)(normal + position_accessor.count);
-        Vec2* tex_coords = (Vec2*)(tangent + position_accessor.count);
-        int num_ones = 0, num_minus_ones = 0;
-        for (size_t i = 0; i < position_accessor.count; i += 3) {
-            ASSERT(ABS(Math::Dot(*normal, tangent->xyz)) < 0.0005, "shshs");
-
-            Vec3 n1 = normal[i];
-            Vec3 n2 = normal[i+1];
-            Vec3 n3 = normal[i+2];
-
-            Vec4 t1 = tangent[i];
-            Vec4 t2 = tangent[i+1];
-            Vec4 t3 = tangent[i+2];
-
-            //ASSERT(t1.w == t2.w, "");
-            //ASSERT(t1.w == t3.w, "");
-
-            if (Math::IsAlmostEqual(tangent->w, -1.0f)) {
-                ++num_minus_ones;
-            }
-            if (Math::IsAlmostEqual(tangent->w, 1.0f)) {
-                ++num_ones;
-            }
-            ++pos;
-            ++normal;
-            ++tangent;
-            ++tex_coords;
-        }
-
-        LOG_DEBUG("Num 1: %d", num_ones);
-        LOG_DEBUG("Num -1: %d", num_minus_ones);
 
         submesh.vao = VertexArray::Create(mesh->allocator);
         submesh.vao->SetVertexBuffer(vbo);

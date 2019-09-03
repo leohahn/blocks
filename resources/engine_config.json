@@ -1,5 +1,5 @@
 {
     "windows": {
-        "game_dll": "../build/Debug/game.dll"
+        "game_dll": "../build/Debug/Game.dll"
     }
 }

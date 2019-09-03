@@ -187,6 +187,19 @@ struct Val
         }
     }
 
+    bool TryConvertNumberToFloat(float* out_val) const
+    {
+        if (type == Type::Integer) {
+            *out_val = (float)values.integer;
+            return true;
+        } else if (type == Type::Real) {
+            *out_val = (float)values.real;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     String PrettyPrint(Allocator* other_allocator = nullptr) const;
 
 private:
