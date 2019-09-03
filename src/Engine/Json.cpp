@@ -299,13 +299,9 @@ Json::Document::Parse(uint8_t* data, size_t size)
     assert(data != nullptr);
     assert(size > 0);
     
-    LOG_DEBUG("Parsing json string");
-
     const char* err_str = nullptr;
     Array<Token> tokens = Tokenize(allocator, (char*)data, size, &err_str);
     
-    LOG_DEBUG("There are %zu tokens", tokens.len);
-
     if (err_str) {
         this->parse_error = String(allocator, err_str);
         return;
