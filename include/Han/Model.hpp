@@ -18,11 +18,16 @@ struct Model
     float scale;
 
 public:
+    Model()
+        : Model(nullptr)
+    {}
+
     Model(Allocator* allocator)
         : meshes(allocator)
     {}
     
     Model(Model&& model) = default;
+    Model& operator=(Model&& model) = default;
 
     DISABLE_OBJECT_COPY(Model);
 };

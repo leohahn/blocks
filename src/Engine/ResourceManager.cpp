@@ -1,13 +1,13 @@
-#include "ResourceManager.hpp"
+#include "Han/ResourceManager.hpp"
 
 #include "Han/FileSystem.hpp"
 #include "Han/Logger.hpp"
-#include "OpenGL.hpp"
-#include "Path.hpp"
+#include "Han/OpenGL.hpp"
+#include "Han/Path.hpp"
 #include "glad/glad.h"
-#include "stb_image.h"
-#include "Utils.hpp"
+#include "Han/Utils.hpp"
 #include "Importers/GLTF2.hpp"
+#include "stb_image.h"
 
 // Keys related to loading models
 static constexpr const char* kTypeKey = "type";
@@ -299,8 +299,6 @@ ResourceManager::LoadObjModel(const ResourceFile& model_res)
     auto ibo = IndexBuffer::Create(mesh->allocator, mesh->indices.data, mesh->indices.len);
 
     model.meshes.PushBack(mesh);
-
-    LOG_DEBUG("Number of submeshes: %llu", model.meshes[0]->sub_meshes.len);
 
     // HACK
     for (auto& submesh : model.meshes[0]->sub_meshes) {

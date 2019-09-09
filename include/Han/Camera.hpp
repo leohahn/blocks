@@ -23,29 +23,29 @@ public:
     // HACK, TODO: remove this GAMBETA
     //
 #if OS_APPLE
-    void MoveLeft(float offset) { position -= right * 0.80f; }
+    void MoveLeft(float offset) { position -= right * offset; }
 #else
-    void MoveLeft(float offset) { position -= right * 0.01f; }
+    void MoveLeft(float offset) { position -= right * offset; }
 #endif
     
 #if OS_APPLE
-    void MoveRight(float offset) { position += right * 0.80f; }
+    void MoveRight(float offset) { position += right * offset; }
 #else
-    void MoveRight(float offset) { position += right * 0.01f; }
+    void MoveRight(float offset) { position += right * offset; }
 #endif
     
 #if OS_APPLE
-    void MoveForwards(float offset) { position += front.v * 0.80f; }
+    void MoveForwards(float offset) { position += front.v * offset; }
 #else
-    void MoveForwards(float offset) { position += front.v * 0.01f; }
+    void MoveForwards(float offset) { position += front.v * offset; }
 #endif
 
 #if OS_APPLE
-    void MoveBackwards(float offset) { position -= front.v * 0.80f; }
+    void MoveBackwards(float offset) { position -= front.v * offset; }
 #else
-    void MoveBackwards(float offset) { position -= front.v * 0.01f; }
+    void MoveBackwards(float offset) { position -= front.v * offset; }
 #endif
-    void Rotate(const Vec3& axis);
+    void Rotate(const Vec3& axis, float rotation_speed);
 
 private:
     void UpdateUpAndRightVectors();

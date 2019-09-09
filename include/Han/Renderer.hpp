@@ -6,7 +6,7 @@
 #include "Han/Math/Vec3.hpp"
 #include "Han/Math/Vec4.hpp"
 #include "TriangleMesh.hpp"
-#include "Shader.hpp"
+#include "Han/Shader.hpp"
 #include "Model.hpp"
 
 void RenderMesh(const TriangleMesh& mesh,

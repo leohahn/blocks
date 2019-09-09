@@ -1,11 +1,11 @@
-#include "Program.hpp"
+#include "Han/Program.hpp"
 
 #include "Han/FileSystem.hpp"
 #include "Han/Logger.hpp"
 #include "Han/Sid.hpp"
 #include "glad/glad.h"
-#include "Renderer/LowLevel.hpp"
-#include "Json.hpp"
+#include "Han/Renderer/LowLevel.hpp"
+#include "Han/Json.hpp"
 #include <SDL.h>
 
 void

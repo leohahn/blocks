@@ -129,7 +129,7 @@ public:
     void Resize(size_t desired_cap)
     {
         const float factor = 1.5f;
-        size_t new_cap = (size_t)MAX(cap * factor, desired_cap);
+        size_t new_cap = (size_t)HAN_MAX(cap * factor, desired_cap);
         char* buf = (char*)allocator->Allocate(new_cap);
         assert(buf);
 

@@ -1,7 +1,7 @@
 #pragma once
-#include "Allocator.hpp"
-#include "Collections/String.hpp"
-#include "Path.hpp"
+#include "Han/Allocator.hpp"
+#include "Han/Collections/String.hpp"
+#include "Han/Path.hpp"
 #include <stdint.h>
 
 namespace FileSystem {

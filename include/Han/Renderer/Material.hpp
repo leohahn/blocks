@@ -3,7 +3,7 @@
 #include "Han/Math/Vec3.hpp"
 #include "Han/Math/Vec4.hpp"
 #include "Han/Math/Mat4.hpp"
-#include "Texture.hpp"
+#include "Han/Texture.hpp"
 
 // This enumeration specifies how a material should be rendered.
 enum class IlluminationModel

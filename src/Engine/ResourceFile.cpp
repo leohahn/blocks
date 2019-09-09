@@ -1,8 +1,8 @@
-#include "ResourceFile.hpp"
+#include "Han/ResourceFile.hpp"
 
 #include "Han/Logger.hpp"
 #include "Han/FileSystem.hpp"
-#include "Utils.hpp"
+#include "Han/Utils.hpp"
 #include <sstream>
 #include <fstream>
 #include <array>

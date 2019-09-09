@@ -2,7 +2,6 @@
 
 #include "Han/Logger.hpp"
 #include "Han/Allocator.hpp"
-#include "Han/Application.hpp"
 
 #define KILOBYTES(x) (x) * 1024
 #define MEGABYTES(x) KILOBYTES(x) * 1024
@@ -16,37 +15,12 @@
 #define HAN_DEBUG 1
 #endif
 
-#ifndef BIT
-#define BIT(x) (1 << (x))
-#endif
-
-#ifndef MIN
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#else
-#error "MIN is already defined"
-#endif
-
-#ifndef MIN3
-#define MIN3(a, b, c) MIN(MIN(a, b), c)
-#else
-#error "MIN3 is already defined"
-#endif
-
-#ifndef MAX
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-#else
-#error "MIN is already defined"
-#endif
-
-#ifndef MAX3
-#define MAX3(a, b, c) MAX(MAX(a, b), c)
-#else
-#error "MAX3 is already defined"
-#endif
-
-#ifndef ABS
-#define ABS(x) ((x) < 0) ? -(x) : (x)
-#endif
+#define HAN_BIT(x) (1 << (x))
+#define HAN_MIN(a, b) ((a) < (b) ? (a) : (b))
+#define HAN_MIN3(a, b, c) MIN(MIN(a, b), c)
+#define HAN_MAX(a, b) ((a) > (b) ? (a) : (b))
+#define HAN_MAX3(a, b, c) MAX(MAX(a, b), c)
+#define HAN_ABS(x) ((x) < 0) ? -(x) : (x)
 
 #ifdef __GNUC__
 #define COMPILER_GCC 1
@@ -111,15 +85,3 @@
 struct ResourceManager;
 extern ResourceManager* g_debug_resource_manager;
 #endif
-
-class EngineInterface;
-
-typedef Application* (*AppFactoryFunction)(Allocator*, EngineInterface*);
-
-struct InitData
-{
-    AppFactoryFunction app_factory;
-};
-
-typedef void(*InitializePluginFunction)(InitData* init_data);
-

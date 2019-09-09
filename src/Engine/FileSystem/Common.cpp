@@ -66,9 +66,16 @@ FileSystem::GetResourcesPath(Allocator* allocator)
     getcwd(cwd_buf, path_size);
 
     Path resources_path(allocator);
+#if OS_WINDOWS
     resources_path.Push(cwd_buf);
     resources_path.Push("..");
     resources_path.Push("resources");
+#else
+    resources_path.Push(cwd_buf);
+    resources_path.Push("..");
+    resources_path.Push("..");
+    resources_path.Push("resources");
+#endif
 
     return resources_path;
 }

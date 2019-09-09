@@ -35,19 +35,9 @@ public:
             return false;
         }
 
-        auto initialize_plugin = (InitializePluginFunction)GetProcAddress(_lib_handle, "InitializePlugin");
-        if (!initialize_plugin) {
-            LOG_ERROR("Loaded library does not export InitializePlugin function");
-            return false;
-        }
-
         EngineInterfaceImpl engine_interface;
 
-        initialize_plugin(&_init_data);
-        _application = _init_data.app_factory(_allocator, &engine_interface);
         ASSERT(_application, "Application should have been created");
-
-        _application->Update();
 
         return true;
     }
@@ -59,7 +49,6 @@ private:
     const char* _lib_name;
     HMODULE _lib_handle;
     Application* _application;
-    InitData _init_data;
 };
 
 GameInstance*

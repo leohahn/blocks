@@ -5,18 +5,18 @@
 #include "Han/Core.hpp"
 #include "Han/Math/Quaternion.hpp"
 #include "Han/Sid.hpp"
-#include "Path.hpp"
-#include "Shader.hpp"
-#include "Texture.hpp"
-#include "TriangleMesh.hpp"
-#include "ResourceFile.hpp"
-#include "Model.hpp"
+#include "Han/Path.hpp"
+#include "Han/Shader.hpp"
+#include "Han/Texture.hpp"
+#include "Han/TriangleMesh.hpp"
+#include "Han/ResourceFile.hpp"
+#include "Han/Model.hpp"
 
 enum LoadTextureFlags
 {
     LoadTextureFlags_None = 0,
-    LoadTextureFlags_FlipVertically = BIT(0),
-    LoadTextureFlags_LinearSpace = BIT(1),
+    LoadTextureFlags_FlipVertically = HAN_BIT(0),
+    LoadTextureFlags_LinearSpace = HAN_BIT(1),
 };
 
 struct ResourceManager

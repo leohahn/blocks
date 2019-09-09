@@ -90,7 +90,7 @@ public:
     {
         assert(g_debug_sid_database);
         g_debug_sid_database->AddHash(hash, str);
-#ifdef _DEBUG
+#ifdef HAN_DEBUG
         _str = GetStr();
 #endif
     }
@@ -116,7 +116,7 @@ public:
 
 private:
     uint64_t _hash;
-#ifdef _DEBUG
+#ifdef HAN_DEBUG
     const char* _str;
 #endif
 };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Buffer.hpp"
+#include "Han/Renderer/Buffer.hpp"
 #include <stdint.h>
 #include "Han/Core.hpp"
 

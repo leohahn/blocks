@@ -6,8 +6,8 @@
 #include "Han/Math/Vec3.hpp"
 #include "Han/Math/Vec4.hpp"
 #include "Han/Sid.hpp"
-#include "Texture.hpp"
-#include "Shader.hpp"
+#include "Han/Texture.hpp"
+#include "Han/Shader.hpp"
 #include "Renderer/Buffer.hpp"
 #include "Renderer/Material.hpp"
 
@@ -39,6 +39,10 @@ struct TriangleMesh
     Array<uint32_t> indices;
 
     Array<SubMesh> sub_meshes;
+
+    TriangleMesh()
+		: TriangleMesh(nullptr)
+    {}
     
     TriangleMesh(Allocator* allocator)
         : allocator(allocator)

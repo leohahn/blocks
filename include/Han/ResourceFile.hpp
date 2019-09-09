@@ -5,7 +5,7 @@
 #include "Han/Collections/String.hpp"
 #include "Han/Collections/Array.hpp"
 #include "Han/Sid.hpp"
-#include "Path.hpp"
+#include "Han/Path.hpp"
 
 #define RESOURCE_TOKENS \
         RT(TokenType_Invalid = 0, "Invalid"),             \

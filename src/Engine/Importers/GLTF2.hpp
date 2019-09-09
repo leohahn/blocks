@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Han/Allocator.hpp"
-#include "ResourceManager.hpp"
-#include "Path.hpp"
-#include "Model.hpp"
+#include "Han/ResourceManager.hpp"
+#include "Han/Path.hpp"
+#include "Han/Model.hpp"
 
 struct ResourceManager;
 

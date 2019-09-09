@@ -1,4 +1,4 @@
-#include "Camera.hpp"
+#include "Han/Camera.hpp"
 
 Camera::Camera(Vec3 position, Vec3 front, float aspect_ratio, float fov, float near, float far)
     : position(position)
@@ -37,15 +37,10 @@ Camera::GetViewProjectionMatrix(const Mat4& view)
 }
 
 void
-Camera::Rotate(const Vec3& axis)
+Camera::Rotate(const Vec3& axis, float rotation_speed)
 {
     using namespace Math;
     // HACK, TODO: remove this GAMBETA
-#if OS_APPLE
-    float rotation_speed = 0.070f;
-#else
-    float rotation_speed = 0.001f;
-#endif
 
     front = Quaternion::Rotate(front, rotation_speed, Quaternion(0, axis));
 

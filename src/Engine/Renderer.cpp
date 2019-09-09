@@ -1,8 +1,8 @@
-#include "Renderer.hpp"
+#include "Han/Renderer.hpp"
 
 #include "glad/glad.h"
-#include "OpenGL.hpp"
-#include "ResourceManager.hpp"
+#include "Han/OpenGL.hpp"
+#include "Han/ResourceManager.hpp"
 
 void RenderModel(
     const Model& model,

@@ -3,8 +3,8 @@
 #include "Han/Allocator.hpp"
 #include "Han/Core.hpp"
 #include "Han/Logger.hpp"
-#include "Memory.hpp"
-#include "Utils.hpp"
+#include "Han/Memory.hpp"
+#include "Han/Utils.hpp"
 #include <stdint.h>
 
 class LinearAllocator : public Allocator
@@ -22,7 +22,7 @@ public:
     {}
 
     LinearAllocator(const char* name, const Memory& mem, size_t size)
-        : LinearAllocator(name, mem.ptr, MIN(size, mem.size))
+        : LinearAllocator(name, mem.ptr, HAN_MIN(size, mem.size))
     {}
 
     LinearAllocator(const char* name, void* mem, size_t size)

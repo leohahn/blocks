@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Path.hpp"
+#include "Han/Path.hpp"
 #include "Han/LinearAllocator.hpp"
 #include "Han/MallocAllocator.hpp"
 #include "Memory.hpp"
 #include "ResourceManager.hpp"
-#include "Window.hpp"
+#include "Han/Window.hpp"
 
 enum class ProgramState
 {

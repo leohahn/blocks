@@ -1,8 +1,8 @@
 #include "Importers/GLTF2.hpp"
 #include "Han/FileSystem.hpp"
 #include "Han/Logger.hpp"
-#include "Json.hpp"
-#include "ResourceManager.hpp"
+#include "Han/Json.hpp"
+#include "Han/ResourceManager.hpp"
 
 #define CHUNK_TYPE_JSON 0x4E4F534A
 #define CHUNK_TYPE_BINARY 0x004E4942

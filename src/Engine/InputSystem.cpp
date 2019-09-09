@@ -1,7 +1,7 @@
-#include "InputSystem.hpp"
+#include "Han/InputSystem.hpp"
 
 #include "Han/Logger.hpp"
-#include "Utils.hpp"
+#include "Han/Utils.hpp"
 #include <SDL.h>
 
 InputSystem::InputSystem()

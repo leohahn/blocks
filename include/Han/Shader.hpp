@@ -6,7 +6,7 @@
 #include "Han/Core.hpp"
 #include "Han/Sid.hpp"
 #include "Han/Math/Mat4.hpp"
-#include "Texture.hpp"
+#include "Han/Texture.hpp"
 
 struct Shader
 {

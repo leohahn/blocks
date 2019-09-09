@@ -1,8 +1,8 @@
 #pragma once
 
+#include "Han/Core.hpp"
 #include <assert.h>
 #include <string.h>
-#include "Han/Core.hpp"
 
 struct StringView
 {
@@ -41,6 +41,6 @@ public:
 
     bool operator==(const char* other) const
     {
-        return strncmp(data, other, MIN(len, strlen(other))) == 0;
+        return strncmp(data, other, HAN_MIN(len, strlen(other))) == 0;
     }
 };
