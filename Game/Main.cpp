@@ -370,7 +370,7 @@ public:
 
 	void OnUpdate(DeltaTime delta_time) override
 	{
-        _input_system.Update();
+        //_input_system.Update();
 
         if (_input_system.ReceivedQuitEvent()) {
             LOG_INFO("Received quit event, exiting application");

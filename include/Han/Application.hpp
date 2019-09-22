@@ -5,13 +5,14 @@
 #include "Han/MallocAllocator.hpp"
 #include "Han/Window.hpp"
 #include "Han/Memory.hpp"
+#include "Han/Events.hpp"
 #include <chrono>
 
 struct DeltaTime
 {
 public:
 	DeltaTime() : DeltaTime(0.0f) {}
-	DeltaTime(float t) : _delta_sec(t) {}
+	DeltaTime(double t) : _delta_sec(t) {}
 
 	operator double() const { return _delta_sec; }
 	double InMilliseconds() const { return _delta_sec * 1000.0; }
@@ -70,6 +71,7 @@ protected:
 private:
 	void Initialize();
 	void Shutdown();
+	void OnEvent(Event& ev);
 
 private:
 	ApplicationParams _params;

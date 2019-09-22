@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <assert.h>
 #include "Han/Collections/StringView.hpp"
+#include "Han/Collections/String.hpp"
 
 #define FIRST_ASCII_NUMBER 48
 
@@ -133,6 +134,21 @@ ParseDouble(const uint8_t* data, size_t size)
     double parsed = (double)integer_part + (double)fractional_part / fraction;
 
     return is_negative ? -parsed : parsed;
+}
+
+inline String
+ToString(int i)
+{
+	char str[100];
+	return String(itoa(i, str, 10));
+}
+
+inline String
+ToString(float f)
+{
+	char str[100];
+	sprintf(str, "%.2f", f);
+	return String(str);
 }
 
 }

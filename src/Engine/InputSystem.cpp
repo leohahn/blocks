@@ -95,6 +95,7 @@ InputSystem::Update()
 
     while (SDL_PollEvent(&event)) {
         SDL_Keycode ev_keycode = event.key.keysym.sym;
+		SDLK_a;
 
         switch (event.type) {
             case SDL_APP_TERMINATING:

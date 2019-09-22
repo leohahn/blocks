@@ -31,6 +31,12 @@ public:
 
     size_t GetBytesWaterMark() const { return _bytes_water_mark; }
 
+	static Allocator* Instance()
+	{
+		static MallocAllocator alloc;
+		return &alloc;
+	}
+
 private:
     size_t _bytes_water_mark;
     const char* _name;

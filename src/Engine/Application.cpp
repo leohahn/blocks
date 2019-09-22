@@ -76,6 +76,7 @@ Application::Initialize()
 	window_opts.vsync = _params.vsync;
     
     _window = Window::Create(&_main_allocator, window_opts);
+	_window->SetEventCallback(std::bind(&Application::OnEvent, this, std::placeholders::_1));
 
     Graphics::LowLevelApi::Initialize(&_main_allocator);
     Graphics::LowLevelApi::SetViewPort(0, 0, _params.screen_width, _params.screen_height);
@@ -139,11 +140,22 @@ Application::Run()
 
 		_time = GetTime();
 		OnUpdate(delta);
-
-        _window->SwapBuffers();
+        _window->OnUpdate();
     }
 
 	Shutdown();
+}
+
+void
+Application::OnEvent(Event& ev)
+{
+	EventDispatcher dispatcher(ev);
+	dispatcher.Dispatch<QuitEvent>([this](QuitEvent& ev) -> bool {
+		this->_running = false;
+		return true;
+	});
+
+	LOG_INFO("Received event: %s", ev.ToString().data);
 }
 
 Time

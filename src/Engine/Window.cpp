@@ -35,7 +35,7 @@ public:
             LOG_ERROR("Failed to initialize GLAD\n");
             exit(1);
         }
-        
+
         glViewport(0, 0, _opts.width, _opts.height);
         glEnable(GL_CULL_FACE);
         glEnable(GL_DEPTH_TEST);
@@ -46,23 +46,91 @@ public:
         SDL_GL_DeleteContext(_gl_context);
         SDL_DestroyWindow(_raw_window);
     }
+
+	void SetEventCallback(EventCb cb) override
+	{
+		_event_cb = std::move(cb);
+	}
     
-    virtual int32_t GetWidth() override
+    int32_t GetWidth() override
     {
         return _opts.width;
     }
     
-    virtual int32_t GetHeight() override
+    int32_t GetHeight() override
     {
         return _opts.height;
     }
+
+	void UpdateInputs()
+	{
+		SDL_Event event;
+
+		while (SDL_PollEvent(&event)) {
+			SDL_Keycode ev_keycode = event.key.keysym.sym;
+			int repeat_count = event.key.repeat;
+
+			// TODO: Handle mobile events
+			switch (event.type) {
+				case SDL_APP_TERMINATING: {
+					UNREACHABLE;
+					break;
+				}
+				case SDL_QUIT: {
+					QuitEvent ev;
+					_event_cb(ev);
+					break;
+				}
+				case SDL_KEYUP: {
+					KeyReleaseEvent ev((KeyCode)ev_keycode);
+					_event_cb(ev);
+					break;
+				}
+				case SDL_KEYDOWN: {
+					KeyPressEvent ev((KeyCode)ev_keycode, repeat_count);
+					_event_cb(ev);
+					break;
+				}
+				case SDL_MOUSEBUTTONUP: {
+					MouseButtonReleaseEvent ev(event.button.button);
+					_event_cb(ev);
+					break;
+				}
+				case SDL_MOUSEBUTTONDOWN: {
+					MouseButtonPressEvent ev(event.button.button, event.button.clicks);
+					_event_cb(ev);
+					break;
+				}
+				case SDL_MOUSEMOTION: {
+					auto motion = event.motion;
+					MouseMoveEvent ev(motion.x, motion.xrel, motion.y, motion.yrel);
+					_event_cb(ev);
+					break;
+				}
+				case SDL_MOUSEWHEEL: {
+					int x, y;
+					if (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) {
+						x = event.wheel.x * -1;
+						y = event.wheel.y * -1;
+					} else {
+						x = event.wheel.x;
+						y = event.wheel.y;
+					}
+					MouseWheelEvent ev(x, y);
+					_event_cb(ev);
+					break;
+				}
+			}
+		}
+	}
     
-    virtual void SwapBuffers() override
+    void OnUpdate() override
     {
+		UpdateInputs();
         SDL_GL_SwapWindow(_raw_window);
     }
 
-    virtual void* GetNativeHandle() override
+    void* GetNativeHandle() override
     {
         return _raw_window;
     }
@@ -71,6 +139,7 @@ private:
 	WindowOptions _opts;
     SDL_Window* _raw_window = nullptr;
     SDL_GLContext _gl_context;
+	Window::EventCb _event_cb;
 };
 
 Window*

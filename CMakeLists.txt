@@ -109,6 +109,8 @@ add_library(Han
     include/Han/TriangleMesh.hpp
     include/Han/Memory.hpp
     include/Han/ResourceFile.hpp
+    include/Han/Events.hpp
+    include/Han/StringBuilder.hpp
 
     # Core
     src/Engine/Application.cpp

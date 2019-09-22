@@ -85,3 +85,4 @@
 struct ResourceManager;
 extern ResourceManager* g_debug_resource_manager;
 #endif
+

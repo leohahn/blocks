@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Han/Allocator.hpp"
+#include "Han/MallocAllocator.hpp"
 #include "Han/Collections/StringView.hpp"
 #include <assert.h>
 #include <stdio.h>
@@ -18,10 +19,10 @@ struct String
     char* data;
 
     String()
-        : String(nullptr)
+        : String(MallocAllocator::Instance())
     {}
 
-    String(Allocator* allocator)
+    explicit String(Allocator* allocator)
         : allocator(allocator)
         , cap(0)
         , len(0)
@@ -36,6 +37,11 @@ struct String
     {
         Append(contents);
     }
+
+    explicit String(const char* contents)
+		: String(MallocAllocator::Instance(), contents)
+    {
+    }
     
     String(Allocator* allocator, const StringView& contents)
         : allocator(allocator)
@@ -46,8 +52,13 @@ struct String
         Append(contents);
     }
 
+    String(const StringView& contents)
+        : String(MallocAllocator::Instance(), contents)
+    {
+    }
+
     String(const String& str)
-        : String(nullptr)
+        : String()
     {
         assert(str.allocator);
         *this = str;
@@ -64,11 +75,12 @@ struct String
     {
         assert(this != &str);
         assert(str.allocator);
-        ShallowCopyFields(str);
-        // copy the contents as well
         if (data) {
             allocator->Deallocate(data);
         } 
+
+        ShallowCopyFields(str);
+        // copy the contents as well
         data = (char*)allocator->Allocate(str.len + 1);
         assert(data);
         memcpy(data, str.data, str.len);
@@ -100,63 +112,58 @@ struct String
         allocator = nullptr;
     }
 
-    void Resize()
-    {
-        // Need to allocate more memory
-        size_t new_cap = (size_t)(cap * kStringGrowthFactor);
-        char* new_data = (char*)allocator->Allocate(new_cap);
-        assert(new_data);
-        memcpy(new_data, data, len);
-        new_data[len] = 0;
-        allocator->Deallocate(data);
-        data = new_data;
-        cap = new_cap;
-    }
+	void Reserve(int capacity)
+	{
+		Resize(capacity);
+	}
 
-    void Append(char character)
+    String& Append(char character)
     {
         assert(data);
         size_t new_len = len + 1;
         while (new_len > (cap - 1)) {
-            Resize();
+			size_t new_cap = (size_t)(cap * kStringGrowthFactor);
+            Resize(new_cap);
         }
         assert(cap > len);
         data[len] = character;
         data[len+1] = 0;
         len = new_len;
+		return *this;
     }
 
-    void Append(const String& str) { Append(str.data, str.len); }
+    String& Append(const String& str) { return Append(str.data, str.len); }
 
-    void Append(const char* str) { Append(str, strlen(str)); }
+    String& Append(const char* str) { return Append(str, strlen(str)); }
 
-    void Append(const StringView& str) { Append(str.data, str.len); }
+    String& Append(const StringView& str) { return Append(str.data, str.len); }
 
-    void Append(const StringView& str, size_t index_offset)
+    String& Append(const StringView& str, size_t index_offset)
     {
         assert(index_offset < str.len);
-        Append(str.data + index_offset, str.len - index_offset);
+        return Append(str.data + index_offset, str.len - index_offset);
     }
 
-    void Append(const char* begin, const char* end)
+    String& Append(const char* begin, const char* end)
     {
         assert((size_t)begin < (size_t)end);
-        Append(begin, (size_t)(end - begin));
+        return Append(begin, (size_t)(end - begin));
     }
 
-    void Append(const uint8_t* begin, const uint8_t* end)
+    String& Append(const uint8_t* begin, const uint8_t* end)
     {
         assert((size_t)begin < (size_t)end);
-        Append((const char*)begin, (size_t)(end - begin));
+        return Append((const char*)begin, (size_t)(end - begin));
     }
 
-    void Append(const char* str, size_t str_len)
+    String& Append(const char* str, size_t str_len)
     {
         assert(str);
         if (data) {
             size_t new_len = len + str_len;
             while (new_len > (cap - 1)) {
-                Resize();
+				size_t new_cap = (size_t)(cap * kStringGrowthFactor);
+                Resize(new_cap);
             }
             memcpy(data + len, str, str_len);
             len = new_len;
@@ -168,6 +175,7 @@ struct String
             cap = str_len;
         }
         data[len] = 0; // add null terminator
+		return *this;
     }
 
     char Back() const { return data[len - 1]; }
@@ -196,6 +204,22 @@ struct String
     StringView View() const { return StringView(data, len); }
 
 private:
+    void Resize(int new_cap)
+    {
+		if (new_cap <= cap) {
+			return;
+		}
+
+        // Need to allocate more memory
+        char* new_data = (char*)allocator->Allocate(new_cap);
+        assert(new_data);
+        memcpy(new_data, data, len);
+        new_data[len] = 0;
+        allocator->Deallocate(data);
+        data = new_data;
+        cap = new_cap;
+    }
+
     void ShallowCopyFields(const String& str)
     {
         allocator = str.allocator;
