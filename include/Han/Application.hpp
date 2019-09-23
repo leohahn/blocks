@@ -6,39 +6,8 @@
 #include "Han/Window.hpp"
 #include "Han/Memory.hpp"
 #include "Han/Events.hpp"
+#include "Han/Layer.hpp"
 #include <chrono>
-
-struct DeltaTime
-{
-public:
-	DeltaTime() : DeltaTime(0.0f) {}
-	DeltaTime(double t) : _delta_sec(t) {}
-
-	operator double() const { return _delta_sec; }
-	double InMilliseconds() const { return _delta_sec * 1000.0; }
-
-private:
-	double _delta_sec;
-};
-
-struct Time
-{
-public:
-	Time() : Time(0.0) {}
-	Time(double sec)
-		: _time_seconds(sec)
-	{}
-
-	operator double() const { return _time_seconds; }
-
-	DeltaTime operator-(Time other)
-	{
-		return DeltaTime(_time_seconds - other._time_seconds);
-	}
-
-private:
-	double _time_seconds;
-};
 
 struct ApplicationParams
 {
@@ -55,23 +24,35 @@ public:
 
 	virtual ~Application() = default;
 	virtual void OnInitialize() = 0;
-    virtual void OnUpdate(DeltaTime delta_time) = 0;
     virtual void OnShutdown() = 0;
 
 	Time GetTime() const;
 
 	void Run();
 
-protected:
-	uint32_t GetScreenWidth() { return _params.screen_width; }
-	uint32_t GetScreenHeight() { return _params.screen_height; }
-	ResourceManager* GetResourceManager() { return _resource_manager; }
+	Allocator* GetLayerAllocator() { return _layer_stack.GetAllocator(); }
+	void PushLayer(Layer* layer);
+	void PopLayer(Layer* layer);
+	void PushOverlay(Layer* layer);
+	void PopOverLay(Layer* layer);
+
 	void Quit() { _running = false; }
+
+	static Application* Instance();
+
+	uint32_t GetScreenWidth() const { return _params.screen_width; }
+	uint32_t GetScreenHeight() const { return _params.screen_height; }
+	float GetScreenAspectRatio() const { return (float)_params.screen_width / _params.screen_height; }
+	ResourceManager* GetResourceManager() const { return _resource_manager; }
+	Allocator* GetMainAllocator() { return &_main_allocator; }
+	Allocator* GetTempAllocator() { return &_temp_allocator; }
 
 private:
 	void Initialize();
 	void Shutdown();
 	void OnEvent(Event& ev);
+
+	static Application* _instance;
 
 private:
 	ApplicationParams _params;
@@ -86,4 +67,5 @@ private:
 protected:
     LinearAllocator _main_allocator;
     MallocAllocator _temp_allocator;
+	LayerStack _layer_stack;
 };

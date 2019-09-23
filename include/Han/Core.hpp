@@ -86,3 +86,34 @@ struct ResourceManager;
 extern ResourceManager* g_debug_resource_manager;
 #endif
 
+struct DeltaTime
+{
+public:
+	DeltaTime() : DeltaTime(0.0f) {}
+	DeltaTime(double t) : _delta_sec(t) {}
+
+	operator double() const { return _delta_sec; }
+	double InMilliseconds() const { return _delta_sec * 1000.0; }
+
+private:
+	double _delta_sec;
+};
+
+struct Time
+{
+public:
+	Time() : Time(0.0) {}
+	Time(double sec)
+		: _time_seconds(sec)
+	{}
+
+	operator double() const { return _time_seconds; }
+
+	DeltaTime operator-(Time other)
+	{
+		return DeltaTime(_time_seconds - other._time_seconds);
+	}
+
+private:
+	double _time_seconds;
+};

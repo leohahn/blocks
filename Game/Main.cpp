@@ -240,37 +240,39 @@ SetupCube(Allocator* allocator, Allocator* scratch_allocator, Material* material
     return mesh;
 }
 
-static void OnApplicationQuit(SDL_Event ev, void* user_data);
+static constexpr float kCameraBaseMoveSpeed = 50.35f;
+static constexpr float kCameraBaseRotationSpeed = 5.35f;
 
-//ResourceManager* g_debug_resource_manager = nullptr;
-
-// TODO: create an event system
-
-class Game : public Application
+class GameLayer : public Layer
 {
 public:
-	Game(ApplicationParams params)
-		: Application(params)
-		, _camera(Vec3(0, 0, 5), Vec3(0, 0, -1), (float)GetScreenWidth() / GetScreenHeight(), 60.0f, 0.1f, 500.0f)
-	{
-	}
+	GameLayer()
+		: Layer(String("Game"))
+		, _camera(
+			Vec3(0, 0, 5),
+			Vec3(0, 0, -1),
+			(float)Application::Instance()->GetScreenAspectRatio(),
+			60.0f,
+			kCameraBaseMoveSpeed,
+			kCameraBaseRotationSpeed,
+			0.1f,
+			500.0f)
+	{}
 
-	~Game()
+	void OnAttach()
 	{
-	}
+		LOG_DEBUG("Game layer attached!");
 
-	void Exit() { Quit(); }
-
-	void OnInitialize() override
-	{
-		LOG_DEBUG("Game Initialized!");
+		Application* app = Application::Instance();
+		Allocator* main_allocator = app->GetMainAllocator();
+		Allocator* temp_allocator = app->GetTempAllocator();
 
 		//
 		// Load shaders
 		//
 		LOG_DEBUG("Loading shaders\n");
 
-		ResourceManager* resource_manager = GetResourceManager();
+		ResourceManager* resource_manager = Application::Instance()->GetResourceManager();
 
 		resource_manager->LoadShader(SID("flat_color.glsl"));
 		_flat_color_shader = resource_manager->GetShader(SID("flat_color.glsl"));
@@ -310,15 +312,6 @@ public:
 		_pbr_shader->AddUniform("u_metallic_factor");
 		_pbr_shader->AddUniform("u_roughness_factor");
 
-		//
-		// Create the input system
-		//
-		_input_system.Create(&_main_allocator);
-		_input_system.AddKeyboardEventListener(
-			kKeyboardEventButtonDown, SDLK_q, OnApplicationQuit, this, &_main_allocator);
-
-		_player_input.RegisterInputs(&_input_system, &_main_allocator);
-
 		_basic_shader->Bind();
 		_basic_shader->SetUniformMat4(SID("u_projection"), _camera.projection_matrix);
 
@@ -347,8 +340,8 @@ public:
 		// DEBUG meshes for testing
 		Material* wall_material = resource_manager->GetMaterial(SID("wall"));
 		assert(wall_material);
-		_floor_mesh = SetupPlane(&_main_allocator, &_temp_allocator, wall_material);
-		_cube_mesh = SetupCube(&_main_allocator, &_temp_allocator, wall_material);
+		_floor_mesh = SetupPlane(main_allocator, temp_allocator, wall_material);
+		_cube_mesh = SetupCube(main_allocator, temp_allocator, wall_material);
 
 		{
 			Material* material = resource_manager->allocator->New<Material>(resource_manager->allocator);
@@ -358,7 +351,7 @@ public:
 			resource_manager->materials.Add(material->name, material);
 		}
 
-		_light_mesh = SetupCube(&_main_allocator, &_temp_allocator, resource_manager->GetMaterial(SID("flat_color")));
+		_light_mesh = SetupCube(main_allocator, temp_allocator, resource_manager->GetMaterial(SID("flat_color")));
 
 		_alpine_chalet = resource_manager->LoadModel(SID("Alpine_chalet.model"));
 		_hammer = resource_manager->LoadModel(SID("hammer.model"));
@@ -368,50 +361,39 @@ public:
 		Graphics::LowLevelApi::SetClearColor(Vec4(0.2f, 0.2f, 0.2f, 1.0f));
 	}
 
-	void OnUpdate(DeltaTime delta_time) override
+	void OnDetach()
 	{
-        //_input_system.Update();
+		LOG_DEBUG("Game layer detached!");
+	}
 
-        if (_input_system.ReceivedQuitEvent()) {
-            LOG_INFO("Received quit event, exiting application");
-			Quit();
-			return;
-        }
+	void OnUpdate(DeltaTime delta_time)
+	{
+		_camera.Update(delta_time);
 
-		const float move_speed = 10.0f * delta_time;
-		const float rotation_speed = 2.0f * delta_time;
-
-        if (_player_input.IsMovingLeft()) {
-            _camera.MoveLeft(move_speed);
-        }
-
-        if (_player_input.IsMovingRight()) {
-            _camera.MoveRight(move_speed);
-        }
-
-        if (_player_input.IsTurningLeft()) {
-            _camera.Rotate(Vec3(0, 1, 0), rotation_speed);
-        }
-
-        if (_player_input.IsTurningRight()) {
-            _camera.Rotate(Vec3(0, -1, 0), rotation_speed);
-        }
-
-        if (_player_input.IsTurningAbove()) {
-            _camera.Rotate(_camera.right, rotation_speed);
-        }
-
-        if (_player_input.IsTurningBelow()) {
-            _camera.Rotate(-_camera.right, rotation_speed);
-        }
-
-        if (_player_input.IsMovingForwards()) {
-            _camera.MoveForwards(move_speed);
-        }
-
-        if (_player_input.IsMovingBackwards()) {
-            _camera.MoveBackwards(move_speed);
-        }
+		if (_moving_forward) {
+			_camera.MoveForwards(_camera.move_speed);
+		}
+		if (_moving_backward) {
+			_camera.MoveBackwards(_camera.move_speed);
+		}
+		if (_moving_left) {
+			_camera.MoveLeft(_camera.move_speed);
+		}
+		if (_moving_right) {
+			_camera.MoveRight(_camera.move_speed);
+		}
+		if (_turning_left) {
+			_camera.Rotate(Vec3(0, 1, 0), _camera.rotation_speed);
+		}
+		if (_turning_right) {
+			_camera.Rotate(Vec3(0, -1, 0), _camera.rotation_speed);
+		}
+		if (_turning_up) {
+			_camera.Rotate(_camera.right, _camera.rotation_speed);
+		}
+		if (_turning_down) {
+			_camera.Rotate(-_camera.right, _camera.rotation_speed);
+		}
 
         //
         // Start rendering part of the main loop
@@ -463,38 +445,102 @@ public:
         RenderModel(_hammer, *_pbr_shader, Vec3::Zero(), hammer_rotation, 1.0f);
 
         RenderModel(_alpine_chalet, *_pbr_shader, Vec3(20, 1, 0), Quaternion::Identity(), 1.0f);
-
-        // ImGui
-
-        //ImGuiIO& io = ImGui::GetIO();
-
-        {
-            //uint32_t now = SDL_GetTicks();
-            //uint32_t delta_millis = now - time;
-            //io.DeltaTime = delta_millis > 0 ? (float)delta_millis : (1.0f / 60.0f);
-            //io.DisplaySize = ImVec2(program.window->GetWidth(), program.window->GetHeight());
-            //time = SDL_GetTicks();
-        }
-
-        //ImGui_ImplOpenGL3_NewFrame();
-        //ImGui::NewFrame();
-
-        //static bool show = true;
-        //ImGui::ShowDemoWindow(&show);
-
-        //ImGui::Render();
-        //ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 	}
 
-	void OnShutdown() override
+	void OnEvent(Event& ev)
 	{
-		LOG_DEBUG("Game Shutdown!");
+		EventDispatcher dispatcher(ev);
+		dispatcher.Dispatch<QuitEvent>([](Event& ev) -> bool {
+			Application::Instance()->Quit();
+			return true;
+		});
+		dispatcher.Dispatch<KeyPressEvent>(HAN_BIND_EV_HANDLER(GameLayer::OnKeyPress));
+		dispatcher.Dispatch<KeyReleaseEvent>(HAN_BIND_EV_HANDLER(GameLayer::OnKeyRelease));
+	}
+
+private:
+	bool OnKeyPress(KeyPressEvent& ev)
+	{
+		bool handled = false;
+        if (ev.key_code == KeyCode_a) {
+			_moving_left = true;
+			handled = true;
+        }
+        if (ev.key_code == KeyCode_d) {
+			_moving_right = true;
+			handled = true;
+        }
+        if (ev.key_code == KeyCode_Left) {
+			_turning_left = true;
+			handled = true;
+        }
+        if (ev.key_code == KeyCode_Right) {
+			_turning_right = true;
+			handled = true;
+        }
+        if (ev.key_code == KeyCode_Up) {
+			_turning_up = true;
+			handled = true;
+        }
+        if (ev.key_code == KeyCode_Down) {
+			_turning_down = true;
+			handled = true;
+        }
+        if (ev.key_code == KeyCode_w) {
+			_moving_forward = true;
+			handled = true;
+        }
+        if (ev.key_code == KeyCode_s) {
+			_moving_backward = true;
+			handled = true;
+        }
+        if (ev.key_code == KeyCode_q) {
+			Application::Instance()->Quit();
+			handled = true;
+        }
+		return handled;
+	}
+
+	bool OnKeyRelease(KeyReleaseEvent& ev)
+	{
+		bool handled = false;
+        if (ev.key_code == KeyCode_a) {
+			_moving_left = false;
+			handled = true;
+        }
+        if (ev.key_code == KeyCode_d) {
+			_moving_right = false;
+			handled = true;
+        }
+        if (ev.key_code == KeyCode_Left) {
+			_turning_left = false;
+			handled = true;
+        }
+        if (ev.key_code == KeyCode_Right) {
+			_turning_right = false;
+			handled = true;
+        }
+        if (ev.key_code == KeyCode_Up) {
+			_turning_up = false;
+			handled = true;
+        }
+        if (ev.key_code == KeyCode_Down) {
+			_turning_down = false;
+			handled = true;
+        }
+        if (ev.key_code == KeyCode_w) {
+			_moving_forward = false;
+			handled = true;
+        }
+        if (ev.key_code == KeyCode_s) {
+			_moving_backward = false;
+			handled = true;
+        }
+		return handled;
 	}
 
 private:
 	Camera _camera;
-	InputSystem _input_system;
-	PlayerInput _player_input;
 	Shader* _basic_shader = nullptr;
 	Shader* _pbr_shader = nullptr;
 	Shader* _light_shader = nullptr;
@@ -506,6 +552,38 @@ private:
 	TriangleMesh _floor_mesh;
 	TriangleMesh _cube_mesh;
 	TriangleMesh _light_mesh;
+	bool _moving_left = false;
+	bool _moving_right = false;
+	bool _turning_left = false;
+	bool _turning_right = false;
+	bool _turning_up = false;
+	bool _turning_down = false;
+	bool _moving_forward = false;
+	bool _moving_backward = false;
+};
+
+
+class Game : public Application
+{
+public:
+	Game(ApplicationParams params)
+		: Application(params)
+	{
+	}
+
+	~Game()
+	{
+	}
+
+	void OnInitialize() override
+	{
+		Allocator* layer_alloc = GetLayerAllocator();
+		PushLayer(layer_alloc->New<GameLayer>());
+	}
+
+	void OnShutdown() override
+	{
+	}
 };
 
 int main(int argc, char** argv)
@@ -524,11 +602,4 @@ int main(int argc, char** argv)
 	app->Run();
 
 	return 0;
-}
-
-static void
-OnApplicationQuit(SDL_Event ev, void* user_data)
-{
-	Game* game = (Game*)user_data;
-	game->Exit();
 }

@@ -1,10 +1,21 @@
 #include "Han/Camera.hpp"
 
-Camera::Camera(Vec3 position, Vec3 front, float aspect_ratio, float fov, float near, float far)
+Camera::Camera(
+	Vec3 position, 
+	Vec3 front, 
+	float aspect_ratio, 
+	float fov, 
+	float base_move_speed, 
+	float base_rotation_speed, 
+	float near,
+	float far
+)
     : position(position)
     , front(0, Math::Normalize(front))
     , up_world(0, 1, 0)
     , projection_matrix(Mat4::Perspective(fov, aspect_ratio, near, far))
+	, base_move_speed(base_move_speed)
+	, base_rotation_speed(base_rotation_speed)
 {
     UpdateUpAndRightVectors();
 }
@@ -65,4 +76,11 @@ Camera::UpdateUpAndRightVectors()
 
     right = Normalize(Cross(front.v, up_world));
     up = Normalize(Cross(right, front.v));
+}
+
+void
+Camera::Update(DeltaTime delta_time)
+{
+	move_speed = base_move_speed * delta_time;
+	rotation_speed = base_rotation_speed * delta_time;
 }

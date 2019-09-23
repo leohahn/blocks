@@ -9,6 +9,8 @@
 // Design basically taken from Hazel: https://github.com/TheCherno/Hazel/blob/master/Hazel/src/Hazel/Events/Event.h
 //
 
+#define HAN_BIND_EV_HANDLER(name) std::bind(&name, this, std::placeholders::_1)
+
 enum class EventType
 {
 	MouseButtonPress,

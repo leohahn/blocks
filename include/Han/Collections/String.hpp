@@ -65,9 +65,15 @@ struct String
     }
 
     String(String&& str)
-        : String()
+        : allocator(str.allocator)
+		, data(str.data)
+		, len(str.len)
+		, cap(str.cap)
     {
-        *this = std::move(str);
+        str.allocator = nullptr;
+        str.data = nullptr;
+        str.len = 0;
+        str.cap = 0;
     }
 
     // Copy assignment

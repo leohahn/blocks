@@ -14,11 +14,25 @@ public:
     Vec3 right;
     Vec3 up_world;
     Mat4 projection_matrix;
+	const float base_move_speed;
+	const float base_rotation_speed;
+	float move_speed;
+	float rotation_speed;
    
 public:
-    Camera(Vec3 position, Vec3 front, float aspect_ratio, float fov, float near = 0.1f, float far = 100.0f);
+    Camera(
+		Vec3 position, 
+		Vec3 front, 
+		float aspect_ratio, 
+		float fov, 
+		float base_move_speed, 
+		float base_rotation_speed, 
+		float near = 0.1f, 
+		float far = 100.0f
+	);
     Mat4 GetViewMatrix();
     Mat4 GetViewProjectionMatrix(const Mat4& view);
+	void Update(DeltaTime delta_time);
     //
     // HACK, TODO: remove this GAMBETA
     //

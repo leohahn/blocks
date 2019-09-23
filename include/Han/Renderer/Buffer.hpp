@@ -44,8 +44,8 @@ public:
     size_t Stride() const { return _stride; }
     size_t ElementCount() const { return _elements.len; }
 
-    Array<BufferLayoutElement>::iterator begin() const { return _elements.begin(); }
-    Array<BufferLayoutElement>::iterator end() const { return _elements.end(); }
+    Array<BufferLayoutElement>::Iterator begin() const { return _elements.begin(); }
+    Array<BufferLayoutElement>::Iterator end() const { return _elements.end(); }
 
     const BufferLayoutElement& operator[](size_t index) const { return _elements[index]; }
 

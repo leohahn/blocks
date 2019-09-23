@@ -8,6 +8,13 @@
 #include "Editor.hpp"
 #include <chrono>
 
+Application* Application::_instance = nullptr;
+
+Application* Application::Instance()
+{
+	return _instance;
+}
+
 Application::Application(ApplicationParams params)
 	: _params(params)
 	, _window(nullptr)
@@ -17,6 +24,8 @@ Application::Application(ApplicationParams params)
 	ASSERT(params.memory_size, "Should have memory size specified");
 	ASSERT(params.screen_width, "Should have screen width specified");
 	ASSERT(params.screen_height, "Should have screen height specified");
+	ASSERT(_instance == nullptr, "There should be only one Application");
+	_instance = this;
 }
 
 void
@@ -29,6 +38,9 @@ Application::Initialize()
     _memory = Memory(_params.memory_size);
     _main_allocator = LinearAllocator("main", _memory);
     _temp_allocator = MallocAllocator("temporary_allocator");
+
+	// TODO: consider using another allocator here.
+	_layer_stack.SetAllocator(&_temp_allocator);
 
     // ===============================================================
     // First, load the engine configuration file
@@ -105,6 +117,7 @@ void
 Application::Shutdown()
 {
 	OnShutdown();
+	_layer_stack.Clear();
 
 	LOG_INFO("Destroying the engine");
     SidDatabase::Terminate();
@@ -126,8 +139,6 @@ Application::Run()
 	const double desired_fps = 60.0f;
 
     while (_running) {
-		// TODO: add real delta time
-
 		auto now = GetTime();
 
 		DeltaTime delta;
@@ -137,9 +148,12 @@ Application::Run()
 		} else {
 			delta = now - _time;
 		}
-
 		_time = GetTime();
-		OnUpdate(delta);
+
+		for (auto layer : _layer_stack) {
+			layer->OnUpdate(delta);
+		}
+
         _window->OnUpdate();
     }
 
@@ -147,15 +161,40 @@ Application::Run()
 }
 
 void
+Application::PushLayer(Layer* layer)
+{
+	_layer_stack.PushLayer(layer);
+}
+
+void
+Application::PushOverlay(Layer* layer)
+{
+	_layer_stack.PopOverlay(layer);
+}
+
+void
+Application::PopLayer(Layer* layer)
+{
+	_layer_stack.PopLayer(layer);
+	layer->OnDetach();
+}
+
+void
+Application::PopOverLay(Layer* layer)
+{
+	_layer_stack.PopOverlay(layer);
+	layer->OnDetach();
+}
+
+void
 Application::OnEvent(Event& ev)
 {
-	EventDispatcher dispatcher(ev);
-	dispatcher.Dispatch<QuitEvent>([this](QuitEvent& ev) -> bool {
-		this->_running = false;
-		return true;
-	});
-
-	LOG_INFO("Received event: %s", ev.ToString().data);
+	for (auto it = _layer_stack.end(); it != _layer_stack.begin();) {
+		(*--it)->OnEvent(ev);
+		if (ev.handled) {
+			break;
+		}
+	}
 }
 
 Time
