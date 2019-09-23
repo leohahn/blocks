@@ -1,24 +1,8 @@
-#include "Han/Camera.hpp"
-#include "Han/FileSystem.hpp"
-#include "Han/InputSystem.hpp"
-#include "Han/MallocAllocator.hpp"
-#include "Han/OpenGL.hpp"
-#include "Han/PlayerInput.hpp"
-#include "Han/Renderer.hpp"
-#include "Han/ResourceManager.hpp"
-//#include "Han/ResourceFile.hpp"
-#include "Han/Texture.hpp"
-#include "Han/TriangleMesh.hpp"
-#include "Han/Math.hpp"
-#include "Han/Utils.hpp"
+#include "Han/Han.hpp"
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include <assert.h>
 #include <stdio.h>
-#include "Han/Json.hpp"
-#include "Han/Renderer/Buffer.hpp"
-#include "Han/Renderer/LowLevel.hpp"
-#include "Han/Application.hpp"
 //#include "Han/GameInstance.hpp"
 
 #define SCREEN_WIDTH 1024
@@ -579,6 +563,7 @@ public:
 	{
 		Allocator* layer_alloc = GetLayerAllocator();
 		PushLayer(layer_alloc->New<GameLayer>());
+		PushOverlay(layer_alloc->New<DebugGuiLayer>());
 	}
 
 	void OnShutdown() override

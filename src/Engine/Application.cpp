@@ -169,21 +169,19 @@ Application::PushLayer(Layer* layer)
 void
 Application::PushOverlay(Layer* layer)
 {
-	_layer_stack.PopOverlay(layer);
+	_layer_stack.PushOverlay(layer);
 }
 
 void
 Application::PopLayer(Layer* layer)
 {
 	_layer_stack.PopLayer(layer);
-	layer->OnDetach();
 }
 
 void
 Application::PopOverLay(Layer* layer)
 {
 	_layer_stack.PopOverlay(layer);
-	layer->OnDetach();
 }
 
 void
