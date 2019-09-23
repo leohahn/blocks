@@ -25,7 +25,7 @@ public:
 
 	virtual ~Application() = default;
 	virtual void OnInitialize() = 0;
-    virtual void OnShutdown() = 0;
+    virtual void OnShutdown() {}
 
 	Time GetTime() const;
 

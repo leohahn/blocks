@@ -543,22 +543,13 @@ class Game : public Application
 public:
 	Game(ApplicationParams params)
 		: Application(params)
-	{
-	}
-
-	~Game()
-	{
-	}
+	{}
 
 	void OnInitialize() override
 	{
 		Allocator* layer_alloc = GetLayerAllocator();
 		PushLayer(layer_alloc->New<GameLayer>());
 		PushOverlay(layer_alloc->New<DebugGuiLayer>());
-	}
-
-	void OnShutdown() override
-	{
 	}
 };
 
