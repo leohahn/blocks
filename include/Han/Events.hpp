@@ -145,14 +145,11 @@ public:
 	virtual int GetCategoryFlags() const = 0;
 	virtual String ToString() const
 	{
-		return GetName();
+        return String(GetName());
 	}
 
 public:
 	bool handled = false;
-
-private:
-	EventType _type;
 };
 
 class QuitEvent : public Event

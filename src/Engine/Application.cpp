@@ -45,40 +45,28 @@ Application::Initialize()
     // ===============================================================
     // First, load the engine configuration file
     //
-    Path config_path = FileSystem::GetResourcesPath(&_temp_allocator);
-    config_path.Push("engine_config.json");
+//    Path config_path = FileSystem::GetResourcesPath(&_temp_allocator);
+//    config_path.Push("engine_config.json");
 
-    size_t file_size;
-    uint8_t* file_data = FileSystem::LoadFileToMemory(&_temp_allocator, config_path, &file_size);
+//    size_t file_size;
+//    uint8_t* file_data = FileSystem::LoadFileToMemory(&_temp_allocator, config_path, &file_size);
 
-    Json::Document config_doc(&_temp_allocator);
-    config_doc.Parse(file_data, file_size);
-
-    if (config_doc.HasParseErrors() || !config_doc.root_val.IsObject()) {
-        LOG_ERROR("Failed to parse configuration file: %s", config_doc.GetErrorStr());
-        ASSERT(false, "should not enter here");
-    }
-
-    _temp_allocator.Deallocate(file_data);
-
-    const Json::Val* os_obj = nullptr;
-#if OS_WINDOWS
-    os_obj = config_doc.root_val.AsObject()->Find(String(&_temp_allocator, "windows"));
-#else
-#error "not working yet"
-#endif
-
-    if (!os_obj || !os_obj->IsObject()) {
-        LOG_ERROR("Os configuration was not found");
-        ASSERT(false, "should not enter here");
-    }
-
-    const RobinHashMap<String, Json::Val>* config_obj = os_obj->AsObject();
-    const Json::Val* game_dll_val = config_obj->Find(String(&_temp_allocator, "game_dll"));
-    if (!game_dll_val || !game_dll_val->IsString()) {
-        LOG_ERROR("Failed to parse configuration file: No game dll");
-        ASSERT(false, "should not enter here");
-    }
+//    Json::Document config_doc(&_temp_allocator);
+//    config_doc.Parse(file_data, file_size);
+//
+//    if (config_doc.HasParseErrors() || !config_doc.root_val.IsObject()) {
+//        LOG_ERROR("Failed to parse configuration file: %s", config_doc.GetErrorStr());
+//        ASSERT(false, "should not enter here");
+//    }
+//
+//    _temp_allocator.Deallocate(file_data);
+//
+//    const Json::Val* os_obj = nullptr;
+//#if OS_WINDOWS
+//    os_obj = config_doc.root_val.AsObject()->Find(String(&_temp_allocator, "windows"));
+//#else
+//    os_obj = config_doc.root_val.AsObject()->Find(String(&_temp_allocator, "mac"));
+//#endif
 
     // ===============================================================
     WindowOptions window_opts;

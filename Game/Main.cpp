@@ -1,12 +1,4 @@
 #include "Han/Han.hpp"
-#include <SDL.h>
-#include <SDL_opengl.h>
-#include <assert.h>
-#include <stdio.h>
-//#include "Han/GameInstance.hpp"
-
-#define SCREEN_WIDTH 1024
-#define SCREEN_HEIGHT 768
 
 static TriangleMesh
 SetupPlane(Allocator* allocator, Allocator* scratch_allocator, Material* material)
@@ -224,8 +216,8 @@ SetupCube(Allocator* allocator, Allocator* scratch_allocator, Material* material
     return mesh;
 }
 
-static constexpr float kCameraBaseMoveSpeed = 50.35f;
-static constexpr float kCameraBaseRotationSpeed = 5.35f;
+static constexpr float kCameraBaseMoveSpeed = 40.35f;
+static constexpr float kCameraBaseRotationSpeed = 2.35f;
 
 class GameLayer : public Layer
 {
@@ -527,7 +519,6 @@ private:
 	Camera _camera;
 	Shader* _basic_shader = nullptr;
 	Shader* _pbr_shader = nullptr;
-	Shader* _light_shader = nullptr;
 	Shader* _gltf_shader = nullptr;
 	Shader* _flat_color_shader = nullptr;
 	Model _hammer;

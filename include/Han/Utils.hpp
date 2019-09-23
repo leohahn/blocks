@@ -140,7 +140,8 @@ inline String
 ToString(int i)
 {
 	char str[100];
-	return String(itoa(i, str, 10));
+    sprintf(str, "%d", i);
+    return String(str);
 }
 
 inline String

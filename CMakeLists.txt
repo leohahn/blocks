@@ -70,6 +70,8 @@ target_compile_definitions(ImGui PRIVATE IMGUI_IMPL_OPENGL_LOADER_GLAD)
 add_library(Han
     # Include files
     include/Han/Han.hpp
+    include/Han/Layer.hpp
+    include/Han/DebugGuiLayer.hpp
     include/Han/Math/Vec2.hpp
     include/Han/Math/Vec3.hpp
     include/Han/Math/Vec4.hpp
@@ -96,7 +98,6 @@ add_library(Han
     include/Han/Json.hpp
     include/Han/Path.hpp
     include/Han/Window.hpp
-    include/Han/Program.hpp
     include/Han/PlayerInput.hpp
     include/Han/OpenGL.hpp
     include/Han/Model.hpp
@@ -114,7 +115,8 @@ add_library(Han
 
     # Core
     src/Engine/Application.cpp
-    src/Engine/Program.cpp
+    src/Engine/Layer.cpp
+    src/Engine/DebugGuiLayer.cpp
     src/Engine/Editor.hpp
     src/Engine/Editor.cpp
     src/Engine/EngineInterface.cpp

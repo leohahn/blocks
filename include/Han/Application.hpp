@@ -7,6 +7,7 @@
 #include "Han/Memory.hpp"
 #include "Han/Events.hpp"
 #include "Han/Layer.hpp"
+#include "Han/ResourceManager.hpp"
 #include <chrono>
 
 struct ApplicationParams
