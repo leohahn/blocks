@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <algorithm>
-#include "Han/Allocator.hpp"
+#include "Han/MallocAllocator.hpp"
 
 // Currently this hash map does not support rehashing
 template<typename Key, typename Value>
@@ -135,7 +135,11 @@ public:
     }
 
 	RobinHashMap()
-		: RobinHashMap(nullptr, 0)
+		: RobinHashMap(MallocAllocator::Instance(), 0)
+	{}
+
+	RobinHashMap(size_t cap)
+		: RobinHashMap(MallocAllocator::Instance(), cap)
 	{}
 
     RobinHashMap(RobinHashMap&& other)

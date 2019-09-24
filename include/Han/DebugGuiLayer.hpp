@@ -13,4 +13,11 @@ public:
 	void OnDetach() override;
 	void OnUpdate(DeltaTime delta) override;
 	void OnEvent(Event& ev) override;
+
+private:
+	bool OnMouseButtonPress(MouseButtonPressEvent& ev);
+	bool OnKeyPress(KeyPressEvent& ev);
+	bool OnKeyRelease(KeyReleaseEvent& ev);
+	bool OnMouseWheel(MouseWheelEvent& ev);
+	bool OnMouseMove(MouseMoveEvent& ev);
 };

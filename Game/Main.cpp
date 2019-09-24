@@ -235,7 +235,7 @@ public:
 			500.0f)
 	{}
 
-	void OnAttach()
+	void OnAttach() override
 	{
 		LOG_DEBUG("Game layer attached!");
 
@@ -423,7 +423,7 @@ public:
         RenderModel(_alpine_chalet, *_pbr_shader, Vec3(20, 1, 0), Quaternion::Identity(), 1.0f);
 	}
 
-	void OnEvent(Event& ev)
+	void OnEvent(Event& ev) override
 	{
 		EventDispatcher dispatcher(ev);
 		dispatcher.Dispatch<QuitEvent>([](Event& ev) -> bool {
@@ -438,11 +438,11 @@ private:
 	bool OnKeyPress(KeyPressEvent& ev)
 	{
 		bool handled = false;
-        if (ev.key_code == KeyCode_a) {
+        if (ev.key_code == KeyCode_A) {
 			_moving_left = true;
 			handled = true;
         }
-        if (ev.key_code == KeyCode_d) {
+        if (ev.key_code == KeyCode_D) {
 			_moving_right = true;
 			handled = true;
         }
@@ -462,15 +462,15 @@ private:
 			_turning_down = true;
 			handled = true;
         }
-        if (ev.key_code == KeyCode_w) {
+        if (ev.key_code == KeyCode_W) {
 			_moving_forward = true;
 			handled = true;
         }
-        if (ev.key_code == KeyCode_s) {
+        if (ev.key_code == KeyCode_S) {
 			_moving_backward = true;
 			handled = true;
         }
-        if (ev.key_code == KeyCode_q) {
+        if (ev.key_code == KeyCode_Q) {
 			Application::Instance()->Quit();
 			handled = true;
         }
@@ -480,11 +480,11 @@ private:
 	bool OnKeyRelease(KeyReleaseEvent& ev)
 	{
 		bool handled = false;
-        if (ev.key_code == KeyCode_a) {
+        if (ev.key_code == KeyCode_A) {
 			_moving_left = false;
 			handled = true;
         }
-        if (ev.key_code == KeyCode_d) {
+        if (ev.key_code == KeyCode_D) {
 			_moving_right = false;
 			handled = true;
         }
@@ -504,11 +504,11 @@ private:
 			_turning_down = false;
 			handled = true;
         }
-        if (ev.key_code == KeyCode_w) {
+        if (ev.key_code == KeyCode_W) {
 			_moving_forward = false;
 			handled = true;
         }
-        if (ev.key_code == KeyCode_s) {
+        if (ev.key_code == KeyCode_S) {
 			_moving_backward = false;
 			handled = true;
         }
