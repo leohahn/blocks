@@ -343,7 +343,7 @@ ResourceManager::LoadShader(const Sid& shader_sid)
     full_path.Push("shaders");
     full_path.Push(shader_sid.GetStr());
 
-    LOG_DEBUG("Making shader program for %s\n", shader_sid.GetStr());
+    LOG_DEBUG("Making shader program for %s", shader_sid.GetStr());
 
     Shader* shader = allocator->New<Shader>(allocator);
     assert(shader);
@@ -424,9 +424,9 @@ ResourceManager::LoadShader(const Sid& shader_sid)
         LOG_ERROR("Shader linking failed: %s\n", info);
         goto error_cleanup;
     }
-    
+
     goto ok;
-    
+
 error_cleanup:
     LOG_ERROR("Failed to load shader %s", shader_sid.GetStr());
     allocator->Delete(shader);
@@ -518,7 +518,7 @@ LoadTextureFromFile(Allocator* allocator,
 
     glTexImage2D(
         GL_TEXTURE_2D, 0, internal_format, texture_width, texture_height, 0, format, GL_UNSIGNED_BYTE, data);
-    
+
     LOG_DEBUG("  loaded with width=%d and height=%d", texture_width, texture_height);
 
     glGenerateMipmap(GL_TEXTURE_2D);

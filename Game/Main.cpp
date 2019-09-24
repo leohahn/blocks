@@ -96,7 +96,7 @@ SetupCube(Allocator* allocator, Allocator* scratch_allocator, Material* material
         16, 17, 18, 18, 19, 16,
         20, 21, 22, 22, 23, 20,
     };
-    
+
     static const Vec3 vertices[] =
     {
         // FRONT
@@ -130,7 +130,7 @@ SetupCube(Allocator* allocator, Allocator* scratch_allocator, Material* material
         Vec3(1,  1, -1), // 22
         Vec3(1,  1,  1), // 23
     };
-    
+
     static const Vec2 uvs[] =
     {
         // FRONT
@@ -246,7 +246,7 @@ public:
 		//
 		// Load shaders
 		//
-		LOG_DEBUG("Loading shaders\n");
+		LOG_DEBUG("Loading shaders");
 
 		ResourceManager* resource_manager = Application::Instance()->GetResourceManager();
 
