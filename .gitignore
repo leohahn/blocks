@@ -4,3 +4,4 @@ _builds
 .vscode/ipch
 .ccls-cache
 .ccls-root
+.vs
