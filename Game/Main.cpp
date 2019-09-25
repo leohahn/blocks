@@ -337,12 +337,12 @@ public:
 		Graphics::LowLevelApi::SetClearColor(Vec4(0.2f, 0.2f, 0.2f, 1.0f));
 	}
 
-	void OnDetach()
+	void OnDetach() override
 	{
 		LOG_DEBUG("Game layer detached!");
 	}
 
-	void OnUpdate(DeltaTime delta_time)
+	void OnUpdate(DeltaTime delta_time) override
 	{
 		_camera.Update(delta_time);
 
@@ -561,8 +561,8 @@ int main(int argc, char** argv)
 
 	ApplicationParams params;
 	params.memory_size = MEGABYTES(128);
-	params.screen_width = 1024;
-	params.screen_height = 768;
+	params.screen_width = 1440;
+	params.screen_height = 900;
 	params.vsync = false;
 
 	Application* app = new Game(params);

@@ -17,9 +17,11 @@ enum class EventType
 	MouseButtonRelease,
 	MouseMove,
 	MouseWheel,
+	TextInput,
 	KeyPress,
 	KeyRelease,
 	Quit,
+	WindowResize,
 };
 
 enum EventCategory
@@ -27,6 +29,7 @@ enum EventCategory
 	EventCategory_None     = 0,
 	EventCategory_Mouse    = HAN_BIT(0),
 	EventCategory_Keyboard = HAN_BIT(1),
+	EventCategory_Window   = HAN_BIT(2),
 };
 
 enum KeyCode
@@ -165,6 +168,13 @@ enum KeyMod
 	KeyMod_Super = HAN_BIT(3),
 };
 
+enum MouseButton
+{
+	MouseButton_Left = 0,
+	MouseButton_Right = 1,
+	MouseButton_Middle = 2,
+};
+
 class Event
 {
 	friend class EventDispatcher;
@@ -190,6 +200,30 @@ public:
 	const char* GetName() const override { return "Quit"; }
 	int GetCategoryFlags() const override { return EventCategory_None; }
 	static EventType GetStaticType() { return EventType::Quit; }
+};
+
+class WindowResizeEvent : public Event
+{
+public:
+	int width;
+	int height;
+
+	WindowResizeEvent(int w, int h)
+		: width(w)
+		, height(h)
+	{}
+
+	String ToString() const override
+	{
+		StringBuilder str;
+		str << "WindowResize(" << width << ", " << height << ")";
+		return str.ToString();
+	}
+
+	EventType GetType() const override { return GetStaticType(); }
+	const char* GetName() const override { return "WindowResize"; }
+	int GetCategoryFlags() const override { return EventCategory_Window; }
+	static EventType GetStaticType() { return EventType::WindowResize; }
 };
 
 class KeyReleaseEvent : public Event
@@ -242,19 +276,42 @@ public:
 	static EventType GetStaticType() { return EventType::KeyPress; }
 };
 
+class TextInputEvent : public Event
+{
+public:
+	char text[32];
+
+	TextInputEvent(char c[32])
+	{
+		memcpy(text, c, ARRAY_SIZE(text));
+	}
+
+	String ToString() const override
+	{
+		StringBuilder str;
+		str << "TextInput(" << text << ")";
+		return str.ToString();
+	}
+
+	EventType GetType() const override { return GetStaticType(); }
+	const char* GetName() const override { return "TextInput"; }
+	int GetCategoryFlags() const override { return EventCategory_Keyboard; }
+	static EventType GetStaticType() { return EventType::TextInput; }
+};
+
 class MouseButtonReleaseEvent : public Event
 {
 public:
-	int button_index;
+	MouseButton button;
 
-	MouseButtonReleaseEvent(int button_index)
-		: button_index(button_index)
+	MouseButtonReleaseEvent(MouseButton button)
+		: button(button)
 	{}
 
 	String ToString() const override
 	{
 		StringBuilder str;
-		str << "MouseButtonRelease(" << button_index << ")";
+		str << "MouseButtonRelease(" << (int)button << ")";
 		return str.ToString();
 	}
 
@@ -267,18 +324,18 @@ public:
 class MouseButtonPressEvent : public Event
 {
 public:
-	int button_index;
+	MouseButton button;
 	int click_count;
 
-	MouseButtonPressEvent(int button_index, int click_count)
-		: button_index(button_index)
+	MouseButtonPressEvent(MouseButton button, int click_count)
+		: button(button)
 		, click_count(click_count)
 	{}
 
 	String ToString() const override
 	{
 		StringBuilder str;
-		str << "MouseButtonPress(" << button_index << ", clicks = " << click_count << ")";
+		str << "MouseButtonPress(" << (int)button << ", clicks = " << click_count << ")";
 		return str.ToString();
 	}
 

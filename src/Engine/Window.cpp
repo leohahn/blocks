@@ -124,13 +124,43 @@ public:
 					break;
 				}
 				case SDL_MOUSEBUTTONUP: {
-					MouseButtonReleaseEvent ev(event.button.button);
-					_event_cb(ev);
+					switch (event.button.button) {
+						case SDL_BUTTON_LEFT: {
+							MouseButtonReleaseEvent ev(MouseButton_Left);
+							_event_cb(ev);
+							break;
+						}
+						case SDL_BUTTON_MIDDLE: {
+							MouseButtonReleaseEvent ev(MouseButton_Middle);
+							_event_cb(ev);
+							break;
+						}
+						case SDL_BUTTON_RIGHT: {
+							MouseButtonReleaseEvent ev(MouseButton_Right);
+							_event_cb(ev);
+							break;
+						}
+					}
 					break;
 				}
 				case SDL_MOUSEBUTTONDOWN: {
-					MouseButtonPressEvent ev(event.button.button, event.button.clicks);
-					_event_cb(ev);
+					switch (event.button.button) {
+						case SDL_BUTTON_LEFT: {
+							MouseButtonPressEvent ev(MouseButton_Left, event.button.clicks);
+							_event_cb(ev);
+							break;
+						}
+						case SDL_BUTTON_MIDDLE: {
+							MouseButtonPressEvent ev(MouseButton_Middle, event.button.clicks);
+							_event_cb(ev);
+							break;
+						}
+						case SDL_BUTTON_RIGHT: {
+							MouseButtonPressEvent ev(MouseButton_Right, event.button.clicks);
+							_event_cb(ev);
+							break;
+						}
+					}
 					break;
 				}
 				case SDL_MOUSEMOTION: {
@@ -150,6 +180,18 @@ public:
 					}
 					MouseWheelEvent ev(x, y);
 					_event_cb(ev);
+					break;
+				}
+				case SDL_TEXTINPUT: {
+					TextInputEvent ev(event.text.text);
+					_event_cb(ev);
+					break;
+				}
+				case SDL_WINDOWEVENT: {
+					if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+						WindowResizeEvent ev(event.window.data1, event.window.data2);
+						_event_cb(ev);
+					}
 					break;
 				}
 			}

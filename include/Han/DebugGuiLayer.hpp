@@ -20,4 +20,6 @@ private:
 	bool OnKeyRelease(KeyReleaseEvent& ev);
 	bool OnMouseWheel(MouseWheelEvent& ev);
 	bool OnMouseMove(MouseMoveEvent& ev);
+	bool OnMouseButtonRelease(MouseButtonReleaseEvent& ev);
+	bool OnTextInputEvent(TextInputEvent& ev);
 };

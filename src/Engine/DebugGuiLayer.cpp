@@ -61,6 +61,7 @@ DebugGuiLayer::OnDetach()
 {
 	LOG_INFO("Shutting down debug GUI");
 	ImGui_ImplOpenGL3_Shutdown();
+	ImGui::DestroyContext();
 }
 
 void
@@ -73,7 +74,9 @@ DebugGuiLayer::OnUpdate(DeltaTime delta)
 	ImGui::NewFrame();
 
 	static bool show = true;
-	ImGui::ShowDemoWindow(&show);
+	if (show) {
+		ImGui::ShowDemoWindow(&show);
+	}
 
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -84,10 +87,12 @@ DebugGuiLayer::OnEvent(Event& ev)
 {
 	EventDispatcher dispatcher(ev);
 	dispatcher.Dispatch<MouseButtonPressEvent>(HAN_BIND_EV_HANDLER(DebugGuiLayer::OnMouseButtonPress));
+	dispatcher.Dispatch<MouseButtonReleaseEvent>(HAN_BIND_EV_HANDLER(DebugGuiLayer::OnMouseButtonRelease));
 	dispatcher.Dispatch<KeyPressEvent>(HAN_BIND_EV_HANDLER(DebugGuiLayer::OnKeyPress));
 	dispatcher.Dispatch<KeyReleaseEvent>(HAN_BIND_EV_HANDLER(DebugGuiLayer::OnKeyRelease));
 	dispatcher.Dispatch<MouseWheelEvent>(HAN_BIND_EV_HANDLER(DebugGuiLayer::OnMouseWheel));
 	dispatcher.Dispatch<MouseMoveEvent>(HAN_BIND_EV_HANDLER(DebugGuiLayer::OnMouseMove));
+	dispatcher.Dispatch<TextInputEvent>(HAN_BIND_EV_HANDLER(DebugGuiLayer::OnTextInputEvent));
 }
 
 bool
@@ -102,15 +107,16 @@ bool
 DebugGuiLayer::OnMouseButtonPress(MouseButtonPressEvent& ev)
 {
 	ImGuiIO& io = ImGui::GetIO();
-	switch (ev.button_index) {
-		case 0:
-		case 1:
-		case 2:
-			io.MouseDown[ev.button_index] = true;
-			return true;
-		default:
-			return false;
-	}
+	io.MouseDown[ev.button] = true;
+	return false;
+}
+
+bool
+DebugGuiLayer::OnMouseButtonRelease(MouseButtonReleaseEvent& ev)
+{
+	ImGuiIO& io = ImGui::GetIO();
+	io.MouseDown[ev.button] = false;
+	return false;
 }
 
 bool
@@ -124,10 +130,8 @@ DebugGuiLayer::OnKeyPress(KeyPressEvent& ev)
 		io.KeyCtrl = ((ev.mod_flags & KeyMod_Ctrl) != 0);
 		io.KeyAlt = ((ev.mod_flags & KeyMod_Alt) != 0);
 		io.KeySuper = ((ev.mod_flags & KeyMod_Super) != 0);
-		return true;
-	} else {
-		return false;
 	}
+	return false;
 }
 
 bool
@@ -141,14 +145,23 @@ DebugGuiLayer::OnKeyRelease(KeyReleaseEvent& ev)
 		io.KeyCtrl = ((ev.mod_flags & KeyMod_Ctrl) != 0);
 		io.KeyAlt = ((ev.mod_flags & KeyMod_Alt) != 0);
 		io.KeySuper = ((ev.mod_flags & KeyMod_Super) != 0);
-		return true;
-	} else {
-		return false;
 	}
+	return false;
 }
 
 bool
 DebugGuiLayer::OnMouseWheel(MouseWheelEvent& ev)
 {
+	ImGuiIO& io = ImGui::GetIO();
+	io.MouseWheel += ev.y;
+	io.MouseWheelH += ev.x;
+	return false;
+}
+
+bool
+DebugGuiLayer::OnTextInputEvent(TextInputEvent& ev)
+{
+	ImGuiIO& io = ImGui::GetIO();
+	io.AddInputCharactersUTF8(ev.text);
 	return false;
 }
