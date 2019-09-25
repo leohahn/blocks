@@ -1,5 +1,10 @@
 #include "Han/Han.hpp"
 
+//
+// TODO:
+//    - Create a memory allocation GUI layer
+//
+
 static TriangleMesh
 SetupPlane(Allocator* allocator, Allocator* scratch_allocator, Material* material)
 {
