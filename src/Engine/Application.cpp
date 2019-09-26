@@ -5,6 +5,7 @@
 #include "Han/Renderer/LowLevel.hpp"
 #include "Han/ResourceManager.hpp"
 #include "Han/Sid.hpp"
+#include "Han/AllocatorFactory.hpp"
 #include "Editor.hpp"
 #include <chrono>
 
@@ -32,15 +33,16 @@ void
 Application::Initialize()
 {
 	LOG_INFO("Initializing the engine");
+	AllocatorFactory::Instance().Initialize(MallocAllocator::Instance());
 
     const size_t resource_manager_designated_memory = MEGABYTES(64);
 
     _memory = Memory(_params.memory_size);
-    _main_allocator = LinearAllocator("main", _memory);
-    _temp_allocator = MallocAllocator("temporary_allocator");
+    _main_allocator = AllocatorFactory::Instance().Create<LinearAllocator>("main", _memory);
+    _temp_allocator = AllocatorFactory::Instance().Create<MallocAllocator>("temporary_allocator");
 
 	// TODO: consider using another allocator here.
-	_layer_stack.SetAllocator(&_temp_allocator);
+	_layer_stack.SetAllocator(_temp_allocator);
 
     // ===============================================================
     // First, load the engine configuration file
@@ -75,25 +77,26 @@ Application::Initialize()
     window_opts.title = "Blocks";
 	window_opts.vsync = _params.vsync;
     
-    _window = Window::Create(&_main_allocator, window_opts);
+    _window = Window::Create(_main_allocator, window_opts);
 	_window->SetEventCallback(std::bind(&Application::OnEvent, this, std::placeholders::_1));
 
-    Graphics::LowLevelApi::Initialize(&_main_allocator);
+    Graphics::LowLevelApi::Initialize(_main_allocator);
     Graphics::LowLevelApi::SetViewPort(0, 0, _params.screen_width, _params.screen_height);
     Graphics::LowLevelApi::SetFaceCulling(true);
     Graphics::LowLevelApi::SetDepthTest(true);
 
     _running = true;
 
-    _resource_manager_allocator = LinearAllocator(
+    _resource_manager_allocator = AllocatorFactory::Instance().CreateFromParent<LinearAllocator>(
+		_main_allocator,
         "resource_manager",
-        _main_allocator.Allocate(resource_manager_designated_memory),
+        _main_allocator->Allocate(resource_manager_designated_memory),
         resource_manager_designated_memory
     );
-    _resource_manager = _main_allocator.New<ResourceManager>(&_resource_manager_allocator, &_temp_allocator);
+    _resource_manager = _main_allocator->New<ResourceManager>(_resource_manager_allocator, _temp_allocator);
     _resource_manager->Create();
 
-    SidDatabase::Initialize(&_main_allocator);
+    SidDatabase::Initialize(_main_allocator);
 
 	_start_time = std::chrono::high_resolution_clock::now();
 
@@ -110,9 +113,9 @@ Application::Shutdown()
 	LOG_INFO("Destroying the engine");
     SidDatabase::Terminate();
     _resource_manager->Destroy();
-    _main_allocator.Delete(_resource_manager);
+    _main_allocator->Delete(_resource_manager);
     Graphics::LowLevelApi::Terminate();
-    _main_allocator.Delete(_window);
+    _main_allocator->Delete(_window);
 
 	Editor::Terminate();
 }

@@ -45,8 +45,8 @@ public:
 	uint32_t GetScreenHeight() const { return _params.screen_height; }
 	float GetScreenAspectRatio() const { return (float)_params.screen_width / _params.screen_height; }
 	ResourceManager* GetResourceManager() const { return _resource_manager; }
-	Allocator* GetMainAllocator() { return &_main_allocator; }
-	Allocator* GetTempAllocator() { return &_temp_allocator; }
+	Allocator* GetMainAllocator() { return _main_allocator; }
+	Allocator* GetTempAllocator() { return _temp_allocator; }
 
 private:
 	void Initialize();
@@ -59,14 +59,14 @@ private:
 	ApplicationParams _params;
 	Memory _memory;
 	Window* _window;
-    LinearAllocator _resource_manager_allocator;
+    Allocator* _resource_manager_allocator;
 	ResourceManager* _resource_manager;
 	bool _running;
 	std::chrono::high_resolution_clock::time_point _start_time;
 	Time _time;
 
 protected:
-    LinearAllocator _main_allocator;
-    MallocAllocator _temp_allocator;
+    Allocator* _main_allocator;
+    Allocator* _temp_allocator;
 	LayerStack _layer_stack;
 };

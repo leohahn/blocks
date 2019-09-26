@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <assert.h>
 #include <initializer_list>
-#include "Han/Allocator.hpp"
+#include "Han/MallocAllocator.hpp"
 
 #define ARRAY_INITIAL_SIZE 2
 #define ARRAY_INVALID_POS ((size_t)-1)
@@ -16,7 +16,7 @@ struct Array
     using ConstIterator = const T*;
 public:
     Array()
-        : Array(nullptr)
+        : Array(MallocAllocator::Instance())
     {}
     
     explicit Array(Allocator* allocator)

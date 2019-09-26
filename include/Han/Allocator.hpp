@@ -9,6 +9,7 @@ struct Allocator
     virtual void* Allocate(size_t size) = 0;
     virtual void Deallocate(void* ptr) = 0;
     virtual const char* GetName() const = 0;
+	virtual size_t GetAllocatedBytes() const = 0;
 
     template<typename T, typename... Args>
     T* New(Args&&... args)

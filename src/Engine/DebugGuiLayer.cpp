@@ -1,6 +1,7 @@
 #include "Han/DebugGuiLayer.hpp"
 #include "Han/Logger.hpp"
 #include "Han/Application.hpp"
+#include "Han/AllocatorFactory.hpp"
 
 #include "imgui/imgui.h"
 #include "imgui/examples/imgui_impl_opengl3.h"
@@ -77,6 +78,12 @@ DebugGuiLayer::OnUpdate(DeltaTime delta)
 	if (show) {
 		ImGui::ShowDemoWindow(&show);
 	}
+
+	LOG_INFO("====================== Memory ========================");
+	for (const auto& node : AllocatorFactory::Instance().GetNodes()) {
+		LOG_INFO("Allocator %s: allocated %s", node.allocator->GetName(), Utils::GetPrettySize(node.allocator->GetAllocatedBytes()));
+	}
+	LOG_INFO("======================================================");
 
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

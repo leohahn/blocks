@@ -112,6 +112,7 @@ add_library(Han
     include/Han/ResourceFile.hpp
     include/Han/Events.hpp
     include/Han/StringBuilder.hpp
+    include/Han/AllocatorFactory.hpp
 
     # Core
     src/Engine/Application.cpp
@@ -136,6 +137,7 @@ add_library(Han
     src/Engine/Renderer/OpenGLBuffer.cpp
     src/Engine/Renderer/LowLevelOpenGL.hpp
     src/Engine/Renderer/LowLevelOpenGL.cpp
+    src/Engine/AllocatorFactory.cpp
 
     # Importers
     src/Engine/Importers/GLTF2.hpp

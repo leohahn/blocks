@@ -7,14 +7,13 @@ class MallocAllocator : public Allocator
 {
 public:
     MallocAllocator()
-        : MallocAllocator("")
+        : MallocAllocator("Malloc")
     {}
 
     MallocAllocator(const char* name)
         : _bytes_water_mark(0)
         , _name(name)
     {
-        assert(_name && "allocator should have a name");
     }
 
     void* Allocate(size_t size) override
@@ -30,6 +29,7 @@ public:
     const char* GetName() const override { return _name; }
 
     size_t GetBytesWaterMark() const { return _bytes_water_mark; }
+	size_t GetAllocatedBytes() const override { return _bytes_water_mark; }
 
 	static Allocator* Instance()
 	{

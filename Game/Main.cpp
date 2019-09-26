@@ -248,6 +248,12 @@ public:
 		Allocator* main_allocator = app->GetMainAllocator();
 		Allocator* temp_allocator = app->GetTempAllocator();
 
+		{
+			// TODO, TEMPORARY: remove this code
+			Allocator* test = AllocatorFactory::Instance().Create<LinearAllocator>("MYTEST", main_allocator->Allocate(MEGABYTES(2)), MEGABYTES(2));
+			test->Allocate(MEGABYTES(1));
+		}
+
 		//
 		// Load shaders
 		//

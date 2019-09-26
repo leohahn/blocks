@@ -80,6 +80,8 @@ public:
         (void)ptr;
     }
 
+	size_t GetAllocatedBytes() const override { return _bytes_allocated; }
+
     const char* GetName() const override { return _name; }
 
     void Clear() { _bytes_allocated = 0; }

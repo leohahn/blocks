@@ -9,6 +9,7 @@
 #include "Han/DebugGuiLayer.hpp"
 #include "Han/Events.hpp"
 #include "Han/Camera.hpp"
+#include "Han/AllocatorFactory.hpp"
 #include "Han/FileSystem.hpp"
 #include "Han/InputSystem.hpp"
 #include "Han/MallocAllocator.hpp"
