@@ -23,7 +23,7 @@ InputSystem::Create(Allocator* allocator)
     }
 
     LOG_INFO("Input sytem initialized with %s of memory in %s allocator",
-             Utils::GetPrettySize(size),
+             Utils::GetPrettySize(size).data,
              allocator->GetName());
 }
 

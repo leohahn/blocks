@@ -14,7 +14,7 @@
 namespace Utils
 {
 
-char* GetPrettySize(size_t size);
+String GetPrettySize(size_t size, Allocator* alloc = MallocAllocator::Instance());
 
 bool ParseInt32(const char* str, int32_t* res);
 

@@ -65,6 +65,37 @@ DebugGuiLayer::OnDetach()
 	ImGui::DestroyContext();
 }
 
+static void
+ShowAllocator(const AllocatorFactory::Node& node, const Array<AllocatorFactory::Node>& nodes, int* tree_node_id)
+{
+	auto name = node.allocator->GetName();
+	auto pretty_used_size = Utils::GetPrettySize(node.allocator->GetAllocatedBytes());
+	auto pretty_total_size = Utils::GetPrettySize(node.allocator->GetSize());
+
+	bool open = false;
+
+	void* id = (void*)*tree_node_id;
+	*tree_node_id += 1;
+
+	int flags = node.children_indices.GetLen() == 0 ? ImGuiTreeNodeFlags_Leaf : ImGuiTreeNodeFlags_None;
+
+	switch (node.allocator->GetType()) {
+		case AllocatorType::Linear: open = ImGui::TreeNodeEx(id, flags, "[LinearAllocator] %s: %s of %s", name, pretty_used_size.data, pretty_total_size.data); break;
+		case AllocatorType::Malloc: open = ImGui::TreeNodeEx(id, flags, "[MallocAllocator] %s: Used = %s", name, pretty_used_size.data); break;
+		default: UNREACHABLE; break;
+	}
+
+	// Iterate over each child
+	if (open) {
+		for (const auto child_index : node.children_indices) {
+			ASSERT(child_index >= 0 && child_index < nodes.GetLen(), "Index should be valid based on the size of the nodes array");
+			const auto& child_node = nodes[child_index];
+			ShowAllocator(child_node, nodes, tree_node_id);
+		}
+	    ImGui::TreePop();
+	}
+}
+
 void
 DebugGuiLayer::OnUpdate(DeltaTime delta)
 {
@@ -79,11 +110,17 @@ DebugGuiLayer::OnUpdate(DeltaTime delta)
 		ImGui::ShowDemoWindow(&show);
 	}
 
-	LOG_INFO("====================== Memory ========================");
-	for (const auto& node : AllocatorFactory::Instance().GetNodes()) {
-		LOG_INFO("Allocator %s: allocated %s", node.allocator->GetName(), Utils::GetPrettySize(node.allocator->GetAllocatedBytes()));
+	int tree_node_id = 1;
+
+	// Memory Profiler window
+	ImGui::Begin("MemoryProfiler");
+	const auto& nodes = AllocatorFactory::Instance().GetNodes();
+	for (const auto& node : nodes) {
+		if (node.type == AllocatorFactory::NodeType::Root) {
+			ShowAllocator(node, nodes, &tree_node_id);
+		}
 	}
-	LOG_INFO("======================================================");
+	ImGui::End();
 
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

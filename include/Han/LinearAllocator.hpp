@@ -63,9 +63,9 @@ public:
 
         if (size > _size - _bytes_allocated) {
             LOG_WARN("Cannot allocate %s memory in %s allocator (size of %s)",
-                     Utils::GetPrettySize(size),
+                     Utils::GetPrettySize(size).data,
                      _name,
-                     Utils::GetPrettySize(_size));
+                     Utils::GetPrettySize(_size).data);
             return nullptr;
         }
 
@@ -83,6 +83,10 @@ public:
 	size_t GetAllocatedBytes() const override { return _bytes_allocated; }
 
     const char* GetName() const override { return _name; }
+
+	size_t GetSize() const override { return _size; }
+
+	AllocatorType GetType() const override { return AllocatorType::Linear; }
 
     void Clear() { _bytes_allocated = 0; }
 

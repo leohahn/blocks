@@ -10,16 +10,24 @@ struct Allocator;
 class AllocatorFactory
 {
 public:
+	enum class NodeType
+	{
+		Root,
+		Child,
+	};
+
 	struct Node
 	{
+		NodeType type;
 		Allocator* allocator;
 		// We assume that the indices of the children do not change,
 		// that is, the order of the elements in the nodes array does not change.
 		Array<size_t> children_indices;
 		bool owns;
 
-		explicit Node(Allocator* alloc, bool owns)
-			: allocator(alloc)
+		explicit Node(NodeType type, Allocator* alloc, bool owns)
+			: type(type)
+			, allocator(alloc)
 			, owns(owns)
 		{}
 

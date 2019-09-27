@@ -31,6 +31,11 @@ public:
     size_t GetBytesWaterMark() const { return _bytes_water_mark; }
 	size_t GetAllocatedBytes() const override { return _bytes_water_mark; }
 
+	// Malloc allocators have no size, since the amount of memory is only bounded
+	// by the operating system.
+	size_t GetSize() const override { return 0; }
+	AllocatorType GetType() const override { return AllocatorType::Malloc; }
+
 	static Allocator* Instance()
 	{
 		static MallocAllocator alloc;
