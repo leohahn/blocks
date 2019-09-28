@@ -8,7 +8,7 @@
 #include <math.h>
 
 static const char* kSizeNames[] = {
-    "B", "KiB", "MiB", "GiB", "TiB",
+    "B", "KiB", "MiB", "GiB", "TiB", "PiB"
 };
 
 String
@@ -20,7 +20,7 @@ Utils::GetPrettySize(size_t size, Allocator* alloc)
         new_size /= 1024;
         ++index;
     }
-    assert(index < ARRAY_SIZE(kSizeNames));
+    ASSERT(index < ARRAY_SIZE(kSizeNames), "Index should be smaller than the array");
 
 	char buf[64];
     snprintf(buf, 64, "%.2f %s", new_size, kSizeNames[index]);
