@@ -105,22 +105,35 @@ DebugGuiLayer::OnUpdate(DeltaTime delta)
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui::NewFrame();
 
-	static bool show = true;
-	if (show) {
-		ImGui::ShowDemoWindow(&show);
-	}
+	//static bool show = true;
+	//if (show) {
+		//ImGui::ShowDemoWindow(&show);
+	//}
 
-	int tree_node_id = 1;
+	static bool show_memory_profiler = false;
 
-	// Memory Profiler window
-	ImGui::Begin("MemoryProfiler");
-	const auto& nodes = AllocatorFactory::Instance().GetNodes();
-	for (const auto& node : nodes) {
-		if (node.type == AllocatorFactory::NodeType::Root) {
-			ShowAllocator(node, nodes, &tree_node_id);
+	if (ImGui::BeginMainMenuBar()) {
+		if (ImGui::BeginMenu("Profilers")) {
+			if (ImGui::MenuItem("Memory Profiler")) {
+				show_memory_profiler = true;
+			}
+			ImGui::EndMenu();
 		}
+		ImGui::EndMainMenuBar();
 	}
-	ImGui::End();
+
+	if (show_memory_profiler) {
+		int tree_node_id = 1;
+		// Memory Profiler window
+		ImGui::Begin("MemoryProfiler", &show_memory_profiler);
+		const auto& nodes = AllocatorFactory::Instance().GetNodes();
+		for (const auto& node : nodes) {
+			if (node.type == AllocatorFactory::NodeType::Root) {
+				ShowAllocator(node, nodes, &tree_node_id);
+			}
+		}
+		ImGui::End();
+	}
 
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
