@@ -1,0 +1,2 @@
+type = gltf2.0;
+gltf_file = glTF-Sample-Models/2.0/BoxAnimated/glTF/BoxAnimated.gltf;

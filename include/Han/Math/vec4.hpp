@@ -21,7 +21,6 @@ struct Vec4
         };
     };
 
-
     Vec4() = default;
 
     Vec4(float x, float y, float z, float w)
@@ -38,6 +37,8 @@ struct Vec4
     Vec4(Vec3 v, float w)
         : Vec4(v.x, v.y, v.z, w)
     {}
+
+	static Vec4 Zero() { return Vec4(0); }
 };
 
 inline Vec4

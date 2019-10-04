@@ -343,6 +343,7 @@ public:
 		_alpine_chalet = resource_manager->LoadModel(SID("Alpine_chalet.model"));
 		_hammer = resource_manager->LoadModel(SID("hammer.model"));
 		_nanosuit = resource_manager->LoadModel(SID("nanosuit.model"));
+		_box_animated = resource_manager->LoadModel(SID("BoxAnimated.model"));
 
 		LOG_DEBUG("Starting main loop");
 		Graphics::LowLevelApi::SetClearColor(Vec4(0.2f, 0.2f, 0.2f, 1.0f));
@@ -535,6 +536,7 @@ private:
 	Model _hammer;
 	Model _alpine_chalet;
 	Model _nanosuit;
+	Model _box_animated;
 	TriangleMesh _floor_mesh;
 	TriangleMesh _cube_mesh;
 	TriangleMesh _light_mesh;

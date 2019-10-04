@@ -31,28 +31,48 @@ Utils::GetPrettySize(size_t size, Allocator* alloc)
 
 static constexpr int kStartAsciiTableOffset = 48;
 
-bool
+int
 Utils::ParseInt32(const char* str, int32_t* res)
 {
-    assert(res);
-    const char* search = str;
+	return ParseInt32((const uint8_t*)str, strlen(str), res);
+}
+
+
+int
+Utils::ParseInt32(const uint8_t* data, size_t size, int32_t* res)
+{
+    ASSERT(res, "res should not be null");
+    const uint8_t* search = data;
+	const uint8_t* end = search + size;
     *res = 0;
-    while (search) {
-        if (isdigit(*search)) {
+
+	bool is_negative = false;
+	int num_consumed = 0;
+
+	ASSERT(search < end, "Search should always be smaller than end");
+    while (search < end) {
+		if (*search == '-') {
+			is_negative = true;
+			++search;
+			++num_consumed;
+		} else if (isdigit(*search)) {
             *res = (*res * 10) + (*search - kStartAsciiTableOffset);
+			++search;
+			++num_consumed;
         } else {
-            return false;
+            return 0;
         }
     }
 
-    return true;
+	if (is_negative) *res = -*res;
+    return num_consumed;
 }
 
 bool
 StringUtils::EndsWith(const char* str, const char* ending)
 {
-    assert(str);
-    assert(ending);
+    ASSERT(str, "str should not be null");
+    ASSERT(ending, "ending should not be null");
 
     const size_t str_len = strlen(str);
     const size_t ending_len = strlen(ending);

@@ -10,7 +10,7 @@
 struct GltfNode
 {
     String name;
-    int32_t mesh;
+    int32_t mesh = -1;
     Vec3 translation;
     Quaternion rotation;
 };
@@ -72,6 +72,11 @@ struct GltfMesh
     Array<GltfPrimitive> primitives;
 };
 
+struct GltfAsset
+{
+	String version;
+};
+
 struct GlbBufferHeader
 {
     uint32_t magic;
@@ -97,19 +102,16 @@ struct GltfBuffer
     String uri;
     uint8_t* data;
 
-    GltfBuffer(Allocator* alloc, const StringView& uri, int64_t byte_length)
+    GltfBuffer(Allocator* alloc, const Path& path, const StringView& uri, int64_t byte_length)
         : allocator(alloc)
         , uri(alloc, uri)
         , byte_length(byte_length)
     {
-        Path path = FileSystem::GetResourcesPath(alloc);
-        path.Push(uri);
-
         size_t file_size;
         data = FileSystem::LoadFileToMemory(alloc, path, &file_size);
 
-        ASSERT(file_size == byte_length, "sizes should be equal");
         ASSERT(data, "The buffer should exist");
+        ASSERT(file_size == byte_length, "sizes should be equal");
     }
 
     GltfBuffer(GltfBuffer&& buf)
@@ -225,8 +227,24 @@ struct GltfAccessor
     ComponentType component_type = ComponentType::Float;
     int64_t buffer_view_index = -1;
     int64_t count = -1;
-    Vec3 max = Vec3::Zero();
-    Vec3 min = Vec3::Zero();
+
+	union TypeUnion
+	{
+		Vec2 vec2;
+		Vec3 vec3;
+		Vec4 vec4;
+		Mat4 mat4;
+		float real;
+		uint8_t ubyte;
+		int8_t byte;
+		uint16_t usmall;
+		int16_t small;
+		uint32_t integer;
+	};
+
+	TypeUnion max;
+	TypeUnion min;
+
     uint32_t opengl_buffer = 0;
     bool normalized = false;
 
@@ -274,6 +292,57 @@ TryGetRotation(const Json::Val* rotation, Quaternion* out)
     }
     
     *out = Quaternion((float)x, (float)y, (float)z, (float)w);
+    return true;
+}
+
+static bool
+TryGetFloat(const Json::Val* vec, float* out)
+{
+    assert(out);
+    const Array<Json::Val>* translation_array = vec->AsArray();
+    if (!translation_array) { return false; }
+    if (translation_array->len != 1) { return false; }
+
+	const double* val = (*translation_array)[0].AsDouble();
+	if (!val) { return false; }
+
+	*out = (float)*val;
+    return true;
+}
+
+static bool
+TryGetScalar(const Json::Val* vec, int64_t* out)
+{
+    assert(out);
+    const Array<Json::Val>* translation_array = vec->AsArray();
+    if (!translation_array) { return false; }
+    if (translation_array->len != 1) { return false; }
+
+	const int64_t* val = (*translation_array)[0].AsInt64();
+	if (!val) { return false; }
+
+	*out = *val;
+    return true;
+}
+
+static bool
+TryGetVec2(const Json::Val* vec, Vec2* out)
+{
+    assert(out);
+    const Array<Json::Val>* translation_array = vec->AsArray();
+    if (!translation_array) { return false; }
+    if (translation_array->len != 2) { return false; }
+
+    double x, y;
+
+    if (!(*translation_array)[0].TryConvertNumberToDouble(&x)) {
+        return false;
+    }
+    if (!(*translation_array)[1].TryConvertNumberToDouble(&y)) {
+        return false;
+    }
+
+    *out = Vec2((float)x, (float)y);
     return true;
 }
         
@@ -366,14 +435,14 @@ TryGetNodes(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file, 
         }
         
         const Json::Val* name_val = raw_node->Find(String(alloc, "name"));
-        if (!name_val || !name_val->IsString()) {
-            LOG_ERROR("Was expecting a name property");
+        if (name_val && !name_val->IsString()) {
+            LOG_ERROR("Was expecting a name property as string");
             return false;
         }
         
         const Json::Val* mesh_val = raw_node->Find(String(alloc, "mesh"));
-        if (!mesh_val || !mesh_val->IsInteger()) {
-            LOG_ERROR("Was expecting a mesh property");
+        if (mesh_val && !mesh_val->IsInteger()) {
+            LOG_ERROR("Was expecting a mesh property as int");
             return false;
         }
 
@@ -390,8 +459,12 @@ TryGetNodes(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file, 
         }
         
         GltfNode out_node;
-        out_node.name = String(alloc, name_val->AsString()->View());
-        out_node.mesh = (int32_t)*mesh_val->AsInt64();
+		if (name_val) {
+			out_node.name = String(alloc, name_val->AsString()->View());
+		}
+		if (mesh_val) {
+			out_node.mesh = (int32_t)*mesh_val->AsInt64();
+		}
 
         if (translation_val) {
             if (!TryGetVec3(translation_val, &out_node.translation)) {
@@ -509,7 +582,7 @@ TryGetMeshes(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file,
 }
 
 bool
-TryGetBuffers(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file, Array<GltfBuffer>* out_buffers)
+TryGetBuffers(Allocator* alloc, const Path& directory, const RobinHashMap<String, Json::Val>* gltf_file, Array<GltfBuffer>* out_buffers)
 {
     assert(alloc);
     assert(out_buffers);
@@ -548,7 +621,8 @@ TryGetBuffers(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file
             return false;
         }
 
-        GltfBuffer out_buf(alloc, uri_val->AsString()->View(), *byte_length_val->AsInt64());
+		Path gltf_buffer_path = directory.Join(uri_val->AsString()->View());
+        GltfBuffer out_buf(alloc, gltf_buffer_path, uri_val->AsString()->View(), *byte_length_val->AsInt64());
 
         out_buffers->PushBack(std::move(out_buf));
     }
@@ -580,49 +654,57 @@ TryGetAccessors(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_fi
     
     for (size_t i = 0; i < accessors->len; ++i) {
         const RobinHashMap<String, Json::Val>* accessor = (*accessors)[i].AsObject();
-        if (!accessor) {
+        if (!accessor)
+		{
             LOG_ERROR("Was expecting a buffer object");
             return false;
         }
         
         const Json::Val* buffer_view_val = accessor->Find(String(alloc, "bufferView"));
-        if (!buffer_view_val || !buffer_view_val->IsInteger()) {
+        if (!buffer_view_val || !buffer_view_val->IsInteger())
+		{
             LOG_ERROR("Was expecting a bufferView property");
             return false;
         }
         
         const Json::Val* component_type_val = accessor->Find(String(alloc, "componentType"));
-        if (!component_type_val || !component_type_val->IsInteger()) {
+        if (!component_type_val || !component_type_val->IsInteger())
+		{
             LOG_ERROR("Was expecting a componentType property");
             return false;
         }
 
         const Json::Val* count_val = accessor->Find(String(alloc, "count"));
-        if (!count_val || !count_val->IsInteger()) {
+        if (!count_val || !count_val->IsInteger())
+		{
             LOG_ERROR("Was expecting a componentType property");
             return false;
         }
 
         const Json::Val* max_val = accessor->Find(String(alloc, "max"));
-        if (max_val && !max_val->IsArray()) {
+        if (max_val && !max_val->IsArray())
+		{
             LOG_ERROR("Was expecting a max property");
             return false;
         }
 
         const Json::Val* min_val = accessor->Find(String(alloc, "min"));
-        if (min_val && !min_val->IsArray()) {
+        if (min_val && !min_val->IsArray())
+		{
             LOG_ERROR("Was expecting a min property");
             return false;
         }
 
         const Json::Val* type_val = accessor->Find(String(alloc, "type"));
-        if (!type_val || !type_val->IsString()) {
+        if (!type_val || !type_val->IsString())
+		{
             LOG_ERROR("Was expecting a type property");
             return false;
         }
 
         const Json::Val* normalized_val = accessor->Find(String(alloc, "normalized"));
-        if (normalized_val && !normalized_val->IsBool()) {
+        if (normalized_val && !normalized_val->IsBool())
+		{
             LOG_ERROR("Was expecting a normalized property");
             return false;
         }
@@ -632,38 +714,176 @@ TryGetAccessors(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_fi
         out_accessor.count = *count_val->AsInt64();
         out_accessor.normalized = normalized_val ? *normalized_val->AsBool() : false;
 
-        if (out_accessor.buffer_view_index >= buffer_views.len) {
+        if (out_accessor.buffer_view_index >= buffer_views.len)
+		{
             LOG_ERROR("Invalid buffer view index in accessor: %d", out_accessor.buffer_view_index);
             return false;
         }
 
-        if (!TryGetAccessorType(type_val->AsString()->View(), &out_accessor.type)) {
+        if (!TryGetAccessorType(type_val->AsString()->View(), &out_accessor.type))
+		{
             LOG_ERROR("Invalid accessor type %s", type_val->AsString()->data);
             return false;
         }
 
-        if (!TryGetComponentType(*component_type_val->AsInt64(), &out_accessor.component_type)) {
+        if (!TryGetComponentType(*component_type_val->AsInt64(), &out_accessor.component_type))
+		{
             LOG_ERROR("Invalid component type %s", *component_type_val->AsInt64());
             return false;
         }
 
-        if (max_val) {
-            if (!TryGetVec3(max_val, &out_accessor.max)) {
-                LOG_ERROR("Was expecting a max vector");
-                return false;
+		if (out_accessor.component_type == ComponentType::Float &&
+			out_accessor.type == AccessorType::Vec2)
+		{
+			if (max_val)
+			{
+				if (!TryGetVec2(max_val, &out_accessor.max.vec2))
+				{
+					LOG_ERROR("Was expecting a max vector");
+					return false;
+				}
+			}
+			else
+			{
+				out_accessor.max.vec2 = Vec2::Zero();
+			}
+			if (min_val)
+			{
+				if (!TryGetVec2(min_val, &out_accessor.min.vec2))
+				{
+					LOG_ERROR("Was expecting a min vector");
+					return false;
+				}
+			}
+			else
+			{
+				out_accessor.min.vec2 = Vec2::Zero();
+			}
+		}
+		else if (out_accessor.component_type == ComponentType::Float &&
+			     out_accessor.type == AccessorType::Vec3)
+		{
+			if (max_val)
+			{
+				if (!TryGetVec3(max_val, &out_accessor.max.vec3))
+				{
+					LOG_ERROR("Was expecting a max vector");
+					return false;
+				}
+			}
+			else
+			{
+				out_accessor.max.vec3 = Vec3::Zero();
+			}
+			if (min_val)
+			{
+				if (!TryGetVec3(min_val, &out_accessor.min.vec3))
+				{
+					LOG_ERROR("Was expecting a min vector");
+					return false;
+				}
+			}
+			else
+			{
+				out_accessor.min.vec3 = Vec3::Zero();
+			}
+		}
+		else if (out_accessor.component_type == ComponentType::Float &&
+				 out_accessor.type == AccessorType::Vec4)
+		{
+			if (max_val)
+			{
+				if (!TryGetVec4(max_val, &out_accessor.max.vec4))
+				{
+					LOG_ERROR("Was expecting a max vector");
+					return false;
+				}
+			}
+			else
+			{
+				out_accessor.max.vec4 = Vec4::Zero();
+			}
+			if (min_val)
+			{
+				if (!TryGetVec4(min_val, &out_accessor.min.vec4))
+				{
+					LOG_ERROR("Was expecting a min vector");
+					return false;
+				}
+			}
+			else
+			{
+				out_accessor.min.vec4 = Vec4::Zero();
+			}
+		}
+		else if (out_accessor.component_type == ComponentType::Float &&
+				 out_accessor.type == AccessorType::Mat4)
+		{
+			ASSERT(false, "Combination not supported yet");
+		}
+		else if (out_accessor.component_type == ComponentType::UnsignedShort &&
+				 out_accessor.type == AccessorType::Scalar)
+		{
+			int64_t val;
+            if (max_val)
+			{
+                if (!TryGetScalar(max_val, &val))
+				{
+                    LOG_ERROR("Was expecting a max vector");
+                    return false;
+                }
+				out_accessor.max.usmall = (uint16_t)val;
             }
-        } else {
-            out_accessor.max = Vec3::Zero();
-        }
-
-        if (min_val) {
-            if (!TryGetVec3(min_val, &out_accessor.min)) {
-                LOG_ERROR("Was expecting a min vector");
-                return false;
+			else
+			{
+                out_accessor.max.usmall = 0;
             }
-        } else {
-            out_accessor.min = Vec3::Zero();
-        }
+            if (min_val)
+			{
+                if (!TryGetScalar(min_val, &val))
+				{
+                    LOG_ERROR("Was expecting a max vector");
+                    return false;
+                }
+				out_accessor.min.usmall = (uint16_t)val;
+			}
+			else
+			{
+				out_accessor.min.usmall = 0;
+			}
+		}
+		else if (out_accessor.component_type == ComponentType::Float &&
+				 out_accessor.type == AccessorType::Scalar)
+		{
+            if (max_val)
+			{
+                if (!TryGetFloat(max_val, &out_accessor.max.real))
+				{
+                    LOG_ERROR("Was expecting a max vector");
+                    return false;
+                }
+            }
+			else
+			{
+                out_accessor.max.usmall = 0;
+            }
+            if (min_val)
+			{
+                if (!TryGetFloat(min_val, &out_accessor.min.real))
+				{
+                    LOG_ERROR("Was expecting a max vector");
+                    return false;
+                }
+			}
+			else
+			{
+				out_accessor.min.real = 0.0f;
+			}
+		}
+		else
+		{
+			ASSERT(false, "Combination not supported yet");
+		}
 
         out_accessors->PushBack(std::move(out_accessor));
     }
@@ -718,7 +938,7 @@ TryGetMaterial(Allocator* alloc, const RobinHashMap<String, Json::Val>* raw_mate
     }
 
     const Json::Val* double_sided_val = raw_material->Find(String(alloc, "doubleSided"));
-    if (!double_sided_val || !double_sided_val->AsBool()) {
+    if (double_sided_val && !double_sided_val->AsBool()) {
         LOG_ERROR("Was expecting a doubleSided property");
         return false;
     }
@@ -740,7 +960,9 @@ TryGetMaterial(Allocator* alloc, const RobinHashMap<String, Json::Val>* raw_mate
 
     GltfMaterial out_mat;
     out_mat.name = String(alloc, material_name->AsString()->View());
-    out_mat.double_sided = *double_sided_val->AsBool();
+	if (double_sided_val) {
+		out_mat.double_sided = *double_sided_val->AsBool();
+	}
 
     if (!TryGetTextureRef(alloc, base_color_texture, &out_mat.base_color)) {
         LOG_ERROR("Failed to get base color texture reference from material");
@@ -836,8 +1058,8 @@ TryGetImages(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_file,
 
     const Json::Val* images_val = gltf_file->Find(String(alloc, "images"));
     if (!images_val) {
-        LOG_ERROR("Was expecting a materials array");
-        return false;
+		*out_images = Array<GltfImage>(alloc);
+        return true;
     }
     
     const Array<Json::Val>* images = images_val->AsArray();
@@ -899,7 +1121,7 @@ TryGetBufferViews(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_
     
     const Array<Json::Val>* buffer_views = buffer_views_val->AsArray();
     if (!buffer_views) {
-        LOG_ERROR("Was expecting a materials array");
+        LOG_ERROR("Was expecting a bufferViews array");
         return false;
     }
 
@@ -943,7 +1165,7 @@ TryGetBufferViews(Allocator* alloc, const RobinHashMap<String, Json::Val>* gltf_
 
         if (target_val) {
             int64_t target = *target_val->AsInt64();
-            if (target != static_cast<int64_t>(GltfBufferViewTarget::ArrayBuffer) ||
+            if (target != static_cast<int64_t>(GltfBufferViewTarget::ArrayBuffer) &&
                 target != static_cast<int64_t>(GltfBufferViewTarget::ElementArrayBuffer))
             {
                 LOG_ERROR("Invalid buffer view target");
@@ -1102,12 +1324,43 @@ struct LoadedGltfBuffer
 //}
 #endif
 
+static bool 
+TryGetAsset(Allocator* alloc, Allocator* scratch_alloc, const RobinHashMap<String, Json::Val>* gltf_file, GltfAsset* out_asset)
+{
+	ASSERT(out_asset, "should not be null");
+    const Json::Val* asset_val = gltf_file->Find(String(scratch_alloc, "asset"));
+
+    if (!asset_val) {
+        LOG_ERROR("'asset' entry was not found");
+        return false;
+    }
+    
+    const RobinHashMap<String, Json::Val>* asset = asset_val->AsObject();
+    if (!asset) {
+        LOG_ERROR("'asset' should be an object");
+        return false;
+    }
+
+	const Json::Val* version_val = asset->Find(String(scratch_alloc, "version"));
+	if (!version_val || !version_val->IsString()) {
+        LOG_ERROR("Could not parse 'version' entry in 'asset'");
+        return false;
+	}
+
+	*out_asset = GltfAsset();
+	out_asset->version = String(alloc, version_val->AsString()->View());
+
+	return true;
+}
+
 Model
 ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& path, ResourceManager* resource_manager, int model_index)
 {
     size_t size;
     uint8_t* data = FileSystem::LoadFileToMemory(scratch_allocator, path, &size);
     assert(data);
+
+	Path directory = path.GetDir();
     
     Json::Document doc(scratch_allocator);
     doc.Parse(data, size);
@@ -1124,8 +1377,19 @@ ImportGltf2Model(Allocator* alloc, Allocator* scratch_allocator, const Path& pat
         assert(false);
     }
 
+	GltfAsset asset;
+    if (!TryGetAsset(alloc, scratch_allocator, root, &asset)) {
+        LOG_ERROR("This GLTF file is not supported");
+        assert(false);
+    }
+
+	if (asset.version != "2.0") {
+		LOG_ERROR("Only version 2.0 of glTF is supported");
+		assert(false);
+	}
+
     Array<GltfBuffer> buffers;
-    if (!TryGetBuffers(alloc, root, &buffers)) {
+    if (!TryGetBuffers(alloc, directory, root, &buffers)) {
         LOG_ERROR("Was expecting a buffers array");
         assert(false);
     }

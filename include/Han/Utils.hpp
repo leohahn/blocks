@@ -16,7 +16,8 @@ namespace Utils
 
 String GetPrettySize(size_t size, Allocator* alloc = MallocAllocator::Instance());
 
-bool ParseInt32(const char* str, int32_t* res);
+int ParseInt32(const char* str, int32_t* res);
+int ParseInt32(const uint8_t* data, size_t size, int32_t* res);
 
 static inline const uint8_t*
 EatUntil(char c, const uint8_t* it, const uint8_t* end_it)
@@ -107,11 +108,25 @@ ParseDouble(const uint8_t* data, size_t size)
     // TODO, FIXME: there is probably a more efficient way of implementing this function.
     //
 
+	// The exponent part of the number
+	int32_t exp = 0;
+
     for (int64_t i = start; i < (int64_t)size; ++i) {
+		if (data[i] == 'e') {
+			// Parse exponential number
+			++i;
+			int consumed;
+			if (!(consumed = ParseInt32(data + i, size - i, &exp))) {
+				ASSERT(false, "should not fail to parse exponential");
+				return false;
+			}
+			i += consumed;
+			ASSERT(i >= size, "Scientific notation should be the last part of the number");
+			break;
+		}
         if (data[i] == '.') {
             ++i;
             parsing_fractional_part = true;
-            num_zeroes_fractional_part = (int64_t)size - i;
         }
 
         uint8_t curr_number = data[i] - FIRST_ASCII_NUMBER;
@@ -119,19 +134,20 @@ ParseDouble(const uint8_t* data, size_t size)
         if (parsing_fractional_part) {
             fractional_part *= 10;
             fractional_part += curr_number;
+			++num_zeroes_fractional_part;
         } else {
             integer_part *= 10;
             integer_part += curr_number;
         }
     }
 
-    size_t fraction = 1;
-
+	double real_fractional_part = fractional_part;
     for (int i = 0; i < num_zeroes_fractional_part; ++i) {
-        fraction *= 10;
+		real_fractional_part /= 10;
     }
 
-    double parsed = (double)integer_part + (double)fractional_part / fraction;
+    double parsed = (double)integer_part + real_fractional_part;
+	parsed = parsed * pow(10, exp);
 
     return is_negative ? -parsed : parsed;
 }

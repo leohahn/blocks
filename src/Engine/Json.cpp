@@ -43,7 +43,8 @@ struct Token
     Token(TokenType type, const uint8_t* str, size_t len)
         : type(type)
         , str((char*)str, len)
-    {}
+    {
+	}
 
     Token(TokenType type)
         : type(type)
@@ -395,16 +396,24 @@ Tokenize(Allocator* allocator, const char* str, size_t str_size, const char** er
             tokens.PushBack(std::move(tk));
             it = last_it;
         } else if (std::isdigit(*it) || *it == '-') {
-            // parse until the last number
+            // Parse until the last number
             const uint8_t *last_it = Utils::EatWhile(static_cast<int(*)(int)>(std::isdigit), it + 1, end_it);
 
             bool real = false;
             if (*last_it == '.') {
-                // number is a float, thus we have to parse it.
+                // Number is a float, thus we have to take into account the fractional part
                 ++last_it;
                 last_it = Utils::EatWhile(static_cast<int(*)(int)>(std::isdigit), last_it, end_it);
                 real = true;
             }
+
+			if (*last_it == 'e') {
+				// If the number is in exponential notation, we parse it as well.
+                ++last_it;
+				if (*last_it == '-') ++last_it;
+                last_it = Utils::EatWhile(static_cast<int(*)(int)>(std::isdigit), last_it, end_it);
+                real = true;
+			}
             
             Token tk(real ? TokenType_Real : TokenType_Integer, it, (size_t)(last_it - it));
             tokens.PushBack(std::move(tk));

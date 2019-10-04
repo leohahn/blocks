@@ -3,7 +3,7 @@
 #include "Han/Allocator.hpp"
 #include "Han/Core.hpp"
 #include "Han/Collections/StringView.hpp"
-#include <assert.h>
+#include <stdint.h>
 
 #if _WIN32
 #define PATH_SEP '\\'
@@ -90,7 +90,7 @@ public:
     
     void Push(const char* str_data, size_t str_len)
     {
-        assert(allocator);
+        ASSERT(allocator, "Allocator should not be null");
         if (str_len == 0) {
             return;
         }
@@ -122,9 +122,55 @@ public:
             len += str_len;
         }
         
-        assert(len < cap);
+        ASSERT(len < cap, "Len should be smaller than cap");
         data[len] = 0;
     }
+
+	Path GetDir() const
+	{
+		int64_t last_sep_index = -1;
+		for (int64_t i = (int64_t)len - 1; i >= 0; --i) {
+			// TODO(leo): handle different situations for Windows and Unix
+			if (data[i] == '/' || data[i] == '\\') {
+				last_sep_index = i;
+				break;
+			}
+		}
+
+		if (last_sep_index == -1) {
+			return Path(allocator, ".");
+		} else {
+			return Path(allocator, StringView(data, last_sep_index + 1));
+		}
+	}
+
+	Path Join(const StringView& str) const
+	{
+		if (len == 0) return Path(allocator, str);
+		if (str.len == 0) return Path(allocator, data);
+
+		char* new_data = (char*)allocator->Allocate(len + str.len + 1);
+		// Copy the first path to the new memory
+		memcpy(new_data, data, len);
+
+		size_t joined_path_start;
+		if (new_data[len - 1] != '/' && new_data[len - 1] != '\\') {
+			new_data[len] = '/';
+			joined_path_start = len + 1;
+		} else {
+			joined_path_start = len;
+		}
+
+		if (str.data[0] == '/' || str.data[0] == '\\') {
+			memcpy(new_data + joined_path_start, str.data + 1, str.len - 1);
+			new_data[joined_path_start + str.len - 1] = 0;
+		} else {
+			memcpy(new_data + len, str.data, str.len);
+			new_data[joined_path_start + str.len] = 0;
+		}
+
+		return Path(allocator, new_data);
+	}
 
     void Resize(size_t desired_cap)
     {

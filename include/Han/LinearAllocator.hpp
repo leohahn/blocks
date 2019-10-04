@@ -59,7 +59,7 @@ public:
 
     void* Allocate(size_t size) override
     {
-        assert(_mem);
+        ASSERT(_mem, "Allocator should be initialized");
 
         if (size > _size - _bytes_allocated) {
             LOG_WARN("Cannot allocate %s memory in %s allocator (size of %s)",
@@ -70,6 +70,7 @@ public:
         }
 
         void* free_mem = (void*)((uint8_t*)_mem + _bytes_allocated);
+		ASSERT(free_mem, "Memory allocation should not fail");
         _bytes_allocated += size;
 
         return free_mem;

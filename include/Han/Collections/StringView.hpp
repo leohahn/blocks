@@ -20,7 +20,6 @@ public:
         , len(strlen(str))
     {
         assert(str);
-        assert(len > 0);
     }
 
     StringView(const char* str, size_t len)
@@ -28,7 +27,6 @@ public:
         , len(len)
     {
         assert(str);
-        assert(len > 0);
     }
 
     bool IsEmpty() const { return len == 0; }
